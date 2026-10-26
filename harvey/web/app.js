@@ -781,7 +781,7 @@ async function loadSignals() {
 }
 
 function sigRow(sig) {
-  const free = /free|included/i.test(sig.cost_note || '');
+  const free = /free|included|gratis|incluid/i.test(sig.cost_note || '');
   const costCls = free ? 'free' : (/\$/.test(sig.cost_note || '') ? 'paid' : '');
   const seen = sig.companies
     ? '<span class="cost-chip">vista en ' + sig.companies +

@@ -603,9 +603,9 @@ def test_provider_menu_explains_cost_and_configuration():
     assert menu["serper"]["configured"] is True
     assert menu["tinyfish"]["configured"] is True
     assert menu["tinyfish"]["needs_key"] is True
-    assert menu["tinyfish"]["cost_note"] == "free"
-    assert "30 searches a minute" in menu["tinyfish"]["free_tier"]
-    assert "500 an hour" in menu["tinyfish"]["free_tier"]
+    assert menu["tinyfish"]["cost_note"] == "gratis"
+    assert "30 búsquedas por minuto" in menu["tinyfish"]["free_tier"]
+    assert "500 por hora" in menu["tinyfish"]["free_tier"]
     assert menu["dataforseo_listings"]["configured"] is False
     assert menu["dataforseo_listings"]["env_keys"] == [
         "DATAFORSEO_LOGIN", "DATAFORSEO_PASSWORD"]

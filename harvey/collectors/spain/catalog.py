@@ -5,13 +5,13 @@ Spanish (the operator's language for this market); codes stay English like
 the rest of the vocabulary. Categories are the dashboard's existing ones
 (discovery / profile), so the Signals tab renders them without changes.
 
-Cost notes start with "free" only when collection really costs nothing, and
+Cost notes start with "gratis" only when collection really costs nothing, and
 say what the catch is when there is one.
 """
 
 NEWS_COST = (
-    "free (Google News RSS, one request per account; Google's feed terms say "
-    "personal, non-commercial use, so check they fit how you use it)")
+    "gratis (RSS de Google News, una petición por cuenta; las condiciones del feed "
+    "hablan de uso personal y no comercial: comprueba que encajan con tu uso)")
 
 SPAIN_SIGNALS: list[dict] = [
     # ── Import: hand-picked accounts (data you supplied, never collected) ──
@@ -27,7 +27,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "discovery",
         "value_type": "bool",
         "collector": "import",
-        "cost_note": "free (your CSV import)",
+        "cost_note": "gratis (tu importación CSV)",
         "confidence_floor": 0.0,
     },
     {
@@ -40,7 +40,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "discovery",
         "value_type": "text",
         "collector": "import",
-        "cost_note": "free (your CSV import)",
+        "cost_note": "gratis (tu importación CSV)",
         "confidence_floor": 0.0,
     },
     {
@@ -50,7 +50,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "discovery",
         "value_type": "num",
         "collector": "import",
-        "cost_note": "free (your CSV import)",
+        "cost_note": "gratis (tu importación CSV)",
         "confidence_floor": 0.0,
     },
     {
@@ -60,7 +60,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "discovery",
         "value_type": "num",
         "collector": "import",
-        "cost_note": "free (your CSV import)",
+        "cost_note": "gratis (tu importación CSV)",
         "confidence_floor": 0.0,
     },
     {
@@ -74,7 +74,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "discovery",
         "value_type": "text",
         "collector": "import",
-        "cost_note": "free (your CSV import)",
+        "cost_note": "gratis (tu importación CSV)",
         "confidence_floor": 0.0,
     },
     {
@@ -84,7 +84,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "discovery",
         "value_type": "text",
         "collector": "import",
-        "cost_note": "free (your CSV import)",
+        "cost_note": "gratis (tu importación CSV)",
         "confidence_floor": 0.0,
     },
 
@@ -100,7 +100,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "profile",
         "value_type": "bool",
         "collector": "profile",
-        "cost_note": "free (homepage HTML)",
+        "cost_note": "gratis (HTML de la portada)",
         "confidence_floor": 0.0,
     },
     {
@@ -113,7 +113,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "profile",
         "value_type": "bool",
         "collector": "profile",
-        "cost_note": "free (homepage HTML)",
+        "cost_note": "gratis (HTML de la portada)",
         "confidence_floor": 0.0,
     },
     {
@@ -127,7 +127,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "profile",
         "value_type": "text",
         "collector": "profile",
-        "cost_note": "free (homepage HTML)",
+        "cost_note": "gratis (HTML de la portada)",
         "confidence_floor": 0.0,
     },
     {
@@ -140,7 +140,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "profile",
         "value_type": "text",
         "collector": "profile",
-        "cost_note": "free (homepage HTML)",
+        "cost_note": "gratis (HTML de la portada)",
         "confidence_floor": 0.0,
     },
     {
@@ -154,7 +154,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "profile",
         "value_type": "bool",
         "collector": "profile",
-        "cost_note": "free (homepage HTML)",
+        "cost_note": "gratis (HTML de la portada)",
         "confidence_floor": 0.0,
     },
     {
@@ -168,7 +168,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "profile",
         "value_type": "text",
         "collector": "profile",
-        "cost_note": "free (homepage HTML)",
+        "cost_note": "gratis (HTML de la portada)",
         "confidence_floor": 0.0,
     },
 
@@ -187,8 +187,8 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "profile",
         "value_type": "text",
         "collector": "jobs",
-        "cost_note": ("free (public job-board feed; InfoJobs API needs a free developer account, "
-                      "INFOJOBS_CLIENT_ID / INFOJOBS_CLIENT_SECRET)"),
+        "cost_note": ("gratis (feed público del portal de empleo; la API de InfoJobs necesita una cuenta "
+                      "gratuita de desarrollador: INFOJOBS_CLIENT_ID / INFOJOBS_CLIENT_SECRET)"),
         "confidence_floor": 0.0,
     },
 
@@ -205,8 +205,8 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "profile",
         "value_type": "text",
         "collector": "borme",
-        "cost_note": ("free (BOE open-data API; one request per province and day read, only "
-                      "for provinces of tracked accounts)"),
+        "cost_note": ("gratis (API de datos abiertos del BOE; una petición por provincia y día leído, "
+                      "solo de las provincias de tus cuentas)"),
         "confidence_floor": 0.0,
     },
     {
@@ -219,7 +219,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "profile",
         "value_type": "text",
         "collector": "borme",
-        "cost_note": "free (BOE open-data API, same requests as above)",
+        "cost_note": "gratis (API de datos abiertos del BOE, las mismas peticiones que arriba)",
         "confidence_floor": 0.0,
     },
     {
@@ -232,7 +232,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "profile",
         "value_type": "text",
         "collector": "borme",
-        "cost_note": "free (BOE open-data API, same requests as above)",
+        "cost_note": "gratis (API de datos abiertos del BOE, las mismas peticiones que arriba)",
         "confidence_floor": 0.0,
     },
 
@@ -297,7 +297,7 @@ SPAIN_SIGNALS: list[dict] = [
         "category": "discovery",
         "value_type": "num",
         "collector": "scoring",
-        "cost_note": "free (computed from signals already collected)",
+        "cost_note": "gratis (se calcula con las señales ya recogidas)",
         "confidence_floor": 0.0,
     },
 ]

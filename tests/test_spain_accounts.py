@@ -166,9 +166,9 @@ def test_new_signals_are_in_the_catalog_with_spanish_labels_and_free_cost_notes(
                  "BORME_APPOINTMENT", "BORME_CAPITAL", "BORME_MERGER", "NEWS_EXPANSION",
                  "NEWS_ACQUISITION", "NEWS_INVESTOR", "NEWS_LEADERSHIP", "ICP_SCORE"):
         assert code in codes
-        assert codes[code]["cost_note"].lower().startswith("free")
+        assert codes[code]["cost_note"].lower().startswith("gratis")
     assert len(codes) == len(SIGNAL_CATALOG), "codes must be unique"
-    assert "personal, non-commercial" in codes["NEWS_EXPANSION"]["cost_note"]
+    assert "personal y no comercial" in codes["NEWS_EXPANSION"]["cost_note"]
 
 
 # ── scoring ──

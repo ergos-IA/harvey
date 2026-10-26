@@ -495,11 +495,11 @@ class DataForSEOListings(DiscoveryProvider):
     label = "DataForSEO Business Listings"
     kind = "listings"
     needs_coordinates = True
-    blurb = ("Enumerate every business of a type within a radius, with phone, "
-             "domain, rating and whether the listing is claimed. Best choice "
-             "for local trades, clinics and contractors.")
-    cost_note = "$0.372 per 1,000 businesses ($0.012/query + $0.00036 each)"
-    free_tier = "$1 signup credit; $50 minimum deposit to go live"
+    blurb = ("Lista todos los negocios de un tipo dentro de un radio, con teléfono, "
+             "dominio, valoración y si la ficha está reclamada. La mejor opción "
+             "para oficios locales, clínicas y contratistas.")
+    cost_note = "0,372 $ por 1.000 negocios (0,012 $/consulta + 0,00036 $ cada uno)"
+    free_tier = "1 $ de crédito al registrarte; depósito mínimo de 50 $ para producción"
     signup_url = "https://app.dataforseo.com/api-access"
     env_keys = ("dataforseo_login", "dataforseo_password")
     caveat = "No email addresses — Harvey resolves those in a later stage."
@@ -585,17 +585,17 @@ class DataForSEOSerp(DiscoveryProvider):
     label = "DataForSEO SERP (organic rank)"
     kind = "serp"
     needs_coordinates = True
-    blurb = ("Search '<service> <city>' from the city centre and record where "
-             "each business ranks, plus who holds the local 3-pack. Discovers "
-             "businesses you didn't have AND scores the ones you did.")
-    cost_note = "$0.002 per 10 results (Live) — depth 30 costs $0.006 a search"
-    free_tier = "$1 signup credit; free sandbox; $50 minimum deposit to go live"
+    blurb = ("Busca '<servicio> <ciudad>' desde el centro de la ciudad y guarda la "
+             "posición de cada negocio y quién ocupa el pack local. Descubre "
+             "negocios que no tenías Y puntúa los que ya tenías.")
+    cost_note = "0,002 $ por 10 resultados (Live); profundidad 30 = 0,006 $ por búsqueda"
+    free_tier = "1 $ de crédito al registrarte; sandbox gratis; depósito mínimo de 50 $ para producción"
     signup_url = "https://app.dataforseo.com/api-access"
     env_keys = ("dataforseo_login", "dataforseo_password")
-    caveat = ("Google removed 100-results-per-page in September 2025, so depth "
-              "100 now costs 10x depth 10. Depth 20-30 is the sweet spot; "
-              "below rank 30 it is mostly directories anyway. Rank depends on "
-              "where the searcher stands — this is the view from the city centre.")
+    caveat = ("Google quitó los 100 resultados por página en septiembre de 2025, así que "
+              "profundidad 100 cuesta ahora 10 veces profundidad 10. Lo ideal es 20-30; "
+              "por debajo de la posición 30 casi todo son directorios. La posición depende "
+              "de dónde busca uno: esta es la vista desde el centro de la ciudad.")
 
     # Live mode. The standard queue is $0.0006 but asynchronous (post a task,
     # poll for it minutes later); the run loop checks the spend cap between
@@ -690,13 +690,13 @@ class DataForSEOMaps(DataForSEOSerp):
     key = "dataforseo_maps"
     label = "DataForSEO Google Maps (map rank)"
     kind = "serp"
-    blurb = ("Search Google Maps for '<service> <city>' and record each "
-             "business's map position, rating, category and claimed status — "
-             "including businesses with no website at all.")
-    cost_note = "$0.002 per search of up to 100 results (Live)"
-    caveat = ("Map rank depends heavily on where the searcher stands; Harvey "
-              "searches from the city centre at city zoom. Treat it as 'when we "
-              "searched from downtown', not an absolute position.")
+    blurb = ("Busca '<servicio> <ciudad>' en Google Maps y guarda la posición en el "
+             "mapa, la valoración, la categoría y si la ficha está reclamada, "
+             "incluidos los negocios sin web.")
+    cost_note = "0,002 $ por búsqueda de hasta 100 resultados (Live)"
+    caveat = ("La posición en el mapa depende mucho de dónde busca uno; Harvey busca "
+              "desde el centro de la ciudad con zoom de ciudad. Tómalo como 'buscando "
+              "desde el centro', no como una posición absoluta.")
 
     SERP_COST = 0.002     # per SERP of up to 100 results
     rank_codes = ("MAPS_RANK",)
@@ -773,10 +773,10 @@ class Serper(DiscoveryProvider):
     label = "Serper"
     kind = "serp"
     rank_codes = ("SERP_RANK",)
-    blurb = ("Fast Google search with rank positions. The easiest one to try: "
-             "2,500 free queries, no credit card, one API key.")
-    cost_note = "~$0.30-$1.00 per 1,000 searches depending on plan"
-    free_tier = "2,500 queries free, no card required"
+    blurb = ("Búsqueda rápida en Google con posiciones. La más fácil de probar: "
+             "2.500 consultas gratis, sin tarjeta, una sola clave de API.")
+    cost_note = "~0,30-1,00 $ por 1.000 búsquedas según el plan"
+    free_tier = "2.500 consultas gratis, sin tarjeta"
     signup_url = "https://serper.dev"
     env_keys = ("serper_api_key",)
     caveat = "Paid plans start at a $50 prepaid pack; credits expire after 6 months."
@@ -823,16 +823,16 @@ class TinyFish(DiscoveryProvider):
     label = "TinyFish"
     kind = "serp"
     rank_codes = ()
-    blurb = ("Free web search with a key. Finds businesses by phrase; it "
-             "records no search rank, since its ordering isn't Google's.")
-    cost_note = "free"
-    free_tier = "free with a key, no card: 30 searches a minute, 500 an hour"
+    blurb = ("Búsqueda web gratuita con clave. Encuentra negocios por frase; no "
+             "guarda posición, porque su orden no es el de Google.")
+    cost_note = "gratis"
+    free_tier = "gratis con clave, sin tarjeta: 30 búsquedas por minuto, 500 por hora"
     signup_url = "https://agent.tinyfish.ai/api-keys"
     env_keys = ("tinyfish_api_key",)
-    caveat = ("Needs TINYFISH_API_KEY in .env. Harvey paces itself to 30 searches "
-              "a minute; a depth-30 phrase is 3 searches, so about 160 phrases an "
-              "hour fit in the 500. No SERP_RANK: use Serper or DataForSEO SERP "
-              "for rank signals.")
+    caveat = ("Necesita TINYFISH_API_KEY en .env. Harvey se limita a 30 búsquedas "
+              "por minuto; una frase a profundidad 30 son 3 búsquedas, así que caben "
+              "unas 160 frases por hora en las 500. Sin SERP_RANK: usa Serper o "
+              "DataForSEO SERP para las señales de posición.")
 
     ENDPOINT = "https://api.search.tinyfish.ai"
     # 30 a minute, with a little room, and a little under 500 an hour.
@@ -991,16 +991,16 @@ class OpenStreetMap(DiscoveryProvider):
     label = "OpenStreetMap (Overpass)"
     kind = "listings"
     needs_coordinates = True
-    blurb = ("Free public map data. No signup, no key, no card. Try the whole "
-             "pipeline for nothing before you pay anyone.")
-    cost_note = "free"
-    free_tier = "unlimited, within community rate etiquette"
+    blurb = ("Datos de mapa públicos y gratuitos. Sin registro, sin clave, sin tarjeta. "
+             "Prueba todo el proceso gratis antes de pagar a nadie.")
+    cost_note = "gratis"
+    free_tier = "ilimitado, respetando los límites de uso de la comunidad"
     signup_url = "https://www.openstreetmap.org"
     env_keys = ()
-    caveat = ("Coverage is thin for any trade without a storefront — OSM maps "
-              "premises, so it holds under 2,000 roofers for the entire US. "
-              "Great for a free trial run or as a cross-reference; not a "
-              "complete list.")
+    caveat = ("La cobertura es escasa para cualquier oficio sin local a pie de calle: "
+              "OSM mapea locales, así que tiene muy pocas empresas que no los tienen. "
+              "Ideal para una prueba gratis o para cruzar datos; no es una lista "
+              "completa.")
 
     # Several public Overpass instances run the same API. The main one
     # throttles readily, so try the mirrors before giving up — a free source

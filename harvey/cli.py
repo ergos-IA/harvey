@@ -570,7 +570,7 @@ def cmd_discover(args):
                 print(f"\n  {m['label']}  [{m['key']}]  ({mark})")
                 print(f"    {m['blurb']}")
                 print(f"    Cost: {m['cost_note']}")
-                print(f"    Free: {m['free_tier']}")
+                print(f"    Gratis: {m['free_tier']}")
                 if m["env_keys"]:
                     print(f"    Needs: {', '.join(m['env_keys'])} in .env  —  {m['signup_url']}")
                 if m["caveat"]:
@@ -668,7 +668,7 @@ def cmd_signals(args):
                 # substring match would sweep in "1 credit (free tiers
                 # available)", which is not free.
                 codes = [c["code"] for c in await state.get_signal_codes()
-                         if (c["cost_note"] or "").lower().startswith(("free", "included"))]
+                         if (c["cost_note"] or "").lower().startswith(("free", "included", "gratis", "incluid"))]
             changed = sum(
                 [1 for c in codes if await state.set_signal_status(c, status)]
             )
