@@ -24,6 +24,14 @@ if [ "$(id -u)" = "0" ]; then
     # se cambie desde el dashboard (las variables de Railway tienen prioridad).
     [ -f "$APP/.env" ] || : > "$APP/.env"
     chmod 600 "$APP/.env"
+    # Configuración privada desde variables de Railway (base64), para no
+    # tenerla en el repo público. Si la variable existe, manda sobre el archivo.
+    [ -z "${HARVEY_LOCAL_YAML_B64:-}" ] \
+        || printf '%s' "$HARVEY_LOCAL_YAML_B64" | base64 -d > "$APP/harvey.local.yaml"
+    [ -z "${HARVEY_PRODUCT_KNOWLEDGE_B64:-}" ] \
+        || printf '%s' "$HARVEY_PRODUCT_KNOWLEDGE_B64" | base64 -d > "$APP/skills/product_knowledge.md"
+    [ -z "${HARVEY_COMPETITIVE_INTEL_B64:-}" ] \
+        || printf '%s' "$HARVEY_COMPETITIVE_INTEL_B64" | base64 -d > "$APP/skills/competitive_intel.md"
     chown -R harvey:harvey "$VOLUME"
     exec setpriv --reuid=harvey --regid=harvey --init-groups \
         env HOME=/home/harvey "$0" "$@"

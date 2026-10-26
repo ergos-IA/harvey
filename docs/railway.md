@@ -31,6 +31,8 @@ los prompts desde la imagen, y se conserva todo lo que Harvey haya generado.
 | `CLAUDE_CODE_OAUTH_TOKEN` | sí | Ejecuta `claude setup-token` en tu ordenador y pega el token. Usa tu suscripción Pro/Max. |
 | `HARVEY_DASHBOARD_TOKEN` | sí | Secreto para entrar al dashboard (43-128 caracteres). Por ejemplo: `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
 | `HARVEY_PUBLIC_HOSTS` | no | Dominios propios extra, separados por comas. El dominio `*.up.railway.app` se detecta solo. |
+| `HARVEY_LOCAL_YAML_B64` | no | `harvey.local.yaml` en base64 (`base64 -w0 harvey.local.yaml`). Si existe, se escribe en cada arranque y manda sobre el archivo del volumen. |
+| `HARVEY_PRODUCT_KNOWLEDGE_B64` / `HARVEY_COMPETITIVE_INTEL_B64` | no | Igual, para `skills/product_knowledge.md` y `skills/competitive_intel.md`. |
 | `HARVEY_AUTOSTART` | no | `1` (por defecto) arranca el bucle al iniciar si Harvey está configurado; `0` lo desactiva. |
 | `SMTP_*`, `IMAP_*`, `REOON_API_KEY`... | según uso | Las mismas de `.env.example`. Las variables de Railway tienen prioridad sobre el `.env` del volumen. |
 
