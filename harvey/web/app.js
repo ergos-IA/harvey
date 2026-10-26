@@ -17,20 +17,20 @@ function applyTheme(mode) {
   if (mode === 'auto') root.removeAttribute('data-theme');
   else root.setAttribute('data-theme', mode);
   const btn = document.getElementById('theme-btn');
-  if (btn) btn.textContent = mode;
+  if (btn) btn.textContent = { auto: 'Auto', light: 'Claro', dark: 'Oscuro' }[mode] || mode;
 }
 
 function cycleTheme() {
-  const now = localStorage.getItem('harvey-theme') || 'auto';
+  const now = localStorage.getItem('harvey-theme') || 'dark';
   const next = THEMES[(THEMES.indexOf(now) + 1) % THEMES.length];
   try { localStorage.setItem('harvey-theme', next); } catch { /* private mode */ }
   applyTheme(next);
 }
 
 (function initTheme() {
-  let saved = 'auto';
-  try { saved = localStorage.getItem('harvey-theme') || 'auto'; } catch { /* ignore */ }
-  applyTheme(THEMES.includes(saved) ? saved : 'auto');
+  let saved = 'dark';
+  try { saved = localStorage.getItem('harvey-theme') || 'dark'; } catch { /* ignore */ }
+  applyTheme(THEMES.includes(saved) ? saved : 'dark');
 })();
 
 // ── Utilities ──
@@ -76,61 +76,61 @@ function safeHref(u) {
 // tone: waiting (needs a human) | active (in flight) | good | bad | idle
 const STATUS = {
   // prospects
-  new:            ['New', 'active'],
-  contacted:      ['Contacted', 'active'],
-  replied:        ['Replied', 'good'],
-  interested:     ['Interested', 'good'],
-  meeting:        ['Meeting booked', 'note'],
-  not_interested: ['Not interested', 'bad'],
-  bounced:        ['Bounced', 'bad'],
-  write_failed:   ["Couldn't write", 'bad'],
-  queued:         ['Queued', 'active'],
-  opted_out:      ['Opted out', 'bad'],
+  new:            ['Nuevo', 'active'],
+  contacted:      ['Contactado', 'active'],
+  replied:        ['Respondió', 'good'],
+  interested:     ['Interesado', 'good'],
+  meeting:        ['Reunión agendada', 'note'],
+  not_interested: ['No interesado', 'bad'],
+  bounced:        ['Rebotado', 'bad'],
+  write_failed:   ['No se pudo redactar', 'bad'],
+  queued:         ['En cola', 'active'],
+  opted_out:      ['Se dio de baja', 'bad'],
   // campaigns
-  draft:          ['Draft', 'waiting'],
-  active:         ['Active', 'good'],
-  completed:      ['Completed', 'idle'],
-  paused:         ['Paused', 'bad'],
+  draft:          ['Borrador', 'waiting'],
+  active:         ['Activa', 'good'],
+  completed:      ['Completada', 'idle'],
+  paused:         ['En pausa', 'bad'],
   // conversations
-  open:           ['Open', 'active'],
-  closed:         ['Closed', 'idle'],
-  closed_won:     ['Won', 'good'],
-  closed_lost:    ['Lost', 'bad'],
-  objection:      ['Objection', 'waiting'],
-  question:       ['Question', 'active'],
-  ooo:            ['Out of office', 'idle'],
-  wrong_person:   ['Wrong person', 'waiting'],
-  unsubscribe:    ['Unsubscribed', 'bad'],
-  escalate:       ['Needs a human', 'bad'],
-  needs_human:    ['Needs you', 'waiting'],
+  open:           ['Abierta', 'active'],
+  closed:         ['Cerrada', 'idle'],
+  closed_won:     ['Ganada', 'good'],
+  closed_lost:    ['Perdida', 'bad'],
+  objection:      ['Objeción', 'waiting'],
+  question:       ['Pregunta', 'active'],
+  ooo:            ['Fuera de la oficina', 'idle'],
+  wrong_person:   ['Persona equivocada', 'waiting'],
+  unsubscribe:    ['Baja', 'bad'],
+  escalate:       ['Requiere a una persona', 'bad'],
+  needs_human:    ['Te necesita', 'waiting'],
   // outbox
-  pending_review: ['Waiting on you', 'waiting'],
-  approved:       ['Approved', 'good'],
-  sending:        ['Sending now', 'active'],
-  scheduled:      ['Scheduled', 'active'],
-  sent:           ['Sent', 'good'],
-  failed:         ['Failed', 'bad'],
-  rejected:       ['Rejected', 'idle'],
-  cancelled:      ['Cancelled', 'idle'],
+  pending_review: ['Pendiente de ti', 'waiting'],
+  approved:       ['Aprobado', 'good'],
+  sending:        ['Enviando ahora', 'active'],
+  scheduled:      ['Programado', 'active'],
+  sent:           ['Enviado', 'good'],
+  failed:         ['Fallido', 'bad'],
+  rejected:       ['Rechazado', 'idle'],
+  cancelled:      ['Cancelado', 'idle'],
   // signals
-  proposed:       ['Waiting on you', 'waiting'],
-  confirmed:      ['Confirmed', 'good'],
+  proposed:       ['Pendiente de ti', 'waiting'],
+  confirmed:      ['Confirmada', 'good'],
   // email deliverability
-  verified:       ['Verified', 'good'],
+  verified:       ['Verificado', 'good'],
   risky:          ['Catch-all', 'waiting'],
-  guess:          ['Unverified', 'idle'],
-  invalid:        ['Invalid', 'bad'],
+  guess:          ['Sin verificar', 'idle'],
+  invalid:        ['No válido', 'bad'],
   // runs
-  running:        ['Running', 'active'],
-  stale:          ['Stale', 'bad'],
-  stalled:        ['Stopped', 'bad'],
+  running:        ['En ejecución', 'active'],
+  stale:          ['Obsoleto', 'bad'],
+  stalled:        ['Detenido', 'bad'],
 };
 
 function statusMeta(status) {
   const key = String(status || '').toLowerCase().replace(/[^a-z0-9]+/g, '_');
   const hit = own(STATUS, key);
   if (hit) return { label: hit[0], tone: hit[1] };
-  const label = String(status || 'unknown').replace(/_/g, ' ');
+  const label = String(status || 'desconocido').replace(/_/g, ' ');
   return { label: label.charAt(0).toUpperCase() + label.slice(1), tone: 'idle' };
 }
 
@@ -146,7 +146,7 @@ function formatDate(d) {
     if (/^\d{4}-\d\d-\d\dT/.test(t) && !/[zZ]$|[+-]\d\d:?\d\d$/.test(t)) t += 'Z';  // stored UTC
     const dt = new Date(t);
     if (isNaN(dt)) return escHtml(d);
-    return dt.toLocaleString('en-US', {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    return dt.toLocaleString('es-ES', {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
   } catch { return escHtml(d); }
 }
 
@@ -171,21 +171,21 @@ function parseTs(d) {
   return new Date(t);
 }
 
-// "3m ago", "5h ago", "Yesterday", then a date: recent things read faster.
+// "hace 3 min", "hace 5 h", "Ayer", then a date: recent things read faster.
 function relTime(d) {
   if (!d) return '';
   const dt = parseTs(d);
   if (isNaN(dt)) return escHtml(d);
   const mins = Math.round((Date.now() - dt) / 60000);
-  if (mins < -1 && mins > -60) return 'in ' + -mins + 'm';
-  if (mins < -1 && mins > -60 * 24) return 'in ' + Math.round(-mins / 60) + 'h';
-  if (mins >= -1 && mins < 1) return 'just now';
-  if (mins >= 1 && mins < 60) return mins + 'm ago';
-  if (mins >= 60 && mins < 60 * 24) return Math.round(mins / 60) + 'h ago';
-  if (mins >= 60 * 24 && mins < 60 * 48) return 'Yesterday';
+  if (mins < -1 && mins > -60) return 'en ' + -mins + ' min';
+  if (mins < -1 && mins > -60 * 24) return 'en ' + Math.round(-mins / 60) + ' h';
+  if (mins >= -1 && mins < 1) return 'ahora mismo';
+  if (mins >= 1 && mins < 60) return 'hace ' + mins + ' min';
+  if (mins >= 60 && mins < 60 * 24) return 'hace ' + Math.round(mins / 60) + ' h';
+  if (mins >= 60 * 24 && mins < 60 * 48) return 'Ayer';
   const opts = {month: 'short', day: 'numeric'};
   if (dt.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
-  return dt.toLocaleDateString('en-US', opts);
+  return dt.toLocaleDateString('es-ES', opts);
 }
 
 function dayLabel(d) {
@@ -194,14 +194,14 @@ function dayLabel(d) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const that = new Date(dt); that.setHours(0, 0, 0, 0);
   const diff = Math.round((today - that) / 86400000);
-  if (diff === 0) return 'Today';
-  if (diff === 1) return 'Yesterday';
-  return dt.toLocaleDateString('en-US', {weekday: 'long', month: 'short', day: 'numeric'});
+  if (diff === 0) return 'Hoy';
+  if (diff === 1) return 'Ayer';
+  return dt.toLocaleDateString('es-ES', {weekday: 'long', month: 'short', day: 'numeric'});
 }
 
 function timeOfDay(d) {
   const dt = parseTs(d);
-  return isNaN(dt) ? '' : dt.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'});
+  return isNaN(dt) ? '' : dt.toLocaleTimeString('es-ES', {hour: 'numeric', minute: '2-digit'});
 }
 
 // Columns of a tiny bar chart; the last day is "today".
@@ -209,7 +209,7 @@ function sparkBars(values, title) {
   const vals = (values || []).map(v => Number(v) || 0);
   if (!vals.length) return '';
   const max = Math.max(...vals, 1);
-  return '<span class="spark" role="img" aria-label="' + escHtml(title || 'trend') + '">' +
+  return '<span class="spark" role="img" aria-label="' + escHtml(title || 'tendencia') + '">' +
     vals.map((v, i) => '<i class="' + (v ? 'on' : '') + '" style="height:' +
       Math.max(2, Math.round(v / max * 28)) + 'px" title="' + v + '"></i>').join('') + '</span>';
 }
@@ -226,9 +226,9 @@ function meterHtml(pct, segments) {
 }
 
 const SOURCE_LABELS = {
-  company_website: 'Team page', known_company_backfill: 'Team page',
-  scraped_mailto: 'Published address', hunter_domain_search: 'Hunter', linkedin_search: 'LinkedIn',
-  job_board: 'Job board', web_search: 'Web search', company_inbox: 'Company inbox',
+  company_website: 'Página del equipo', known_company_backfill: 'Página del equipo',
+  scraped_mailto: 'Dirección publicada', hunter_domain_search: 'Hunter', linkedin_search: 'LinkedIn',
+  job_board: 'Portal de empleo', web_search: 'Búsqueda web', company_inbox: 'Buzón de la empresa',
   osm: 'OpenStreetMap', dataforseo_listings: 'DataForSEO', dataforseo_serp: 'DataForSEO SERP', dataforseo_maps: 'DataForSEO Maps',
   serper: 'Serper', tinyfish: 'TinyFish',
 };
@@ -248,30 +248,30 @@ function actionText(a) {
   const intent = d.intent ? ' · ' + escHtml(String(d.intent).replace(/_/g, ' ')) : '';
   const n = (v, one, many) => (Number(v) || 0) + ' ' + ((Number(v) || 0) === 1 ? one : many);
   switch (a.action_type) {
-    case 'prospect': return 'Found ' + n(d.prospects_found, 'new contact', 'new contacts');
-    case 'write_campaign': return 'Wrote “' + camp + '” for ' + n(d.prospect_count, 'contact', 'contacts');
-    case 'write_failed': return 'Couldn’t write for some contacts' + (camp ? ' in “' + camp + '”' : '');
-    case 'stage_campaign': return 'Queued ' + n(d.staged, 'email', 'emails') + ' from “' + camp + '”' +
+    case 'prospect': return 'Encontrados ' + n(d.prospects_found, 'contacto nuevo', 'contactos nuevos');
+    case 'write_campaign': return 'Redactada “' + camp + '” para ' + n(d.prospect_count, 'contacto', 'contactos');
+    case 'write_failed': return 'No se pudo redactar para algunos contactos' + (camp ? ' en “' + camp + '”' : '');
+    case 'stage_campaign': return 'En cola ' + n(d.staged, 'correo', 'correos') + ' de “' + camp + '”' +
       (d.mode ? ' · ' + escHtml(d.mode) : '');
-    case 'send_campaign': return 'Sent “' + camp + '” to Instantly · ' + n(d.leads_added, 'lead', 'leads');
-    case 'email_sent': return d.kind === 'reply' ? 'Sent a reply to ' + who
-      : 'Sent email ' + escHtml(String(d.step || 1)) + ' to ' + who;
-    case 'reply': return 'Answered ' + who + intent;
-    case 'reply_queued': return 'Drafted a reply to ' + who + intent;
-    case 'opt_out': return who + ' opted out' + (d.why ? ' · ' + escHtml(d.why) : '');
-    case 'opt_out_undone': return 'You undid ' + (who || 'a contact') + '’s opt-out';
-    case 'reply_after_opt_out': return who + ' wrote again after opting out · no reply sent';
-    case 'escalation': return 'Flagged ' + who + ' for you' + (d.reason ? ' · ' + escHtml(d.reason) : '');
-    case 'bounce': return 'Email to ' + who + ' bounced';
-    case 'manual_send': return 'You marked a contact as emailed by hand';
-    case 'manual_send_undone': return 'You undid a hand-sent mark';
-    case 'outbox_edited': return 'You edited a draft';
+    case 'send_campaign': return 'Enviada “' + camp + '” a Instantly · ' + n(d.leads_added, 'lead', 'leads');
+    case 'email_sent': return d.kind === 'reply' ? 'Respuesta enviada a ' + who
+      : 'Correo ' + escHtml(String(d.step || 1)) + ' enviado a ' + who;
+    case 'reply': return 'Respondido a ' + who + intent;
+    case 'reply_queued': return 'Borrador de respuesta a ' + who + intent;
+    case 'opt_out': return who + ' se dio de baja' + (d.why ? ' · ' + escHtml(d.why) : '');
+    case 'opt_out_undone': return 'Has deshecho la baja de ' + (who || 'un contacto');
+    case 'reply_after_opt_out': return who + ' volvió a escribir tras darse de baja · no se envió respuesta';
+    case 'escalation': return 'Marcado ' + who + ' para ti' + (d.reason ? ' · ' + escHtml(d.reason) : '');
+    case 'bounce': return 'El correo a ' + who + ' rebotó';
+    case 'manual_send': return 'Has marcado un contacto como enviado a mano';
+    case 'manual_send_undone': return 'Has deshecho una marca de envío manual';
+    case 'outbox_edited': return 'Has editado un borrador';
     case 'conversation_status':
-      return d.to === 'closed' ? 'You closed a conversation'
-        : d.from === 'needs_human' ? 'You handed a conversation back to Harvey' : 'You reopened a conversation';
+      return d.to === 'closed' ? 'Has cerrado una conversación'
+        : d.from === 'needs_human' ? 'Has devuelto una conversación a Harvey' : 'Has reabierto una conversación';
   }
   const text = escHtml(String(a.action_type || '').replace(/_/g, ' '));
-  return a.agent === 'main' ? 'Heartbeat: ' + text : text;
+  return a.agent === 'main' ? 'Latido: ' + text : text;
 }
 
 function emptyState(glyph, title, copy) {
@@ -281,8 +281,8 @@ function emptyState(glyph, title, copy) {
 }
 
 function offlineState() {
-  return emptyState('&#9888;', 'Dashboard can\'t reach the server',
-    'The dashboard process may have stopped. Restart it with <b>harvey dashboard</b> and refresh this page.');
+  return emptyState('&#9888;', 'El panel no puede conectar con el servidor',
+    'Puede que el proceso del panel se haya detenido. Reinícialo con <b>harvey dashboard</b> y actualiza esta página.');
 }
 
 async function api(path, opts) {
@@ -316,10 +316,10 @@ async function lockIfRefused(r) {
     try { why = ((await r.json()) || {}).message || ''; } catch { /* ignore */ }
   }
   showLock(r.status === 503
-    ? 'The dashboard server can\'t use its token file, so it is refusing every request. ' + why
+    ? 'El servidor del panel no puede usar su archivo de token, así que rechaza todas las peticiones. ' + why
     : authToken()
       ? 'The saved token was not accepted (the dashboard may have a new one).'
-      : 'This tab doesn\'t have the dashboard token yet.');
+      : 'Esta pestaña aún no tiene el token del panel.');
   return true;
 }
 
@@ -332,7 +332,7 @@ function showLock(reason) {
   const dot = document.getElementById('header-dot');
   const text = document.getElementById('header-status-text');
   if (dot) dot.className = 'status-dot offline';
-  if (text) text.textContent = 'Locked';
+  if (text) text.textContent = 'Bloqueado';
 }
 
 function hideLock() {
@@ -348,7 +348,7 @@ function unlockWithToken(event) {
   input.value = '';
   if (!setAuthToken(value)) {
     document.getElementById('lock-reason').textContent =
-      'That doesn\'t look like a dashboard token. Copy it again from the link or data/dashboard-token.';
+      'Eso no parece un token del panel. Vuelve a copiarlo del enlace o de data/dashboard-token.';
     return;
   }
   hideLock();
@@ -363,7 +363,7 @@ async function downloadCsv(path, filename, btn) {
   try {
     const r = await authFetch(path);
     if (await lockIfRefused(r)) return;
-    if (!r.ok) { showToast('Export failed.', 'error'); return; }
+    if (!r.ok) { showToast('La exportación ha fallado.', 'error'); return; }
     const href = URL.createObjectURL(await r.blob());
     const a = document.createElement('a');
     a.href = href;
@@ -373,7 +373,7 @@ async function downloadCsv(path, filename, btn) {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(href), 10000);
   } catch {
-    showToast('Export failed — is the dashboard still running?', 'error');
+    showToast('La exportación ha fallado: ¿sigue en marcha el panel?', 'error');
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -429,8 +429,8 @@ async function loadToday() {
   if (!data) { el.innerHTML = offlineState(); return; }
   if (data.error) {
     // A failed check must never read as "Nothing needs you".
-    el.innerHTML = emptyState(icon('alert'), 'Couldn\'t check what needs you',
-      'The dashboard hit an error reading Harvey\'s data: ' + escHtml(data.error));
+    el.innerHTML = emptyState(icon('alert'), 'No se pudo comprobar qué te necesita',
+      'El panel encontró un error al leer los datos de Harvey: ' + escHtml(data.error));
     return;
   }
 
@@ -445,9 +445,9 @@ async function loadToday() {
   if (!items.length) {
     el.innerHTML = '<div class="queue-clear">' +
       '<div class="queue-icon">' + icon('check') + '</div><div>' +
-      '<div class="qtitle">Nothing needs you</div>' +
-      '<div class="qdetail">Harvey has everything it needs. Anything that requires a ' +
-      'decision — an email to approve, a signal to confirm — shows up here.</div>' +
+      '<div class="qtitle">Nada te necesita</div>' +
+      '<div class="qdetail">Harvey tiene todo lo que necesita. Aquí aparecerá cualquier cosa que ' +
+      'requiera una decisión: un correo por aprobar, una señal por confirmar.</div>' +
       '</div></div>';
     return;
   }
@@ -476,9 +476,9 @@ async function loadLiveStatus() {
   if (!d || !Array.isArray(d.steps)) {
     // Keep the last good numbers on screen, but never let them pass for live.
     const flag = el.querySelector('.live-flag');
-    if (flag) flag.textContent = "Can't reach Harvey right now — numbers below may be old.";
-    else el.innerHTML = '<p class="muted live-flag">Can\'t reach Harvey right now. ' +
-      'Is the dashboard window still open?</p>';
+    if (flag) flag.textContent = "No se puede conectar con Harvey ahora mismo: las cifras de abajo pueden estar desactualizadas.";
+    else el.innerHTML = '<p class="muted live-flag">No se puede conectar con Harvey ahora mismo. ' +
+      '¿Sigue abierta la ventana del panel?</p>';
     return;
   }
   const glyph = {done: icon('check'), running: '<span class="pulse"></span>', partial: '', waiting: ''};
@@ -495,27 +495,27 @@ async function loadLiveStatus() {
       '<span class="step-detail">' + escHtml(s.detail) + '</span>' + bar +
     '</div>';
   }).join('');
-  const jobName = r => r.stage === 'profile' ? 'Reading websites'
-    : r.stage === 'discover' ? 'Searching for businesses (' + (r.provider || '') + ')'
-    : String(r.stage || 'Job');
+  const jobName = r => r.stage === 'profile' ? 'Leyendo webs'
+    : r.stage === 'discover' ? 'Buscando negocios (' + (r.provider || '') + ')'
+    : String(r.stage || 'Trabajo');
   const running = d.running || [];
   const runningHtml = running.length
     ? running.map(r => '<span class="live-now"><span class="pulse"></span>' + escHtml(jobName(r)) +
         ' · ' + r.elapsed_min + ' min' + (r.eta_text ? ' · ' + escHtml(r.eta_text) : '') + '</span>').join('')
-    : '<span class="live-now">Nothing running right now</span>';
+    : '<span class="live-now">No hay nada en ejecución ahora mismo</span>';
   const stoppedHtml = (d.stopped || []).length
     ? '<div class="banner bad" style="margin:8px 0 0">' + icon('alert') + '<p style="color:inherit">' +
-      (d.stopped || []).map(r => escHtml(jobName(r))).join(', ') + ' stopped before finishing.</p></div>'
+      (d.stopped || []).map(r => escHtml(jobName(r))).join(', ') + ' se detuvo antes de terminar.</p></div>'
     : '';
   el.innerHTML =
     '<div class="live-head">' + runningHtml +
-      '<span class="setup-pct">Cost so far $' + Number(d.cost_usd || 0).toFixed(2) + '</span></div>' +
+      '<span class="setup-pct">Coste hasta ahora $' + Number(d.cost_usd || 0).toFixed(2) + '</span></div>' +
     stoppedHtml +
     '<div class="steps">' + rows + '</div>' +
-    (d.next ? '<div class="live-next">' + icon('arrow') + '<span><b>Next</b> · ' + escHtml(d.next) + '</span>' +
-      (d.next_tab ? '<button class="btn btn-secondary btn-sm" onclick="goTab(' + jsq(d.next_tab) + ')">Go</button>' : '') +
+    (d.next ? '<div class="live-next">' + icon('arrow') + '<span><b>Siguiente</b> · ' + escHtml(d.next) + '</span>' +
+      (d.next_tab ? '<button class="btn btn-secondary btn-sm" onclick="goTab(' + jsq(d.next_tab) + ')">Ir</button>' : '') +
       '</div>' : '') +
-    '<div class="live-flag">Updated ' + new Date().toLocaleTimeString() + ' · refreshes every 10 seconds</div>';
+    '<div class="live-flag">Actualizado ' + new Date().toLocaleTimeString() + ' · se actualiza cada 10 segundos</div>';
 }
 
 // KPI cards. Totals come from /api/today; the 14-day bars from /api/trend.
@@ -532,27 +532,27 @@ function renderFigures(stats) {
 
   // Instantly sends from its own servers, so the Outbox never sees them.
   const sent = stats.email_provider === 'instantly'
-    ? card('Emails sent', '&mdash;', '', 'Instantly tracks sends')
-    : card('Emails sent', sum(t.sent), sparkBars(t.sent, 'Emails sent per day, last 14 days'),
-           'last 14 days · <b>' + (stats.outbox_approved || 0) + '</b> scheduled');
+    ? card('Correos enviados', '&mdash;', '', 'Instantly registra los envíos')
+    : card('Correos enviados', sum(t.sent), sparkBars(t.sent, 'Correos enviados por día, últimos 14 días'),
+           'últimos 14 días · <b>' + (stats.outbox_approved || 0) + '</b> programados');
   const waiting = (stats.outbox_pending || 0) + (stats.needs_human || 0);
   const waitNote = [
-    stats.outbox_pending ? stats.outbox_pending + ' to approve' : '',
-    stats.needs_human ? stats.needs_human + ' handed to you' : '',
-  ].filter(Boolean).join(' · ') || 'nothing to approve';
+    stats.outbox_pending ? stats.outbox_pending + ' por aprobar' : '',
+    stats.needs_human ? stats.needs_human + ' pasados a ti' : '',
+  ].filter(Boolean).join(' · ') || 'nada por aprobar';
   const facts = document.getElementById('today-facts');
   if (facts) facts.innerHTML =
-    '<span><b>' + (stats.companies || 0) + '</b> companies</span>' +
-    '<span><b>' + (stats.unprofiled || 0) + '</b> sites not read yet</span>' +
-    '<span><b>' + (stats.signals_confirmed || 0) + '</b> signals on</span>';
+    '<span><b>' + (stats.companies || 0) + '</b> empresas</span>' +
+    '<span><b>' + (stats.unprofiled || 0) + '</b> webs sin leer</span>' +
+    '<span><b>' + (stats.signals_confirmed || 0) + '</b> señales activas</span>';
 
   el.innerHTML = '<div class="kpis">' +
-    card('Contacts found', stats.prospects || 0, sparkBars(t.found, 'Contacts found per day, last 14 days'),
-         '<b>+' + last7(t.found) + '</b> this week') +
+    card('Contactos encontrados', stats.prospects || 0, sparkBars(t.found, 'Contactos encontrados por día, últimos 14 días'),
+         '<b>+' + last7(t.found) + '</b> esta semana') +
     sent +
-    card('Conversations', stats.open_conversations || 0, sparkBars(t.replies, 'New replies per day, last 14 days'),
-         '<b>' + sum(t.replies) + '</b> new in 14 days') +
-    card('Waiting on you', waiting, '', waitNote) +
+    card('Conversaciones', stats.open_conversations || 0, sparkBars(t.replies, 'Respuestas nuevas por día, últimos 14 días'),
+         '<b>' + sum(t.replies) + '</b> nuevas en 14 días') +
+    card('Pendiente de ti', waiting, '', waitNote) +
   '</div>';
 }
 
@@ -570,23 +570,23 @@ async function loadFunnel() {
   if (!el) return;
   const data = await api('/api/stats');
   if (!data) return;  // offline: keep the last numbers; Today's queue says so
-  if (data.error) { el.innerHTML = '<p class="muted" style="font-size:13px">Couldn\'t read the pipeline.</p>'; return; }
+  if (data.error) { el.innerHTML = '<p class="muted" style="font-size:13px">No se pudo leer el embudo.</p>'; return; }
   const total = (data.prospects || {}).total || 0;
   const pipe = data.pipeline || {};
   const stages = [
-    ['To write', pipe.to_write || 0, 'c-accent-soft'],
-    ['Contacted', pipe.contacted || 0, 'c-accent'],
-    ['Replied', pipe.replied || 0, 'c-active'],
-    ['Interested', pipe.interested || 0, 'c-good'],
-    ['Ready to meet', pipe.ready_to_meet || 0, 'c-note'],
-    ['Closed out', pipe.closed_out || 0, 'c-idle'],
+    ['Por redactar', pipe.to_write || 0, 'c-accent-soft'],
+    ['Contactados', pipe.contacted || 0, 'c-accent'],
+    ['Respondieron', pipe.replied || 0, 'c-active'],
+    ['Interesados', pipe.interested || 0, 'c-good'],
+    ['Listos para reunión', pipe.ready_to_meet || 0, 'c-note'],
+    ['Cerrados', pipe.closed_out || 0, 'c-idle'],
   ];
   if (!total) {
-    el.innerHTML = '<p class="muted" style="font-size:13px">No contacts yet. Scout adds them as it finds people.</p>';
+    el.innerHTML = '<p class="muted" style="font-size:13px">Aún no hay contactos. Scout los añade a medida que encuentra personas.</p>';
     return;
   }
   el.innerHTML =
-    '<div class="funnel-bar" role="img" aria-label="Contacts by stage">' +
+    '<div class="funnel-bar" role="img" aria-label="Contactos por etapa">' +
       stages.filter(s => s[1] > 0).map(s =>
         '<span class="seg ' + s[2] + '" style="flex:' + s[1] + '" title="' + s[0] + ': ' + s[1] + '"></span>').join('') +
     '</div>' +
@@ -606,7 +606,7 @@ async function loadTodayActivity() {
   const shown = data.filter(a => a.agent !== 'main').slice(0, 8);
   if (!shown.length) {
     el.innerHTML = '<p class="muted" style="font-size:13px">' +
-      'Nothing yet. Every action Harvey takes shows up here.</p>';
+      'Todavía nada. Aquí aparecerá cada acción que haga Harvey.</p>';
     return;
   }
   el.innerHTML = '<div class="timeline">' + shown.map(a =>
@@ -647,8 +647,8 @@ async function loadRuns() {
     '<div class="run">' +
       '<span class="name">' + escHtml(r.stage) + '</span>' + badge(r.status) +
       '<span class="when">' + relTime(r.started_at) + '</span>' +
-      '<span class="stats">' + (r.records || 0) + ' records · ' +
-        (r.cost_usd ? '$' + Number(r.cost_usd).toFixed(4) : 'free') + '</span>' +
+      '<span class="stats">' + (r.records || 0) + ' registros · ' +
+        (r.cost_usd ? '$' + Number(r.cost_usd).toFixed(4) : 'gratis') + '</span>' +
     '</div>').join('') + '</div>';
 }
 
@@ -672,7 +672,7 @@ async function loadSetupStatus() {
               : '<span class="check-icon pending"></span>') +
       '<div class="check-info">' +
         '<div class="check-label ' + (c.done ? 'done' : '') + '">' + escHtml(c.label) +
-          (optional ? '<span class="optional-tag">optional</span>' : '') + '</div>' +
+          (optional ? '<span class="optional-tag">opcional</span>' : '') + '</div>' +
         (!c.done ? '<div class="check-help">' + escHtml(c.help) + '</div>' : '') +
         (!c.done && c.id === 'warmup_service' ? warmupServiceActions(c) : '') +
       '</div></div>';
@@ -683,14 +683,14 @@ async function loadSetupStatus() {
 
   el.innerHTML =
     '<div class="card setup-card">' +
-      '<div class="setup-head"><div><h3>Finish setting up Harvey</h3>' +
-        '<p class="muted">Harvey starts finding prospects and sending once these are done.</p></div>' +
-        '<span class="setup-pct">' + done + ' of ' + required.length + ' done</span></div>' +
+      '<div class="setup-head"><div><h3>Termina de configurar Harvey</h3>' +
+        '<p class="muted">Harvey empezará a buscar prospectos y a enviar cuando termines estos pasos.</p></div>' +
+        '<span class="setup-pct">' + done + ' de ' + required.length + ' hechos</span></div>' +
       '<div class="bar thick" style="margin-bottom:8px"><span style="width:' + pct + '%;background:var(--accent)"></span></div>' +
       required.map(c => renderCheck(c, false)).join('') +
       (optional.length
         ? '<details style="margin-top:10px"><summary class="muted" ' +
-          'style="font-size:12px">' + optional.length + ' optional</summary>' +
+          'style="font-size:12px">' + optional.length + ' opcionales</summary>' +
           '<div style="margin-top:6px">' +
           optional.map(c => renderCheck(c, true)).join('') + '</div></details>'
         : '') +
@@ -701,12 +701,12 @@ async function loadSetupStatus() {
 function warmupServiceActions(c) {
   return '<div class="btn-group warmup-actions">' +
       '<a class="btn btn-primary btn-sm" href="' + safeHref(c.link) + '" target="_blank" ' +
-        'rel="noopener sponsored">Get TrulyInbox</a>' +
+        'rel="noopener sponsored">Obtener TrulyInbox</a>' +
       '<input class="form-input" id="trulyinbox-key" type="password" autocomplete="off" ' +
-        'placeholder="Paste your TrulyInbox API key" aria-label="TrulyInbox API key" ' +
+        'placeholder="Pega tu clave de API de TrulyInbox" aria-label="Clave de API de TrulyInbox" ' +
         'onkeydown="if (event.key === \'Enter\') connectTrulyInbox()">' +
-      '<button class="btn btn-secondary btn-sm" id="trulyinbox-go" onclick="connectTrulyInbox()">Connect</button>' +
-      '<button class="btn btn-ghost btn-sm" onclick="useOtherWarmup()">I use another service</button>' +
+      '<button class="btn btn-secondary btn-sm" id="trulyinbox-go" onclick="connectTrulyInbox()">Conectar</button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="useOtherWarmup()">Uso otro servicio</button>' +
     '</div>';
 }
 
@@ -722,10 +722,10 @@ async function connectTrulyInbox() {
   if (go) go.disabled = false;
   if (data && data.success) {
     input.value = '';
-    showToast(data.message || 'TrulyInbox connected', 'success');
+    showToast(data.message || 'TrulyInbox conectado', 'success');
     loadSetupStatus();
   } else {
-    showToast((data && data.message) || 'Could not connect TrulyInbox', 'error');
+    showToast((data && data.message) || 'No se pudo conectar TrulyInbox', 'error');
   }
 }
 
@@ -745,8 +745,8 @@ async function loadSignals() {
 
   const s = data.summary || {};
   navCount('nav-signals', s.proposed || 0);
-  const parts = [['Confirmed', s.confirmed || 0, 'c-good'], ['Waiting on you', s.proposed || 0, 'c-wait'],
-                 ['Turned off', s.rejected || 0, 'c-idle']];
+  const parts = [['Confirmadas', s.confirmed || 0, 'c-good'], ['Pendientes de ti', s.proposed || 0, 'c-wait'],
+                 ['Desactivadas', s.rejected || 0, 'c-idle']];
   const all = parts.reduce((x, p) => x + p[1], 0) || 1;
   sumEl.innerHTML = '<div class="card sig-summary"><div class="funnel-bar">' +
     parts.filter(p => p[1]).map(p => '<span class="seg ' + p[2] + '" style="flex:' + p[1] + '"></span>').join('') +
@@ -756,8 +756,8 @@ async function loadSignals() {
     ).join('') + '</div></div>';
 
   grpEl.innerHTML = (data.groups || []).map(g => {
-    // Only the undecided ones: "Confirm all" must never re-enable a signal
-    // you turned off (or "Skip all" turn off one you confirmed).
+    // Only the undecided ones: "Confirmar todas" must never re-enable a signal
+    // you turned off (or "Omitir todas" turn off one you confirmed).
     const pending = escHtml(JSON.stringify(g.signals.filter(x => x.status === 'proposed').map(x => x.code)));
     const undecided = g.signals.filter(x => x.status === 'proposed').length;
     return '<div class="sig-group">' +
@@ -767,9 +767,9 @@ async function loadSignals() {
       (undecided
         ? '<div style="display:flex;gap:6px;flex-shrink:0">' +
             '<button class="btn btn-primary btn-sm" onclick="setSignals(' + pending +
-              ', \'confirmed\')">Confirm all ' + undecided + '</button>' +
+              ', \'confirmed\')">Confirmar todas (' + undecided + ')</button>' +
             '<button class="btn btn-secondary btn-sm" onclick="setSignals(' + pending +
-              ', \'rejected\')">Skip all ' + undecided + '</button>' +
+              ', \'rejected\')">Omitir todas (' + undecided + ')</button>' +
           '</div>'
         : '') +
       '</div>' +
@@ -784,22 +784,22 @@ function sigRow(sig) {
   const free = /free|included/i.test(sig.cost_note || '');
   const costCls = free ? 'free' : (/\$/.test(sig.cost_note || '') ? 'paid' : '');
   const seen = sig.companies
-    ? '<span class="cost-chip">seen on ' + sig.companies +
-      (sig.companies === 1 ? ' company' : ' companies') + ' so far</span>' : '';
+    ? '<span class="cost-chip">vista en ' + sig.companies +
+      (sig.companies === 1 ? ' empresa' : ' empresas') + ' hasta ahora</span>' : '';
   const floor = sig.confidence_floor > 0
-    ? '<span class="cost-chip">only recorded above ' +
-      Math.round(sig.confidence_floor * 100) + '% confidence</span>' : '';
+    ? '<span class="cost-chip">solo se registra con más de ' +
+      Math.round(sig.confidence_floor * 100) + '% de confianza</span>' : '';
 
   const decide = sig.status === 'confirmed'
     ? '<button class="btn btn-secondary btn-sm" onclick="setSignals([' + jsq(sig.code) +
-        '],\'rejected\')">Turn off</button>'
+        '],\'rejected\')">Desactivar</button>'
     : sig.status === 'rejected'
       ? '<button class="btn btn-secondary btn-sm" onclick="setSignals([' + jsq(sig.code) +
-          '],\'confirmed\')">Turn on</button>'
+          '],\'confirmed\')">Activar</button>'
       : '<button class="btn btn-primary btn-sm" onclick="setSignals([' + jsq(sig.code) +
-          '],\'confirmed\')">Confirm</button>' +
+          '],\'confirmed\')">Confirmar</button>' +
         '<button class="btn btn-secondary btn-sm" onclick="setSignals([' + jsq(sig.code) +
-          '],\'rejected\')">Skip</button>';
+          '],\'rejected\')">Omitir</button>';
 
   return '<div class="sig-row ' + (sig.status === 'rejected' ? 'rejected' : '') + '">' +
     '<div class="sig-main">' +
@@ -807,7 +807,7 @@ function sigRow(sig) {
         '<span class="sig-code">' + escHtml(sig.code) + '</span></div>' +
       '<div class="sig-desc">' + escHtml(sig.description) + '</div>' +
       '<div class="sig-meta">' +
-        '<span class="cost-chip ' + costCls + '">' + escHtml(sig.cost_note || 'cost unknown') + '</span>' +
+        '<span class="cost-chip ' + costCls + '">' + escHtml(sig.cost_note || 'coste desconocido') + '</span>' +
         floor + seen + badge(sig.status) +
       '</div>' +
     '</div>' +
@@ -824,12 +824,12 @@ async function setSignals(codes, status) {
   if (data && data.success) {
     showToast(
       status === 'confirmed'
-        ? 'Confirmed ' + data.changed + ' signal' + (data.changed === 1 ? '' : 's') +
-          ' — Harvey will collect ' + (data.changed === 1 ? 'it' : 'them') + ' from now on.'
-        : data.changed + ' signal' + (data.changed === 1 ? '' : 's') + ' turned off.',
+        ? (data.changed === 1 ? 'Confirmada 1 señal' : 'Confirmadas ' + data.changed + ' señales') +
+          ' — Harvey ' + (data.changed === 1 ? 'la recogerá' : 'las recogerá') + ' a partir de ahora.'
+        : (data.changed === 1 ? '1 señal desactivada.' : data.changed + ' señales desactivadas.'),
       'success');
   } else {
-    showToast(failMsg(data, 'Could not update that signal.'), 'error');
+    showToast(failMsg(data, 'No se pudo actualizar esa señal.'), 'error');
   }
   loadSignals();
 }
@@ -847,20 +847,20 @@ async function loadDiscoverProviders() {
   _provider = _provider || data.selected || data.default;
   el.innerHTML = '<div class="prov-grid">' + data.providers.map(p => {
     const ready = p.configured
-      ? '<span class="badge t-good">ready</span>'
-      : '<span class="badge t-waiting">needs a key</span>';
+      ? '<span class="badge t-good">lista</span>'
+      : '<span class="badge t-waiting">necesita clave</span>';
     return '<div class="prov-card ' + (p.key === _provider ? 'selected' : '') +
       '" onclick="pickProvider(' + jsq(p.key) + ')">' +
       '<div class="prov-head"><h3>' + escHtml(p.label) + '</h3>' + ready + '</div>' +
       '<div class="blurb">' + escHtml(p.blurb) + '</div>' +
-      '<div class="row"><span class="k">Cost</span><span class="v">' +
+      '<div class="row"><span class="k">Coste</span><span class="v">' +
         escHtml(p.cost_note) + '</span></div>' +
-      '<div class="row"><span class="k">Free</span><span class="v">' +
+      '<div class="row"><span class="k">Gratis</span><span class="v">' +
         escHtml(p.free_tier) + '</span></div>' +
       (p.needs_key
-        ? '<div class="row"><span class="k">Setup</span><span class="v">' +
-          escHtml(p.env_keys.join(', ')) + ' in .env &middot; ' +
-          '<a href="' + safeHref(p.signup_url) + '" target="_blank" rel="noopener noreferrer">get a key</a>' +
+        ? '<div class="row"><span class="k">Configuración</span><span class="v">' +
+          escHtml(p.env_keys.join(', ')) + ' en .env &middot; ' +
+          '<a href="' + safeHref(p.signup_url) + '" target="_blank" rel="noopener noreferrer">obtener una clave</a>' +
           '</span></div>'
         : '') +
       (p.caveat ? '<div class="caveat">' + escHtml(p.caveat) + '</div>' : '') +
@@ -876,11 +876,11 @@ async function loadDiscoverProviders() {
   } else if (!running && _discoverPoll) {
     clearInterval(_discoverPoll);
     _discoverPoll = null;
-    // A finished run leaves the button stuck on "Running…" otherwise.
+    // A finished run leaves the button stuck on "Ejecutando…" otherwise.
     const btn = document.getElementById('disc-run');
     btn.disabled = true;
-    btn.textContent = 'Estimate first';
-    showToast(data.running_kind === 'profile' ? 'Finished reading websites.' : 'Discovery finished.', 'success');
+    btn.textContent = 'Estima primero';
+    showToast(data.running_kind === 'profile' ? 'Lectura de webs terminada.' : 'Descubrimiento terminado.', 'success');
   }
   renderDiscoverResult(data.last_report, running);
 }
@@ -888,7 +888,7 @@ async function loadDiscoverProviders() {
 function pickProvider(key) {
   _provider = key;
   document.getElementById('disc-run').disabled = true;
-  document.getElementById('disc-run').textContent = 'Estimate first';
+  document.getElementById('disc-run').textContent = 'Estima primero';
   document.getElementById('discover-estimate').innerHTML = '';
   loadDiscoverProviders();
 }
@@ -908,14 +908,14 @@ function discoverBody() {
 
 async function estimateDiscovery() {
   const el = document.getElementById('discover-estimate');
-  el.innerHTML = '<p class="muted" style="font-size:13px">Pricing it…</p>';
+  el.innerHTML = '<p class="muted" style="font-size:13px">Calculando el precio…</p>';
   const data = await api('/api/discover/estimate', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(discoverBody()),
   });
   if (!data || data.error) {
     el.innerHTML = '<div class="test-result error">' +
-      escHtml((data && data.error) || 'Could not estimate.') + '</div>';
+      escHtml((data && data.error) || 'No se pudo estimar.') + '</div>';
     return;
   }
 
@@ -923,35 +923,35 @@ async function estimateDiscovery() {
   const over = data.estimated_cost > cap;
   el.innerHTML = '<div class="estimate-box">' +
     '<div class="amount ' + (data.free ? 'free' : 'paid') + '">' +
-      (data.free ? 'Free' : '$' + data.estimated_cost.toFixed(4)) + '</div>' +
+      (data.free ? 'Gratis' : '$' + data.estimated_cost.toFixed(4)) + '</div>' +
     '<div class="muted" style="font-size:13px;margin-top:2px">' +
-      data.query_count + ' quer' + (data.query_count === 1 ? 'y' : 'ies') +
-      (data.free ? '' : ' &middot; cap is $' + cap.toFixed(2)) + '</div>' +
+      data.query_count + (data.query_count === 1 ? ' consulta' : ' consultas') +
+      (data.free ? '' : ' &middot; el límite es $' + cap.toFixed(2)) + '</div>' +
     (over ? '<div class="test-result error" style="margin-top:12px">' +
-      'Over your cap. Raise the cap or narrow the search.</div>' : '') +
+      'Supera tu límite. Súbelo o acota la búsqueda.</div>' : '') +
     '<div class="query-list">' +
       data.queries.slice(0, 40).map(escHtml).join('<br>') +
-      (data.queries.length > 40 ? '<br>… and ' + (data.queries.length - 40) + ' more' : '') +
+      (data.queries.length > 40 ? '<br>… y ' + (data.queries.length - 40) + ' más' : '') +
     '</div></div>';
 
   const btn = document.getElementById('disc-run');
   btn.disabled = over;
-  btn.textContent = over ? 'Over cap'
-    : (data.free ? 'Run — free' : 'Run — spend up to $' + data.estimated_cost.toFixed(2));
+  btn.textContent = over ? 'Supera el límite'
+    : (data.free ? 'Ejecutar — gratis' : 'Ejecutar — gasto de hasta $' + data.estimated_cost.toFixed(2));
 }
 
 async function runDiscovery() {
   const btn = document.getElementById('disc-run');
   btn.disabled = true;
-  btn.textContent = 'Running…';
+  btn.textContent = 'Ejecutando…';
   const data = await api('/api/discover/run', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(discoverBody()),
   });
   if (data && data.success) {
-    showToast('Discovery started — ' + data.queries + ' queries.', 'success');
+    showToast('Descubrimiento iniciado — ' + data.queries + ' consultas.', 'success');
   } else {
-    showToast((data && data.message) || 'Could not start.', 'error');
+    showToast((data && data.message) || 'No se pudo iniciar.', 'error');
     btn.disabled = false;
   }
   loadDiscoverProviders();
@@ -959,8 +959,8 @@ async function runDiscovery() {
 
 async function stopDiscovery() {
   const data = await api('/api/discover/stop', {method: 'POST'});
-  showToast(data && data.success ? 'Stopping after the current query.'
-                                 : failMsg(data, 'Could not stop.'), data && data.success ? 'success' : 'error');
+  showToast(data && data.success ? 'Se detendrá tras la consulta actual.'
+                                 : failMsg(data, 'No se pudo detener.'), data && data.success ? 'success' : 'error');
   loadDiscoverProviders();
 }
 
@@ -970,23 +970,23 @@ function renderProfileCard(pending, running) {
   const el = document.getElementById('discover-profile');
   if (!el) return;
   if (!pending) { el.innerHTML = ''; return; }
-  el.innerHTML = '<div class="subhead">Read websites</div><div class="card"><div class="queue-item good" style="padding:0;border:0;box-shadow:none">' +
-    '<div class="qtext"><div class="qtitle">' + pending + ' compan' + (pending === 1 ? 'y' : 'ies') +
-    ' not looked at yet</div><div class="qdetail">Free, no account needed. Harvey reads each site for ' +
-    'who their agency is, what they are missing, and whether they run ads. Up to 200 per run.</div></div>' +
+  el.innerHTML = '<div class="subhead">Leer webs</div><div class="card"><div class="queue-item good" style="padding:0;border:0;box-shadow:none">' +
+    '<div class="qtext"><div class="qtitle">' + pending + (pending === 1 ? ' empresa' : ' empresas') +
+    ' sin revisar todavía</div><div class="qdetail">Gratis, sin necesidad de cuenta. Harvey lee cada web para ver ' +
+    'cuál es su agencia, qué les falta y si hacen publicidad. Hasta 200 por ejecución.</div></div>' +
     '<button class="btn btn-primary btn-sm" onclick="runProfile(this)"' + (running ? ' disabled' : '') + '>' +
-    (running ? 'Busy…' : 'Read their sites') + '</button></div></div>';
+    (running ? 'Ocupado…' : 'Leer sus webs') + '</button></div></div>';
 }
 
 async function runProfile(btn) {
   btn.disabled = true;
-  btn.textContent = 'Starting…';
+  btn.textContent = 'Iniciando…';
   const data = await api('/api/profile/run', {method: 'POST'});
   if (data && data.success) {
-    showToast(data.pending ? 'Reading ' + Math.min(data.pending, 200) + ' websites.' : 'Every site is already read.', 'success');
+    showToast(data.pending ? 'Leyendo ' + Math.min(data.pending, 200) + ' webs.' : 'Todas las webs ya están leídas.', 'success');
     if (data.pending && !_discoverPoll) _discoverPoll = setInterval(loadDiscoverProviders, 4000);
   } else {
-    showToast(failMsg(data, 'Could not start.'), 'error');
+    showToast(failMsg(data, 'No se pudo iniciar.'), 'error');
   }
   loadDiscoverProviders();
 }
@@ -994,9 +994,9 @@ async function runProfile(btn) {
 function renderDiscoverResult(report, running) {
   const el = document.getElementById('discover-result');
   if (running) {
-    el.innerHTML = '<div class="card"><h2>Running…</h2>' +
-      '<p class="muted" style="font-size:13px">Harvey is working through the ' +
-      'queries. Results land in Companies, and the run log is on Today.</p></div>';
+    el.innerHTML = '<div class="card"><h2>Ejecutando…</h2>' +
+      '<p class="muted" style="font-size:13px">Harvey está procesando las ' +
+      'consultas. Los resultados llegan a Empresas y el registro de la ejecución está en Hoy.</p></div>';
     return;
   }
   if (!report) { el.innerHTML = ''; return; }
@@ -1007,26 +1007,26 @@ function renderDiscoverResult(report, running) {
     value + '</div></div>';
 
   if (report.profiled_companies !== undefined && report.new_companies === undefined) {
-    el.innerHTML = '<div class="subhead">Last run</div><div class="stats-grid">' +
-      stat('Websites read', report.profiled_companies || 0, 'accent') +
-      stat('Facts recorded', report.profile_observations || 0) +
-      stat('Cost', 'free') + '</div>' +
-      (report.stopped ? '<div class="test-result error" style="margin-top:14px">Stopped early: ' + escHtml(report.stopped) + '</div>' : '');
+    el.innerHTML = '<div class="subhead">Última ejecución</div><div class="stats-grid">' +
+      stat('Webs leídas', report.profiled_companies || 0, 'accent') +
+      stat('Datos registrados', report.profile_observations || 0) +
+      stat('Coste', 'gratis') + '</div>' +
+      (report.stopped ? '<div class="test-result error" style="margin-top:14px">Detenida antes de tiempo: ' + escHtml(report.stopped) + '</div>' : '');
     return;
   }
-  el.innerHTML = '<div class="subhead">Last run</div>' +
+  el.innerHTML = '<div class="subhead">Última ejecución</div>' +
     '<div class="stats-grid">' +
-      stat('New companies', report.new_companies || 0, 'accent') +
-      stat('Already known', report.known_companies || 0) +
-      stat('Observations', report.observations || 0) +
-      stat('Filtered as junk', report.junk || 0) +
-      (report.profiled_companies ? stat('Websites read', report.profiled_companies) : '') +
-      stat('Actual cost', report.actual_cost ? '$' + report.actual_cost.toFixed(4) : 'free') +
+      stat('Empresas nuevas', report.new_companies || 0, 'accent') +
+      stat('Ya conocidas', report.known_companies || 0) +
+      stat('Observaciones', report.observations || 0) +
+      stat('Descartadas por basura', report.junk || 0) +
+      (report.profiled_companies ? stat('Webs leídas', report.profiled_companies) : '') +
+      stat('Coste real', report.actual_cost ? '$' + report.actual_cost.toFixed(4) : 'gratis') +
     '</div>' +
     (report.stopped ? '<div class="test-result error" style="margin-top:14px">' +
-      'Stopped early: ' + escHtml(report.stopped) + '</div>' : '') +
+      'Detenida antes de tiempo: ' + escHtml(report.stopped) + '</div>' : '') +
     ((report.errors || []).length
-      ? '<div class="card" style="margin-top:14px"><h2>Problems</h2>' +
+      ? '<div class="card" style="margin-top:14px"><h2>Problemas</h2>' +
         (report.errors || []).slice(0, 8).map(e =>
           '<div class="check-help">' + escHtml(e) + '</div>').join('') + '</div>'
       : '');
@@ -1049,7 +1049,7 @@ function renderCohortBuilder() {
 
   if (!confirmed.length) {
     el.innerHTML = '<p class="muted" style="font-size:13px">' +
-      'Confirm some signals above and they become the building blocks here.</p>';
+      'Confirma algunas señales arriba y se convertirán en las piezas de construcción aquí.</p>';
     document.getElementById('cohort-result').innerHTML = '';
     return;
   }
@@ -1070,24 +1070,24 @@ function renderCohortBuilder() {
   const numeric = confirmed.filter(s => s.value_type === 'num');
   const bound = (code, side) => {
     const v = (_cohort.ranges[code] || {})[side];
-    return '<input type="number" class="cohort-bound" placeholder="' + side + '" ' +
+    return '<input type="number" class="cohort-bound" placeholder="' + (side === 'min' ? 'mín' : 'máx') + '" ' +
       'value="' + (v === undefined || v === null ? '' : escHtml(String(v))) + '" ' +
-      'aria-label="' + escHtml(code) + ' ' + side + '" ' +
+      'aria-label="' + escHtml(code) + ' ' + (side === 'min' ? 'mínimo' : 'máximo') + '" ' +
       'onchange="setCohortRange(' + jsq(code) + ',' + jsq(side) + ',this.value)">';
   };
   const rangeCol = numeric.length ?
-    '<div style="height:18px"></div><div><div class="subhead" style="margin-top:0">In range ' +
+    '<div style="height:18px"></div><div><div class="subhead" style="margin-top:0">En rango ' +
       '<span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">' +
-      '&mdash; e.g. organic rank 11 to 30; leave a side blank for no limit</span></div>' +
+      '&mdash; p. ej., posición orgánica de 11 a 30; deja un lado en blanco para no poner límite</span></div>' +
       '<div class="cohort-grid">' +
       numeric.map(s =>
         '<div class="cohort-pick cohort-range"><span>' + escHtml(s.label || s.code) + '</span>' +
-          bound(s.code, 'min') + '<span class="muted">to</span>' + bound(s.code, 'max') + '</div>'
+          bound(s.code, 'min') + '<span class="muted">a</span>' + bound(s.code, 'max') + '</div>'
       ).join('') + '</div></div>' : '';
 
-  el.innerHTML = col('Must have', 'require', '&mdash; every company in the cohort carries all of these') +
+  el.innerHTML = col('Debe tener', 'require', '&mdash; todas las empresas de la cohorte tienen todo esto') +
     '<div style="height:18px"></div>' +
-    col('Must not have', 'exclude', '&mdash; disqualifiers') + rangeCol;
+    col('No debe tener', 'exclude', '&mdash; criterios que descartan') + rangeCol;
 }
 
 function setCohortRange(code, side, value) {
@@ -1134,12 +1134,12 @@ async function runCohort() {
 
   let html = '<div style="border-top:1px solid var(--border);margin-top:20px;padding-top:20px">' +
     '<div class="cohort-size">' + data.size + '</div>' +
-    '<div class="muted" style="font-size:13px;margin-top:2px">compan' +
-      (data.size === 1 ? 'y matches' : 'ies match') + ' this cohort right now</div>';
+    '<div class="muted" style="font-size:13px;margin-top:2px">' +
+      (data.size === 1 ? 'empresa encaja' : 'empresas encajan') + ' con esta cohorte ahora mismo</div>';
 
   if (data.companies && data.companies.length) {
     html += '<div class="table-card" style="margin-top:16px"><table><thead><tr>' +
-      '<th>Company</th><th>Domain</th><th>Industry</th><th>Location</th>' +
+      '<th>Empresa</th><th>Dominio</th><th>Sector</th><th>Ubicación</th>' +
       '</tr></thead><tbody>' +
       data.companies.map(c =>
         '<tr><td>' + escHtml(c.name) + '</td><td class="muted">' + escHtml(c.domain) + '</td>' +
@@ -1150,19 +1150,19 @@ async function runCohort() {
     const first = data.offset + 1, last = data.offset + data.companies.length;
     const hasPrev = data.offset > 0, hasNext = last < data.size;
     html += '<div style="display:flex;align-items:center;gap:8px;margin-top:10px">' +
-      '<span class="muted" style="font-size:12px">Showing ' + first + '&ndash;' + last +
-        ' of ' + data.size + '</span>' +
+      '<span class="muted" style="font-size:12px">Mostrando ' + first + '&ndash;' + last +
+        ' de ' + data.size + '</span>' +
       '<span style="flex:1"></span>' +
       '<button class="btn btn-secondary btn-sm" onclick="pageCohort(-1)"' +
-        (hasPrev ? '' : ' disabled') + '>Prev</button>' +
+        (hasPrev ? '' : ' disabled') + '>Anterior</button>' +
       '<button class="btn btn-secondary btn-sm" onclick="pageCohort(1)"' +
-        (hasNext ? '' : ' disabled') + '>Next</button>' +
+        (hasNext ? '' : ' disabled') + '>Siguiente</button>' +
       '<button class="btn btn-secondary btn-sm" onclick="exportCohort(this)">Export CSV</button>' +
       '</div>';
   } else if (data.size === 0) {
     html += '<p class="muted" style="font-size:13px;margin-top:12px">' +
-      'No company carries all of those yet. Either loosen the cohort, or run ' +
-      'prospecting to collect more.</p>';
+      'Ninguna empresa reúne todo eso todavía. Relaja la cohorte o ejecuta ' +
+      'la prospección para recoger más.</p>';
   } else if (_cohortOffset > 0) {
     // The cohort shrank under us (a re-profile, a delete): back to page one.
     _cohortOffset = 0;
@@ -1185,7 +1185,7 @@ async function exportCohort(button) {
     .map(([code, r]) => code + ':' + (r.min ?? '') + ':' + (r.max ?? ''));
   if (ranges.length) qs.set('ranges', ranges.join(','));
   button.disabled = true;
-  button.textContent = 'Exporting…';
+  button.textContent = 'Exportando…';
   let url;
   let link;
   try {
@@ -1230,13 +1230,13 @@ async function loadSettings() {
     const el = document.getElementById(id);
     if (!el) return;
     el.value = '';
-    el.placeholder = isSet ? 'Saved — enter new value to change' : base;
+    el.placeholder = isSet ? 'Guardado: introduce un valor nuevo para cambiarlo' : base;
   };
   const tag = (id, ok, okLabel) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.className = 'email-tag ' + (ok ? 'verified' : 'guess');
-    el.textContent = ok ? okLabel : 'not set';
+    el.textContent = ok ? okLabel : 'sin definir';
   };
 
   // Non-secret values repopulate
@@ -1252,40 +1252,40 @@ async function loadSettings() {
   document.getElementById('linkedin-email').value = data.linkedin_email || '';
   document.getElementById('cf-account-id').value = data.cloudflare_account_id || '';
 
-  savedPh('gmail-secret', data.gmail_client_secret_set, 'Enter client secret');
-  savedPh('smtp-pass', data.smtp_password_set, 'Enter password / app password');
-  savedPh('imap-pass', data.imap_password_set, 'Same as SMTP password');
+  savedPh('gmail-secret', data.gmail_client_secret_set, 'Introduce el secreto de cliente');
+  savedPh('smtp-pass', data.smtp_password_set, 'Introduce la contraseña o contraseña de aplicación');
+  savedPh('imap-pass', data.imap_password_set, 'Igual que la contraseña SMTP');
   document.getElementById('imap-same-pass').checked = !data.imap_password_set;
-  savedPh('instantly-key', data.instantly_api_key_set, 'Enter your Instantly API key');
-  savedPh('reoon-key', data.reoon_api_key_set, '600 free/mo — reoon.com/email-verifier');
-  savedPh('zerobounce-key', data.zerobounce_api_key_set, '100 free/mo — best for M365/Workspace catch-alls');
-  savedPh('hunter-key', data.hunter_api_key_set, '50 free/mo + email-pattern lookup');
-  savedPh('linkedin-password', data.linkedin_password_set, 'Enter password');
-  savedPh('cf-api-token', data.cloudflare_api_token_set, 'Your Cloudflare API Token');
+  savedPh('instantly-key', data.instantly_api_key_set, 'Introduce tu clave de API de Instantly');
+  savedPh('reoon-key', data.reoon_api_key_set, '600 gratis al mes — reoon.com/email-verifier');
+  savedPh('zerobounce-key', data.zerobounce_api_key_set, '100 gratis al mes — lo mejor para catch-all de M365/Workspace');
+  savedPh('hunter-key', data.hunter_api_key_set, '50 gratis al mes + búsqueda de patrón de correo');
+  savedPh('linkedin-password', data.linkedin_password_set, 'Introduce la contraseña');
+  savedPh('cf-api-token', data.cloudflare_api_token_set, 'Tu token de API de Cloudflare');
 
   // Gmail auth status chip
   const g = document.getElementById('gmail-status');
   if (g) {
-    if (data.gmail_authorized) { g.className = 'email-tag verified'; g.textContent = 'authorized'; }
-    else if (data.gmail_client_secret_set) { g.className = 'email-tag risky'; g.textContent = 'run: harvey gmail auth'; }
-    else { g.className = 'email-tag guess'; g.textContent = 'not set up'; }
+    if (data.gmail_authorized) { g.className = 'email-tag verified'; g.textContent = 'autorizado'; }
+    else if (data.gmail_client_secret_set) { g.className = 'email-tag risky'; g.textContent = 'ejecuta: harvey gmail auth'; }
+    else { g.className = 'email-tag guess'; g.textContent = 'sin configurar'; }
   }
   const m = document.getElementById('m365-status');
   if (m) {
-    if (data.m365_authorized) { m.className = 'email-tag verified'; m.textContent = 'authorized'; }
-    else if (data.m365_client_id) { m.className = 'email-tag risky'; m.textContent = 'run: harvey microsoft auth'; }
-    else { m.className = 'email-tag guess'; m.textContent = 'not set up'; }
+    if (data.m365_authorized) { m.className = 'email-tag verified'; m.textContent = 'autorizado'; }
+    else if (data.m365_client_id) { m.className = 'email-tag risky'; m.textContent = 'ejecuta: harvey microsoft auth'; }
+    else { m.className = 'email-tag guess'; m.textContent = 'sin configurar'; }
   }
-  tag('reoon-status', data.reoon_api_key_set, 'set');
-  tag('zerobounce-status', data.zerobounce_api_key_set, 'set');
-  tag('hunter-status', data.hunter_api_key_set, 'set');
+  tag('reoon-status', data.reoon_api_key_set, 'definida');
+  tag('zerobounce-status', data.zerobounce_api_key_set, 'definida');
+  tag('hunter-status', data.hunter_api_key_set, 'definida');
 }
 
 function saveGmail() {
   const payload = {GMAIL_CLIENT_ID: document.getElementById('gmail-id').value.trim()};
   const sec = document.getElementById('gmail-secret').value;
   if (sec) payload.GMAIL_CLIENT_SECRET = sec;
-  saveEnv(payload, 'Gmail OAuth saved. Now run "harvey gmail auth" in your terminal.').then(loadSettings);
+  saveEnv(payload, 'OAuth de Gmail guardado. Ahora ejecuta "harvey gmail auth" en tu terminal.').then(loadSettings);
 }
 
 function saveSmtp() {
@@ -1305,14 +1305,14 @@ function saveSmtp() {
   const imapPass = document.getElementById('imap-pass').value;
   if (imapPass) payload.IMAP_PASSWORD = imapPass;
   else if (document.getElementById('imap-same-pass').checked) payload.IMAP_PASSWORD = '';
-  saveEnv(payload, 'SMTP settings saved.').then(loadSettings);
+  saveEnv(payload, 'Ajustes de SMTP guardados.').then(loadSettings);
 }
 
 function saveMicrosoft() {
   const client = document.getElementById('m365-client').value.trim();
-  if (!client) { showToast('Paste the Application (client) ID first.', 'error'); return; }
+  if (!client) { showToast('Pega primero el ID de aplicación (cliente).', 'error'); return; }
   saveEnv({M365_CLIENT_ID: client, M365_TENANT_ID: document.getElementById('m365-tenant').value.trim()},
-          'Saved. Now run "harvey microsoft auth" in your terminal.').then(loadSettings);
+          'Guardado. Ahora ejecuta "harvey microsoft auth" en tu terminal.').then(loadSettings);
 }
 
 function saveVerifiers() {
@@ -1323,8 +1323,8 @@ function saveVerifiers() {
   if (r) payload.REOON_API_KEY = r;
   if (z) payload.ZEROBOUNCE_API_KEY = z;
   if (h) payload.HUNTER_API_KEY = h;
-  if (!Object.keys(payload).length) { showToast('Enter at least one key first.', 'error'); return; }
-  saveEnv(payload, 'Verification keys saved.').then(loadSettings);
+  if (!Object.keys(payload).length) { showToast('Introduce primero al menos una clave.', 'error'); return; }
+  saveEnv(payload, 'Claves de verificación guardadas.').then(loadSettings);
 }
 
 async function saveEnv(payload, okMsg) {
@@ -1333,40 +1333,40 @@ async function saveEnv(payload, okMsg) {
     body: JSON.stringify(payload)
   });
   if (data && data.success) showToast(okMsg, 'success');
-  else showToast((data && data.message) || 'Save failed — is the dashboard still running?', 'error');
+  else showToast((data && data.message) || 'No se pudo guardar: ¿sigue en marcha el panel?', 'error');
 }
 
 // Secrets are only sent when typed: an empty box means "keep the saved one".
 function saveInstantly() {
   const key = document.getElementById('instantly-key').value.trim();
-  if (!key) { showToast('Enter a new key first. The saved one is kept.', 'error'); return; }
-  saveEnv({INSTANTLY_API_KEY: key}, 'Instantly API key saved.');
+  if (!key) { showToast('Introduce primero una clave nueva. Se conserva la guardada.', 'error'); return; }
+  saveEnv({INSTANTLY_API_KEY: key}, 'Clave de API de Instantly guardada.');
 }
 
 function saveLinkedIn() {
   const payload = {LINKEDIN_EMAIL: document.getElementById('linkedin-email').value.trim()};
   const pass = document.getElementById('linkedin-password').value;
   if (pass) payload.LINKEDIN_PASSWORD = pass;
-  saveEnv(payload, 'LinkedIn credentials saved.');
+  saveEnv(payload, 'Credenciales de LinkedIn guardadas.');
 }
 
 function saveCloudflare() {
   const payload = {CLOUDFLARE_ACCOUNT_ID: document.getElementById('cf-account-id').value.trim()};
   const token = document.getElementById('cf-api-token').value.trim();
   if (token) payload.CLOUDFLARE_API_TOKEN = token;
-  saveEnv(payload, 'Cloudflare credentials saved.');
+  saveEnv(payload, 'Credenciales de Cloudflare guardadas.');
 }
 
 async function testInstantly() {
   const key = document.getElementById('instantly-key').value.trim();
   const el = document.getElementById('instantly-test-result');
-  el.innerHTML = '<div class="test-result pending">Testing&hellip;</div>';
+  el.innerHTML = '<div class="test-result pending">Probando&hellip;</div>';
   const data = await api('/api/settings/test-instantly', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({api_key: key})
   });
   if (!data) {
-    el.innerHTML = '<div class="test-result error">Could not reach the dashboard server.</div>';
+    el.innerHTML = '<div class="test-result error">No se pudo conectar con el servidor del panel.</div>';
     return;
   }
   el.innerHTML = '<div class="test-result ' + (data.success ? 'success' : 'error') + '">' + escHtml(failMsg(data, '')) + '</div>';
@@ -1382,25 +1382,25 @@ async function loadHarveyStatus() {
   if (_locked) return;  // the header already says "Locked"
   if (!data) {
     headerDot.className = 'status-dot offline';
-    headerText.textContent = 'Offline';
+    headerText.textContent = 'Sin conexión';
     return;
   }
   const running = !!data.running;
 
   headerDot.className = 'status-dot ' + (running ? 'running' : 'stopped');
-  headerText.textContent = running ? 'Harvey is running' : 'Harvey is stopped';
+  headerText.textContent = running ? 'Harvey está en marcha' : 'Harvey está detenido';
   document.getElementById('control-dot').className = 'dot ' + (running ? 'running' : 'stopped');
   const label = document.getElementById('control-label');
   label.className = 'label ' + (running ? 'running' : 'stopped');
-  label.textContent = running ? 'Running' : 'Stopped';
+  label.textContent = running ? 'En marcha' : 'Detenido';
 
   const meta = document.getElementById('control-meta');
   if (running && data.pid) {
     let info = 'PID ' + escHtml(String(data.pid));
-    if (data.started_at) info += ' &middot; started ' + formatDate(data.started_at);
+    if (data.started_at) info += ' &middot; iniciado ' + formatDate(data.started_at);
     meta.innerHTML = info;
   } else {
-    meta.innerHTML = 'Harvey wakes every few minutes, does what needs doing, and sleeps.';
+    meta.innerHTML = 'Harvey se despierta cada pocos minutos, hace lo que toca y vuelve a dormir.';
   }
 
   document.getElementById('btn-start').style.display = running ? 'none' : '';
@@ -1411,8 +1411,8 @@ async function startHarvey() {
   const btn = document.getElementById('btn-start');
   btn.disabled = true;
   const data = await api('/api/harvey/start', {method: 'POST'});
-  if (data && data.success) showToast('Harvey started.', 'success');
-  else showToast((data && data.message) || 'Failed to start.', 'error');
+  if (data && data.success) showToast('Harvey iniciado.', 'success');
+  else showToast((data && data.message) || 'No se pudo iniciar.', 'error');
   btn.disabled = false;
   loadHarveyStatus();
 }
@@ -1421,8 +1421,8 @@ async function stopHarvey() {
   const btn = document.getElementById('btn-stop');
   btn.disabled = true;
   const data = await api('/api/harvey/stop', {method: 'POST'});
-  if (data && data.success) showToast('Harvey stopped.', 'success');
-  else showToast((data && data.message) || 'Failed to stop.', 'error');
+  if (data && data.success) showToast('Harvey detenido.', 'success');
+  else showToast((data && data.message) || 'No se pudo detener.', 'error');
   btn.disabled = false;
   loadHarveyStatus();
 }
@@ -1435,7 +1435,7 @@ async function loadLogs() {
     el.textContent = data.lines.join('\n');
     if (stick) el.scrollTop = el.scrollHeight;
   } else {
-    el.textContent = 'No logs yet. Start Harvey to see activity.';
+    el.textContent = 'Aún no hay registros. Inicia Harvey para ver actividad.';
   }
 }
 
@@ -1443,7 +1443,7 @@ async function loadLogs() {
 
 // Calls today per subscription — each labelled with the provider it ran on.
 function brainCallChips(data) {
-  const chip = (label, n) => '<span class="chip">' + label + ' calls today <b>' + escHtml(String(n || 0)) + '</b></span>';
+  const chip = (label, n) => '<span class="chip">' + label + ' · llamadas hoy <b>' + escHtml(String(n || 0)) + '</b></span>';
   const codex = data.codex_calls_today || 0;
   const st = data.brain_status || {};
   // A paused brain must not look healthy: say so, and why.
@@ -1473,7 +1473,7 @@ function emailTag(p) {
   const status = p.email_status || (p.email_verified ? 'verified' : 'guess');
   if (!own(STATUS, status)) return '';
   const m = statusMeta(status);
-  return ' <span class="mini t-' + m.tone + '" title="Email ' + escHtml(m.label.toLowerCase()) + '">' +
+  return ' <span class="mini t-' + m.tone + '" title="Correo ' + escHtml(m.label.toLowerCase()) + '">' +
     escHtml(m.label) + '</span>';
 }
 
@@ -1491,12 +1491,12 @@ function quotaCardHtml(data) {
       : "Quota unavailable: Harvey couldn't read your Claude subscription's limits (check claude login and network).";
     return html + '<p class="muted">' + escHtml(why) + ' Until it can, budgets count Harvey\'s own calls.</p>';
   }
-  const labels = {five_hour: '5-hour window', seven_day: 'Weekly', primary: 'Primary window',
-                  secondary: 'Secondary window', limit_reached: 'Usage limit reached'};
+  const labels = {five_hour: 'Ventana de 5 horas', seven_day: 'Semanal', primary: 'Ventana principal',
+                  secondary: 'Ventana secundaria', limit_reached: 'Usage limit reached'};
   for (const [key, w] of Object.entries(data.quota)) {
     const pct = Math.min(100, Math.max(0, w.utilization || 0));
     const color = pct >= 80 ? 'yellow' : 'green';
-    const resets = w.resets_at ? 'resets ' + formatDate(w.resets_at) : '';
+    const resets = w.resets_at ? 'se restablece ' + formatDate(w.resets_at) : '';
     html += '<div class="progress-wrap">' +
       '<div class="progress-label">' +
         '<span class="text">' + escHtml(labels[key] || key) + (resets ? ' &middot; ' + escHtml(resets) : '') + '</span>' +
@@ -1526,24 +1526,24 @@ async function loadUsage() {
     return '<div class="stat-card"><div class="label">' + label + '</div>' +
       '<div class="value">' + (p.calls || 0) + '</div>' +
       '<div class="breakdown">' +
-        '<span class="chip">calls</span>' +
-        '<span class="chip">out <b>' + fmtTokens(p.output_tokens) + '</b></span>' +
-        '<span class="chip">in <b>' + fmtTokens(p.input_tokens) + '</b></span>' +
-        '<span class="chip">cached <b>' + fmtTokens(p.cache_read_tokens) + '</b></span>' +
+        '<span class="chip">llamadas</span>' +
+        '<span class="chip">salida <b>' + fmtTokens(p.output_tokens) + '</b></span>' +
+        '<span class="chip">entrada <b>' + fmtTokens(p.input_tokens) + '</b></span>' +
+        '<span class="chip">en caché <b>' + fmtTokens(p.cache_read_tokens) + '</b></span>' +
       '</div></div>';
   };
-  statsEl.innerHTML = card('Today', t.today) + card('Last 7 Days', t.week) + card('Last 30 Days', t.month);
+  statsEl.innerHTML = card('Hoy', t.today) + card('Últimos 7 días', t.week) + card('Últimos 30 días', t.month);
 
   // Daily columns — output tokens per day (the work done)
   const dailyEl = document.getElementById('usage-daily');
   const days = (data.by_day || []).slice(-30);
   if (days.length) {
     const maxOut = Math.max(...days.map(d => d.output_tokens || 0), 1);
-    dailyEl.innerHTML = '<h2>Output tokens per day <span class="hint muted" style="font-weight:400">last ' +
-      days.length + ' days · peak ' + fmtTokens(maxOut) + '</span></h2>' +
-      '<div class="chart-cols" role="img" aria-label="Output tokens per day">' + days.map(d =>
-        '<span class="col" title="' + escHtml(d.day || '') + ': ' + fmtTokens(d.output_tokens) + ' out, ' +
-          (d.calls || 0) + ' calls"><i style="height:' + Math.max(2, (d.output_tokens || 0) / maxOut * 100) + '%"></i></span>'
+    dailyEl.innerHTML = '<h2>Tokens de salida por día <span class="hint muted" style="font-weight:400">últimos ' +
+      days.length + ' días · pico ' + fmtTokens(maxOut) + '</span></h2>' +
+      '<div class="chart-cols" role="img" aria-label="Tokens de salida por día">' + days.map(d =>
+        '<span class="col" title="' + escHtml(d.day || '') + ': ' + fmtTokens(d.output_tokens) + ' de salida, ' +
+          (d.calls || 0) + ' llamadas"><i style="height:' + Math.max(2, (d.output_tokens || 0) / maxOut * 100) + '%"></i></span>'
       ).join('') + '</div>' +
       '<div class="chart-axis"><span>' + escHtml(days[0].day || '') + '</span><span>' +
         escHtml(days[days.length - 1].day || '') + '</span></div>';
@@ -1558,7 +1558,7 @@ async function loadUsage() {
     if (!rows || !rows.length) return '';
     const max = Math.max(...rows.map(r => r.calls || 0), 1);
     let h = '<div class="card flush"><div class="card-head"><h3>' + title + '</h3></div><table><thead><tr>' +
-      '<th>' + keyName + '</th><th>Calls</th><th class="num">Input</th><th class="num">Output</th><th class="num">Cache read</th>' +
+      '<th>' + ({Agent: 'Agente', Task: 'Tarea', Provider: 'Proveedor', Model: 'Modelo'}[keyName] || keyName) + '</th><th>Llamadas</th><th class="num">Entrada</th><th class="num">Salida</th><th class="num">Caché leída</th>' +
       '</tr></thead><tbody>';
     for (const r of rows) {
       h += '<tr><td class="cell-main">' + escHtml(String(r[keyName.toLowerCase()] || '')) + '</td>' +
@@ -1573,16 +1573,16 @@ async function loadUsage() {
 
   const anyRows = (data.by_agent || []).length || (data.by_task || []).length;
   if (!anyRows) {
-    tablesEl.innerHTML = emptyState(icon('usage'), 'No usage recorded yet',
-      'Once Harvey starts making model calls (Claude or Codex), every one is logged here with exact calls and tokens by provider, agent and task.');
+    tablesEl.innerHTML = emptyState(icon('usage'), 'Aún no hay uso registrado',
+      'Cuando Harvey empiece a hacer llamadas al modelo (Claude o Codex), cada una quedará registrada aquí con las llamadas y los tokens exactos por proveedor, agente y tarea.');
   } else {
     const providers = data.by_provider || [];
     const showProviders = providers.length > 1 || (providers.length === 1 && providers[0].provider !== 'claude');
     tablesEl.innerHTML =
-      (showProviders ? table('By Provider (30 days)', providers, 'Provider') : '') +
-      table('By Agent (30 days)', data.by_agent, 'Agent') +
-      table('By Task (30 days)', data.by_task, 'Task') +
-      table('By Model (30 days)', data.by_model, 'Model');
+      (showProviders ? table('Por proveedor (30 días)', providers, 'Provider') : '') +
+      table('Por agente (30 días)', data.by_agent, 'Agent') +
+      table('Por tarea (30 días)', data.by_task, 'Task') +
+      table('Por modelo (30 días)', data.by_model, 'Model');
   }
 }
 
@@ -1603,7 +1603,7 @@ async function loadOutbox() {
   if (!data) { desk.innerHTML = offlineState(); list.innerHTML = ''; return; }
   if (data.error) {
     // Never let a failed read pass for "Nothing to review".
-    desk.innerHTML = emptyState(icon('alert'), 'Couldn\'t read the Outbox', escHtml(data.error));
+    desk.innerHTML = emptyState(icon('alert'), 'No se pudo leer la bandeja de salida', escHtml(data.error));
     list.innerHTML = '';
     return;
   }
@@ -1625,33 +1625,33 @@ async function loadOutbox() {
     (pending.length && !data.paused
       ? (pending.length > pending.filter(p => heldReason(p)).length
         ? '<button class="btn btn-primary btn-sm" onclick="outboxApproveAll()" ' +
-          'title="Emails Harvey held are left for you to approve one by one">Approve all ' +
-          (pending.length - pending.filter(p => heldReason(p)).length) + '</button>' : '') : '') +
+          'title="Los correos que Harvey ha retenido quedan para que los apruebes uno a uno">Aprobar todos (' +
+          (pending.length - pending.filter(p => heldReason(p)).length) + ')</button>' : '') : '') +
     (data.paused
       ? '<button class="btn btn-secondary btn-sm" onclick="sendingToggle(\'resume\')">' +
-        'Resume sending</button>'
+        'Reanudar envíos</button>'
       : '<button class="btn btn-secondary btn-sm" onclick="sendingToggle(\'pause\')">' +
-        'Pause all sending</button>');
+        'Pausar todos los envíos</button>');
 
   // The kill switch gets a banner only when it's actually on — a permanent
   // bar for a thing that isn't happening is just noise.
   banner.innerHTML = sendingModeBanner(_sendingMode) + (data.paused
-    ? '<div class="banner bad">' + icon('alert') + '<div><b>Sending is paused</b>' +
-        '<p>' + escHtml(data.paused) + '. Approved mail stays queued until you resume.</p></div></div>'
+    ? '<div class="banner bad">' + icon('alert') + '<div><b>Los envíos están en pausa</b>' +
+        '<p>' + escHtml(data.paused) + '. Los correos aprobados siguen en cola hasta que reanudes.</p></div></div>'
     : '');
   // Only once there is mail to warn about: a fresh install sends nothing.
   const anyMail = pending.length || (data.approved || []).length || (data.sent || []).length;
   if (data.compliance_notice && anyMail) {
     banner.innerHTML +=
-      '<div class="banner wait">' + icon('alert') + '<div><b>Add your postal address</b>' +
+      '<div class="banner wait">' + icon('alert') + '<div><b>Añade tu dirección postal</b>' +
         '<p>' + escHtml(data.compliance_notice) + '</p></div></div>';
   }
 
   desk.innerHTML = pending.length ? renderDesk(pending, _desk.i) :
-    '<div class="card">' + emptyState(icon('check'), 'Nothing to review',
+    '<div class="card">' + emptyState(icon('check'), 'Nada que revisar',
       _sendingMode && _sendingMode.mode === 'autopilot'
-        ? 'Autopilot is on, so Harvey sends on its own. Anything it holds for you shows up here.'
-        : 'Every draft Harvey writes lands here first. Approve one and it sends on schedule.') +
+        ? 'El piloto automático está activado, así que Harvey envía por su cuenta. Lo que retenga para ti aparecerá aquí.'
+        : 'Cada borrador que escribe Harvey llega primero aquí. Aprueba uno y se envía según lo programado.') +
     '</div>';
 
   const table = (title, rows, cols) => {
@@ -1667,28 +1667,28 @@ async function loadOutbox() {
   };
 
   list.innerHTML =
-    table('Approved &amp; scheduled', data.approved, [
-      ['To', r => r.to_email], ['Step', r => r.step], ['Subject', r => r.subject],
-      ['Sends', r => r.status === 'sending' ? badge(r.status) : escHtml(formatDate(r.send_at)), true, true],
+    table('Aprobados y programados', data.approved, [
+      ['Para', r => r.to_email], ['Paso', r => r.step], ['Asunto', r => r.subject],
+      ['Envío', r => r.status === 'sending' ? badge(r.status) : escHtml(formatDate(r.send_at)), true, true],
     ]) +
-    table('Recently sent', data.sent, [
-      ['To', r => r.to_email], ['Step', r => r.step], ['Subject', r => r.subject],
-      ['Sent', r => formatDate(r.sent_at), true],
+    table('Enviados recientemente', data.sent, [
+      ['Para', r => r.to_email], ['Paso', r => r.step], ['Asunto', r => r.subject],
+      ['Enviado', r => formatDate(r.sent_at), true],
     ]) +
-    table('Didn\'t send', data.failed, [
-      ['To', r => r.to_email], ['Status', r => badge(r.status), false, true],
-      ['Reason', r => r.error, true], ['Updated', r => formatDate(r.updated_at), true],
+    table('No se enviaron', data.failed, [
+      ['Para', r => r.to_email], ['Estado', r => badge(r.status), false, true],
+      ['Motivo', r => r.error, true], ['Actualizado', r => formatDate(r.updated_at), true],
     ]);
 }
 
 const CONTACT_SOURCES = {
-  known_company_backfill: 'team page on their site',
-  company_website: 'team page on their site',
-  scraped_mailto: 'address published on their site',
-  linkedin_search: 'LinkedIn search',
-  hunter_domain_search: 'Hunter domain search',
-  job_board: 'job board',
-  web_search: 'web search',
+  known_company_backfill: 'página del equipo en su web',
+  company_website: 'página del equipo en su web',
+  scraped_mailto: 'dirección publicada en su web',
+  linkedin_search: 'búsqueda en LinkedIn',
+  hunter_domain_search: 'búsqueda de dominio en Hunter',
+  job_board: 'portal de empleo',
+  web_search: 'búsqueda web',
 };
 
 // What the draft is built on, so every claim can be checked against it.
@@ -1701,22 +1701,22 @@ function renderDeskContext(ctx) {
         escHtml(ctx.website.replace(/^https?:\/\//i, '')) + ' &#8599;</a>'
     : '';
   const who = [ctx.contact, ctx.contact_title].filter(Boolean).map(escHtml).join(' &middot; ');
-  const email = [ctx.email_status, ctx.score ? 'score ' + ctx.score : '']
+  const email = [ctx.email_status, ctx.score ? 'puntuación ' + ctx.score : '']
     .filter(Boolean).map(escHtml).join(' &middot; ');
   const signals = Object.entries(ctx.signals || {})
     .map(([k, v]) => escHtml(k) + ': <b>' + escHtml(v) + '</b>').join('<br>');
   return '<div class="desk-context">' +
-    row('Company', escHtml(ctx.company)) +
-    row('Website', site) +
-    row('About', escHtml(ctx.description)) +
-    row('Contact', who) +
-    row('Found via', escHtml(Object.prototype.hasOwnProperty.call(CONTACT_SOURCES, ctx.contact_source)
+    row('Empresa', escHtml(ctx.company)) +
+    row('Web', site) +
+    row('Acerca de', escHtml(ctx.description)) +
+    row('Contacto', who) +
+    row('Encontrado vía', escHtml(Object.prototype.hasOwnProperty.call(CONTACT_SOURCES, ctx.contact_source)
       ? CONTACT_SOURCES[ctx.contact_source] : ctx.contact_source)) +
-    row('Email', email) +
-    row('Signals', signals) +
-    row('Campaign', ctx.campaign ? escHtml(ctx.campaign) +
-      ' <span class="muted">(how they were found, not a fact about them)</span>' : '') +
-    row('Writer notes', escHtml(ctx.notes)) +
+    row('Correo', email) +
+    row('Señales', signals) +
+    row('Campaña', ctx.campaign ? escHtml(ctx.campaign) +
+      ' <span class="muted">(cómo se les encontró, no un dato sobre ellos)</span>' : '') +
+    row('Notas del redactor', escHtml(ctx.notes)) +
   '</div>';
 }
 
@@ -1809,13 +1809,13 @@ async function setSendingMode(mode) {
     if (res && res.success) {
       _autopilotArmed = false;
       showToast(mode === 'autopilot'
-        ? 'Autopilot is on from Harvey’s next cycle. Held emails still wait for you.'
-        : 'Autopilot is off. Every email waits for you' +
-          (res.requeued ? '; ' + res.requeued + ' queued by autopilot came back to the Outbox.' : '.') +
+        ? 'El piloto automático estará activo desde el próximo ciclo de Harvey. Los correos retenidos siguen esperándote.'
+        : 'El piloto automático está desactivado. Cada correo espera tu aprobación' +
+          (res.requeued ? '; ' + res.requeued + ' en cola por el piloto automático han vuelto a la bandeja de salida.' : '.') +
           (_sendingMode && _sendingMode.provider === 'instantly'
-            ? ' Campaigns already on Instantly keep running: pause them in Instantly.' : ''), 'success');
+            ? ' Las campañas que ya están en Instantly siguen en marcha: páusalas en Instantly.' : ''), 'success');
     } else {
-      showToast(failMsg(res, 'Couldn’t change the sending mode.'), 'error');
+      showToast(failMsg(res, 'No se pudo cambiar el modo de envío.'), 'error');
     }
   } finally {
     _modeBusy = false;
@@ -1840,9 +1840,9 @@ function renderDesk(items, i) {
     return '<div class="desk-item ' + (n === i ? 'active' : '') + '" onclick="deskGo(' + n + ')">' +
       '<span class="avatar">' + initials(parts[0], parts[1]) + '</span>' +
       '<div class="di-text"><div class="to">' + escHtml(who) +
-        (heldReason(it) ? ' <span class="tag t-bad" title="Harvey held this instead of sending it">Held</span>' : '') +
+        (heldReason(it) ? ' <span class="tag t-bad" title="Harvey lo ha retenido en lugar de enviarlo">Retenido</span>' : '') +
         '</div>' +
-      '<div class="sub">' + escHtml(it.subject || '(no subject)') + '</div></div>' +
+      '<div class="sub">' + escHtml(it.subject || '(sin asunto)') + '</div></div>' +
     '</div>';
   }).join('');
 
@@ -1850,7 +1850,7 @@ function renderDesk(items, i) {
   const unsaved = (editing && _desk.unsaved) || {subject: cur.subject || '', body: cur.body || ''};
   // A reply keeps its subject: Gmail threads by it.
   const fixedSubject = cur.kind === 'reply'
-    ? ' readonly title="A reply keeps its subject so it stays in the thread"' : '';
+    ? ' readonly title="Una respuesta conserva su asunto para seguir en el mismo hilo"' : '';
   const draft = editing
     ? '<input id="desk-subject" class="desk-edit-subject" value="' + escHtml(unsaved.subject) + '"' +
         fixedSubject + ' oninput="deskKeep()">' +
@@ -1863,34 +1863,34 @@ function renderDesk(items, i) {
   const added = cur.kind === 'sequence' && !(cur.body || '').trimEnd().endsWith(_desk.footer)
     ? _desk.footer : '';
   const footer = added
-    ? '<div class="desk-footer" title="Added when it sends (compliance in harvey.yaml)">' +
+    ? '<div class="desk-footer" title="Se añade al enviar (cumplimiento normativo en harvey.yaml)">' +
         escHtml(added) + '</div>' : '';
   const actions = editing
-    ? '<button class="btn btn-primary" onclick="deskSave(' + jsq(cur.id) + ')">Save</button>' +
-      '<button class="btn btn-secondary" onclick="deskEdit(null)">Cancel</button>'
+    ? '<button class="btn btn-primary" onclick="deskSave(' + jsq(cur.id) + ')">Guardar</button>' +
+      '<button class="btn btn-secondary" onclick="deskEdit(null)">Cancelar</button>'
     : '<button class="btn btn-primary" onclick="outboxAct(' + jsq(cur.id) + ',\'approve\')">' +
-        'Approve <kbd>A</kbd></button>' +
+        'Aprobar <kbd>A</kbd></button>' +
       '<button class="btn btn-secondary" onclick="deskEdit(' + jsq(cur.id) + ')">' +
-        'Edit <kbd>E</kbd></button>' +
+        'Editar <kbd>E</kbd></button>' +
       '<button class="btn btn-secondary" onclick="outboxAct(' + jsq(cur.id) + ',\'reject\')">' +
-        'Reject <kbd>R</kbd></button>';
+        'Rechazar <kbd>R</kbd></button>';
 
   return '<div class="desk">' +
     '<div class="desk-list">' + rail + '</div>' +
     '<div class="desk-pane">' +
-      '<div class="to-line">To <b>' + escHtml(cur.to_email) + '</b>' +
-        '<span class="tag">' + (cur.kind === 'reply' ? 'Reply' : 'Email ' + escHtml(String(cur.step))) + '</span>' +
-        '<span class="muted">sends ' + formatDate(cur.send_at) + '</span></div>' +
+      '<div class="to-line">Para <b>' + escHtml(cur.to_email) + '</b>' +
+        '<span class="tag">' + (cur.kind === 'reply' ? 'Respuesta' : 'Correo ' + escHtml(String(cur.step))) + '</span>' +
+        '<span class="muted">se envía ' + formatDate(cur.send_at) + '</span></div>' +
       renderDeskContext(cur.context) +
       (heldReason(cur)
-        ? '<div class="banner wait desk-held">' + icon('alert') + '<div><b>Harvey held this instead of sending it</b>' +
-          '<div>' + escHtml(heldReason(cur)) + '. Read it before approving: text from a website or an ' +
-          'email can try to steer what Harvey writes.</div></div></div>'
+        ? '<div class="banner wait desk-held">' + icon('alert') + '<div><b>Harvey lo ha retenido en lugar de enviarlo</b>' +
+          '<div>' + escHtml(heldReason(cur)) + '. Léelo antes de aprobar: el texto de una web o de un ' +
+          'correo puede intentar dirigir lo que escribe Harvey.</div></div></div>'
         : '') +
       draft + footer +
       '<div class="desk-actions">' + actions +
         '<span class="muted" style="font-size:12px;margin-left:auto">' +
-          (i + 1) + ' of ' + items.length + '</span>' +
+          (i + 1) + ' de ' + items.length + '</span>' +
       '</div>' +
     '</div></div>';
 }
@@ -1914,14 +1914,14 @@ function deskKeep() {
 // stored version of it: Save or Cancel first.
 function deskBusy() {
   if (!_desk.editing) return false;
-  showToast('Save or cancel your edit first.', 'error');
+  showToast('Guarda o cancela primero tu edición.', 'error');
   return true;
 }
 
 async function deskSave(id) {
   const subject = document.getElementById('desk-subject').value.trim();
   const body = document.getElementById('desk-body').value.trim();
-  if (!subject || !body) { showToast('Subject and body are both required.', 'error'); return; }
+  if (!subject || !body) { showToast('El asunto y el cuerpo son obligatorios.', 'error'); return; }
   let data = null;
   try {
     const r = await authFetch('/api/outbox/' + encodeURIComponent(id) + '/edit', {
@@ -1934,10 +1934,10 @@ async function deskSave(id) {
   if (data && data.success) {
     _desk.editing = null;
     _desk.unsaved = null;
-    showToast('Saved. Still waiting for your approval.', 'success');
+    showToast('Guardado. Sigue esperando tu aprobación.', 'success');
     loadOutbox();
   } else {
-    showToast((data && data.message) || 'Save failed.', 'error');
+    showToast((data && data.message) || 'No se pudo guardar.', 'error');
   }
 }
 
@@ -1972,25 +1972,25 @@ document.addEventListener('keydown', e => {
 async function outboxAct(id, action) {
   if (deskBusy()) return;
   const data = await api('/api/outbox/' + encodeURIComponent(id) + '/' + action, {method: 'POST'});
-  if (data && data.success) showToast(action === 'approve' ? 'Approved — will send on schedule.' : 'Rejected.', 'success');
-  else showToast(failMsg(data, 'Action failed.'), 'error');
+  if (data && data.success) showToast(action === 'approve' ? 'Aprobado: se enviará según lo programado.' : 'Rechazado.', 'success');
+  else showToast(failMsg(data, 'La acción ha fallado.'), 'error');
   loadOutbox();
 }
 
 async function outboxApproveAll() {
   if (deskBusy()) return;
   const data = await api('/api/outbox/approve-all', {method: 'POST'});
-  if (data && data.success) showToast('Approved ' + data.approved + ' email(s).' + (data.held
-    ? ' ' + data.held + ' Harvey held ' + (data.held === 1 ? 'is' : 'are') + ' left for you to read and approve one by one.'
+  if (data && data.success) showToast('Aprobados ' + data.approved + ' correo(s).' + (data.held
+    ? ' ' + (data.held === 1 ? 'Queda 1 que Harvey ha retenido' : 'Quedan ' + data.held + ' que Harvey ha retenido') + ' para que lo(s) leas y apruebes uno a uno.'
     : ''), 'success');
-  else showToast(failMsg(data, 'Approve-all failed.'), 'error');
+  else showToast(failMsg(data, 'No se pudieron aprobar todos.'), 'error');
   loadOutbox();
 }
 
 async function sendingToggle(action) {
   const data = await api('/api/sending/' + action, {method: 'POST'});
-  if (data && data.success) showToast(action === 'pause' ? 'Sending paused.' : 'Sending resumed.', 'success');
-  else showToast(failMsg(data, action === 'pause' ? 'Could not pause sending.' : 'Could not resume sending.'), 'error');
+  if (data && data.success) showToast(action === 'pause' ? 'Envíos en pausa.' : 'Envíos reanudados.', 'success');
+  else showToast(failMsg(data, action === 'pause' ? 'No se pudo pausar el envío.' : 'No se pudo reanudar el envío.'), 'error');
   loadOutbox();
 }
 
@@ -2001,13 +2001,13 @@ async function loadCompanies() {
   if (!data) { el.innerHTML = offlineState(); return; }
   _companies = data;
   if (!data.length) {
-    el.innerHTML = emptyState(icon('companies'), 'No companies yet',
-      'Confirm your <b>Signals</b>, then find businesses on the <b>Discover</b> tab. ' +
-      'OpenStreetMap is free and needs no account.');
+    el.innerHTML = emptyState(icon('companies'), 'Aún no hay empresas',
+      'Confirma tus <b>Señales</b> y busca negocios en la pestaña <b>Descubrir</b>. ' +
+      'OpenStreetMap es gratis y no necesita cuenta.');
     return;
   }
-  let html = '<div class="table-card"><table class="nowrap"><thead><tr><th>Company</th><th>Industry</th>' +
-    '<th>Location</th><th>Size</th><th class="num">Contacts</th><th>Source</th><th>Added</th></tr></thead><tbody>';
+  let html = '<div class="table-card"><table class="nowrap"><thead><tr><th>Empresa</th><th>Sector</th>' +
+    '<th>Ubicación</th><th>Tamaño</th><th class="num">Contactos</th><th>Fuente</th><th>Añadida</th></tr></thead><tbody>';
   data.forEach((c, i) => {
     const website = c.website || (c.domain ? 'https://' + c.domain : '');
     const domain = safeHref(website)
@@ -2025,7 +2025,7 @@ async function loadCompanies() {
       '<td class="muted">' + relTime(c.created_at) + '</td></tr>';
   });
   el.innerHTML = html + '</tbody></table></div>' +
-    '<div class="table-foot">' + data.length + ' compan' + (data.length === 1 ? 'y' : 'ies') + '</div>';
+    '<div class="table-foot">' + data.length + (data.length === 1 ? ' empresa' : ' empresas') + '</div>';
 }
 
 async function showCompanyContacts(index) {
@@ -2035,13 +2035,13 @@ async function showCompanyContacts(index) {
   const el = document.getElementById('companies-list');
   const data = await api('/api/companies/' + encodeURIComponent(company.id) + '/contacts');
   let html = '<button class="btn btn-ghost btn-sm" onclick="loadCompanies()" style="margin-bottom:12px">' +
-    '&larr; All companies</button>' +
+    '&larr; Todas las empresas</button>' +
     '<div class="card flush"><div class="card-head"><h3>' + escHtml(company.name) + '</h3>' +
     '<span class="meta">' + escHtml([company.industry, company.location].filter(Boolean).join(' · ')) + '</span></div>';
   if (!data || !data.length) {
-    html += '<div class="empty"><div class="copy">No contacts found at this company yet.</div></div></div>';
+    html += '<div class="empty"><div class="copy">Aún no se han encontrado contactos en esta empresa.</div></div></div>';
   } else {
-    html += '<table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>LinkedIn</th><th>Status</th><th>Source</th></tr></thead><tbody>';
+    html += '<table><thead><tr><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>LinkedIn</th><th>Estado</th><th>Fuente</th></tr></thead><tbody>';
     for (const p of data) {
       const phoneIcon = p.phone_verified ? ' <span class="muted">&#10003;</span>' : '';
       html += '<tr><td><div class="cell-row"><span class="avatar">' + initials(p.first_name, p.last_name) + '</span>' +
@@ -2049,7 +2049,7 @@ async function showCompanyContacts(index) {
           '<span class="cell-sub">' + escHtml(p.title) + '</span></div></div></td>' +
         '<td>' + escHtml(p.email) + emailTag(p) + '</td>' +
         '<td>' + escHtml(p.phone) + phoneIcon + '</td>' +
-        '<td>' + (safeHref(p.linkedin_url) ? '<a href="' + safeHref(p.linkedin_url) + '" target="_blank" rel="noopener noreferrer">Profile</a>' : '') + '</td>' +
+        '<td>' + (safeHref(p.linkedin_url) ? '<a href="' + safeHref(p.linkedin_url) + '" target="_blank" rel="noopener noreferrer">Perfil</a>' : '') + '</td>' +
         '<td>' + badge(p.status) + '</td><td class="muted">' + sourceLabel(p.source) + '</td></tr>';
     }
     html += '</tbody></table></div>';
@@ -2058,37 +2058,37 @@ async function showCompanyContacts(index) {
 }
 
 async function submitFeedback(entityType, entityId, promptText) {
-  const comment = prompt(promptText || 'Add your feedback:');
+  const comment = prompt(promptText || 'Añade tus comentarios:');
   if (!comment) return;
   const data = await api('/api/feedback', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({entity_type: entityType, entity_id: entityId, comment: comment})
   });
   if (data && data.success) showToast(entityType === 'campaign'
-    ? 'Saved. Harvey follows it in the emails it writes from now on.'
-    : 'Saved. Harvey uses it if it writes this person\'s first email (Gmail, SMTP or Microsoft 365).', 'success');
-  else showToast((data && data.message) || 'Could not save feedback.', 'error');
+    ? 'Guardado. Harvey lo seguirá en los correos que escriba a partir de ahora.'
+    : 'Guardado. Harvey lo usará si escribe el primer correo a esta persona (Gmail, SMTP o Microsoft 365).', 'success');
+  else showToast((data && data.message) || 'No se pudieron guardar los comentarios.', 'error');
 }
 
 function fbProspect(i) {
   const p = _prospects[i];
-  if (p) submitFeedback('contact', p.id, 'Anything Harvey should know before writing to this person?');
+  if (p) submitFeedback('contact', p.id, '¿Hay algo que Harvey deba saber antes de escribir a esta persona?');
 }
 
 function fbCampaign(i) {
   const c = _campaigns[i];
-  if (c) submitFeedback('campaign', c.id, 'What should Harvey do differently in the emails it writes next? (e.g. "shorter; don\'t mention reviews")');
+  if (c) submitFeedback('campaign', c.id, '¿Qué debería hacer Harvey de otra forma en los próximos correos? (p. ej., "más cortos; no menciones las reseñas")');
 }
 
 // Search and status filter live outside the table, so the 15-second refresh
 // re-renders rows without losing what you typed.
 let _contactQuery = '', _contactFilter = 'all';
 const CONTACT_FILTERS = [
-  ['all', 'All', null],
-  ['todo', 'To write', ['new', 'queued']],
-  ['contacted', 'Contacted', ['contacted']],
-  ['replied', 'Replied', ['replied', 'interested', 'meeting']],
-  ['closed', 'Closed out', null],
+  ['all', 'Todos', null],
+  ['todo', 'Por redactar', ['new', 'queued']],
+  ['contacted', 'Contactados', ['contacted']],
+  ['replied', 'Respondieron', ['replied', 'interested', 'meeting']],
+  ['closed', 'Cerrados', null],
 ];
 
 async function loadProspects() {
@@ -2097,16 +2097,16 @@ async function loadProspects() {
   if (!data) { el.innerHTML = offlineState(); return; }
   _prospects = data;
   if (!data.length) {
-    el.innerHTML = emptyState(icon('contacts'), 'No contacts yet',
-      'Harvey hasn\'t found any prospects. Once it\'s running, the Scout agent searches the web for people matching your ideal customer profile in <b>harvey.yaml</b>.');
+    el.innerHTML = emptyState(icon('contacts'), 'Aún no hay contactos',
+      'Harvey todavía no ha encontrado prospectos. Cuando esté en marcha, el agente Scout buscará en la web personas que encajen con tu perfil de cliente ideal de <b>harvey.yaml</b>.');
     return;
   }
   if (!document.getElementById('contact-rows')) {
     el.innerHTML = '<div class="toolbar">' +
       '<label class="search">' + icon('discover') +
-        '<input class="form-input" id="contact-search" type="search" placeholder="Search name, company, email" ' +
-        'aria-label="Search contacts" oninput="_contactQuery=this.value;renderContacts()"></label>' +
-      '<div class="segmented" id="contact-filters" role="group" aria-label="Filter by status"></div>' +
+        '<input class="form-input" id="contact-search" type="search" placeholder="Buscar nombre, empresa, correo" ' +
+        'aria-label="Buscar contactos" oninput="_contactQuery=this.value;renderContacts()"></label>' +
+      '<div class="segmented" id="contact-filters" role="group" aria-label="Filtrar por estado"></div>' +
       '</div><div id="contact-rows"></div>';
     // A rebuild after an offline blip must show the search still applied.
     document.getElementById('contact-search').value = _contactQuery;
@@ -2137,12 +2137,12 @@ function renderContacts() {
 
   const rows = _prospects.map((p, i) => [p, i]).filter(([p]) => contactMatches(p, _contactFilter) && found(p));
   if (!rows.length) {
-    rowsEl.innerHTML = '<div class="table-card">' + emptyState(icon('discover'), 'No matches',
-      'Nothing matches that search and filter.') + '</div>';
+    rowsEl.innerHTML = '<div class="table-card">' + emptyState(icon('discover'), 'Sin coincidencias',
+      'Nada coincide con esa búsqueda y ese filtro.') + '</div>';
     return;
   }
-  let html = '<div class="table-card"><table class="nowrap"><thead><tr><th>Name</th><th>Company</th><th>Email</th>' +
-    '<th>Score</th><th>Status</th><th>Source</th><th>Added</th><th></th></tr></thead><tbody>';
+  let html = '<div class="table-card"><table class="nowrap"><thead><tr><th>Nombre</th><th>Empresa</th><th>Correo</th>' +
+    '<th>Puntuación</th><th>Estado</th><th>Fuente</th><th>Añadido</th><th></th></tr></thead><tbody>';
   for (const [p, i] of rows) {
     html += '<tr><td><div class="cell-row"><span class="avatar">' + initials(p.first_name, p.last_name) + '</span>' +
         '<div class="cell-stack"><span class="cell-main">' + escHtml(p.first_name) + ' ' + escHtml(p.last_name) + '</span>' +
@@ -2150,7 +2150,7 @@ function renderContacts() {
       '<td>' + escHtml(p.company) + '</td>' +
       '<td><div class="cell-stack"><span>' + escHtml(p.email) + '</span>' +
         '<span class="cell-sub">' + [emailTag(p).trim(), p.phone ? escHtml(p.phone) +
-          (p.phone_verified ? ' <span class="verified" title="Phone verified">&#10003;</span>' : '') : '']
+          (p.phone_verified ? ' <span class="verified" title="Teléfono verificado">&#10003;</span>' : '') : '']
           .filter(Boolean).join(' · ') + '</span>' +
         '</div></td>' +
       '<td>' + (p.score || p.score === 0 ? meterHtml(p.score) : '') + '</td>' +
@@ -2159,14 +2159,14 @@ function renderContacts() {
       '<td class="muted" style="white-space:nowrap">' + relTime(p.created_at) + '</td>' +
       '<td><div class="cell-row">' + (p.status === 'opted_out' || p.opt_out_undone || _optOut.id === p.id
         ? '<button class="btn btn-ghost btn-sm" onclick="toggleOptOut(' + i + ')" ' +
-          'aria-expanded="' + (_optOut.id === p.id) + '" title="What made Harvey stop emailing them">' +
-          (p.status === 'opted_out' ? 'Why?' : 'Opt-out history') + '</button>' : '') +
+          'aria-expanded="' + (_optOut.id === p.id) + '" title="Qué hizo que Harvey dejara de escribirles">' +
+          (p.status === 'opted_out' ? '¿Por qué?' : 'Historial de bajas') + '</button>' : '') +
         '<button class="btn btn-ghost btn-sm row-action" onclick="fbProspect(' + i + ')" ' +
-        'title="Leave feedback on this contact">Feedback</button></div></td></tr>';
+        'title="Deja comentarios sobre este contacto">Comentarios</button></div></td></tr>';
     if (_optOut.id === p.id) html += '<tr class="detail-row"><td colspan="8">' + optOutPanel(p) + '</td></tr>';
   }
   rowsEl.innerHTML = html + '</tbody></table></div>' +
-    '<div class="table-foot">' + rows.length + ' of ' + _prospects.length + ' contacts</div>';
+    '<div class="table-foot">' + rows.length + ' de ' + _prospects.length + ' contactos</div>';
 }
 
 // Why someone is opted out, and undoing it. Harvey never moves anyone off
@@ -2240,8 +2240,8 @@ async function undoOptOut() {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({confirm: true}),
   });
-  if (res && res.success) showToast('Opt-out undone. They’re marked as replied; Harvey sends nothing on its own.', 'success');
-  else showToast(failMsg(res, 'Could not undo the opt-out. Try again.'), 'error');
+  if (res && res.success) showToast('Baja deshecha. Quedan marcados como respondidos; Harvey no envía nada por su cuenta.', 'success');
+  else showToast(failMsg(res, 'No se pudo deshacer la baja. Inténtalo de nuevo.'), 'error');
   if (_optOut.id !== id) return;
   _optOut.armed = false;
   _optOut.busy = false;
@@ -2301,7 +2301,7 @@ async function openInGmail(ci, si, ri) {
   // only gets the draft once the send is recorded.
   const w = window.open('', '_blank');
   if (!w) {
-    showToast('Your browser blocked the Gmail tab. Allow pop-ups for this page and click again.', 'error');
+    showToast('Tu navegador ha bloqueado la pestaña de Gmail. Permite las ventanas emergentes en esta página y vuelve a hacer clic.', 'error');
     return;
   }
   w.opener = null;
@@ -2312,7 +2312,7 @@ async function openInGmail(ci, si, ri) {
   try { if (!claimed) claimed = await markSent(ci, ri, true); } finally { _gmailBusy = false; }
   if (!claimed) { w.close(); return; }
   w.location.href = url;
-  if (left) showToast('This draft still has a {{placeholder}} in it. Fix it in Gmail before sending.', 'error');
+  if (left) showToast('Este borrador aún tiene un {{placeholder}}. Corrígelo en Gmail antes de enviarlo.', 'error');
 }
 
 async function markSent(ci, ri, sent) {
@@ -2328,9 +2328,9 @@ async function markSent(ci, ri, sent) {
     res = await resp.json();
   } catch {}
   const ok = !!(res && res.success);
-  if (!ok) showToast((res && res.message) || 'Could not save that. Try again.', 'error');
-  else if (!sent && res.sent) showToast('They already replied, so this stays marked as sent.');
-  else showToast(sent ? 'Marked as sent by you.' : 'Unmarked.', 'success');
+  if (!ok) showToast((res && res.message) || 'No se pudo guardar. Inténtalo de nuevo.', 'error');
+  else if (!sent && res.sent) showToast('Ya respondieron, así que esto sigue marcado como enviado.');
+  else showToast(sent ? 'Marcado como enviado por ti.' : 'Marca quitada.', 'success');
   loadCampaigns();
   // True only when this call changed it: a status means they replied or
   // opted out, 'already' means another click or tab got there first.
@@ -2343,14 +2343,14 @@ function campaignProgress(c) {
   if (!rs.length) return '';
   const count = st => rs.filter(r => st.includes(r.status)).length;
   const parts = [
-    ['Contacted', count(['contacted']), 'c-accent'],
-    ['Replied', count(['replied']), 'c-active'],
-    ['Interested', count(['interested', 'meeting']), 'c-good'],
-    ['Waiting', count(['new', 'queued']), 'c-accent-soft'],
+    ['Contactados', count(['contacted']), 'c-accent'],
+    ['Respondieron', count(['replied']), 'c-active'],
+    ['Interesados', count(['interested', 'meeting']), 'c-good'],
+    ['En espera', count(['new', 'queued']), 'c-accent-soft'],
   ];
   const closed = rs.length - parts.reduce((x, p) => x + p[1], 0);
-  if (closed > 0) parts.push(['Closed out', closed, 'c-idle']);
-  return '<div class="campaign-progress"><div class="bar" role="img" aria-label="Where this campaign\'s people stand">' +
+  if (closed > 0) parts.push(['Cerrados', closed, 'c-idle']);
+  return '<div class="campaign-progress"><div class="bar" role="img" aria-label="En qué punto están las personas de esta campaña">' +
     parts.filter(p => p[1]).map(p => '<span class="' + p[2] + '" style="width:' + (100 * p[1] / rs.length) +
       '%" title="' + p[0] + ': ' + p[1] + '"></span>').join('') + '</div>' +
     '<div class="campaign-legend">' + parts.filter(p => p[1]).map(p =>
@@ -2363,8 +2363,8 @@ async function loadCampaigns() {
   if (!data) { el.innerHTML = offlineState(); return; }
   _campaigns = data;
   if (!data.length) {
-    el.innerHTML = emptyState(icon('campaigns'), 'No campaigns yet',
-      'The Writer agent hasn\'t drafted any sequences. It kicks in automatically once Harvey has scored prospects to write for.');
+    el.innerHTML = emptyState(icon('campaigns'), 'Aún no hay campañas',
+      'El agente Writer todavía no ha redactado ninguna secuencia. Se activa solo cuando Harvey ha puntuado prospectos a los que escribir.');
     return;
   }
   let html = '';
@@ -2377,13 +2377,13 @@ async function loadCampaigns() {
         if (r.sent_by_hand) {
           const tick = '<label style="display:inline-flex;align-items:center;gap:4px;font-size:13px;cursor:pointer">' +
             '<input type="checkbox" checked onchange="markSent(' + i + ',' + ri + ',this.checked)"> ' +
-            '&#10003; Sent by you</label>';
+            '&#10003; Enviado por ti</label>';
           if (s === 0) return '<span class="rcpt-who">' + escHtml(r.email) + '</span>' + tick;
           // Follow-ups are the user's too: Harvey never emails someone they emailed.
           return '<span class="rcpt-who">' + escHtml(r.email) + '</span>' +
             '<button class="btn btn-secondary btn-sm" onclick="openInGmail(' + i + ',' + s + ',' + ri + ')">' +
-            'Open in Gmail</button>' +
-            '<span class="muted" style="font-size:12px">Harvey won\'t send follow-ups to people you emailed yourself.</span>';
+            'Abrir en Gmail</button>' +
+            '<span class="muted" style="font-size:12px">Harvey no enviará seguimientos a personas a las que has escrito tú.</span>';
         }
         if (s !== 0) return '';
         if (!r.can_send_by_hand) {
@@ -2391,19 +2391,19 @@ async function loadCampaigns() {
           return r.can_mark_sent
             ? '<label class="muted" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">' +
               '<input type="checkbox" onchange="markSent(' + i + ',' + ri + ',this.checked)"> ' +
-              'I already emailed ' + escHtml(r.email) + ' myself</label>'
+              'Ya he escrito yo a ' + escHtml(r.email) + '</label>'
             : '';
         }
         const risky = r.email_status === 'risky'
-          ? ' <span class="mini t-waiting">Catch-all, may bounce</span>' : '';
+          ? ' <span class="mini t-waiting">Catch-all, puede rebotar</span>' : '';
         return '<span class="rcpt-who">' + escHtml(r.email) + risky + '</span>' +
           '<button class="btn btn-secondary btn-sm" onclick="openInGmail(' + i + ',' + s + ',' + ri + ')">' +
-          'Open in Gmail</button>' +
-          '<label><input type="checkbox" onchange="markSent(' + i + ',' + ri + ',this.checked)"> Mark as sent</label>'
+          'Abrir en Gmail</button>' +
+          '<label><input type="checkbox" onchange="markSent(' + i + ',' + ri + ',this.checked)"> Marcar como enviado</label>'
       }).filter(Boolean).map(x => '<div class="rcpt">' + x + '</div>').join('');
       stepsHtml += '<div class="email-step"><span class="step-dot">' + escHtml(String(step.step || '?')) + '</span>' +
-        '<div><div class="step-num">' + (s === 0 ? 'First email' : 'Follow-up') +
-        (step.delay_days ? ' &middot; ' + escHtml(String(step.delay_days)) + ' days after the last' : '') + '</div>' +
+        '<div><div class="step-num">' + (s === 0 ? 'Primer correo' : 'Seguimiento') +
+        (step.delay_days ? ' &middot; ' + escHtml(String(step.delay_days)) + ' días después del anterior' : '') + '</div>' +
         '<div class="subject">' + escHtml(step.subject) + '</div>' +
         '<div class="body">' + escHtml(step.body) + '</div>' +
         (sendBtns ? '<div class="step-actions">' + sendBtns + '</div>' : '') +
@@ -2411,13 +2411,13 @@ async function loadCampaigns() {
     });
     const pc = (c.prospect_ids || []).length;
     html += '<div class="campaign-card"><div class="campaign-top">' +
-      '<div class="campaign-title"><h3>' + escHtml(c.name || 'Untitled Campaign') + '</h3>' +
-        '<button class="btn btn-ghost btn-sm" onclick="fbCampaign(' + i + ')">Feedback</button></div>' +
-      '<div class="meta">' + badge(c.status) + '<span>' + pc + ' prospect' + (pc !== 1 ? 's' : '') + '</span>' +
-        '<span>' + (c.sequence || []).length + ' emails</span><span>Created ' + relTime(c.created_at) + '</span></div>' +
+      '<div class="campaign-title"><h3>' + escHtml(c.name || 'Campaña sin título') + '</h3>' +
+        '<button class="btn btn-ghost btn-sm" onclick="fbCampaign(' + i + ')">Comentarios</button></div>' +
+      '<div class="meta">' + badge(c.status) + '<span>' + pc + (pc !== 1 ? ' prospectos' : ' prospecto') + '</span>' +
+        '<span>' + (c.sequence || []).length + ' correos</span><span>Creada ' + relTime(c.created_at) + '</span></div>' +
       campaignProgress(c) + '</div>' +
       '<div class="sequence">' +
-      (stepsHtml || '<p class="muted" style="font-size:13px;padding-top:16px">No email steps in this campaign.</p>') + '</div></div>';
+      (stepsHtml || '<p class="muted" style="font-size:13px;padding-top:16px">Esta campaña no tiene pasos de correo.</p>') + '</div></div>';
   });
   el.innerHTML = html;
 }
@@ -2426,14 +2426,14 @@ async function loadCampaigns() {
 // replies, Harvey's answers, and any answer still waiting for approval.
 let _convos = [], _convoFilter = 'needs';
 const STAGE_LABELS = {
-  initial_outreach: 'Outreach', engaged: 'Engaged', qualifying: 'Qualifying', presenting: 'Presenting',
-  negotiating: 'Negotiating', closing: 'Closing', closed_won: 'Won', closed_lost: 'Lost',
+  initial_outreach: 'Primer contacto', engaged: 'Con interés', qualifying: 'Cualificando', presenting: 'Presentando',
+  negotiating: 'Negociando', closing: 'Cerrando', closed_won: 'Ganada', closed_lost: 'Perdida',
 };
 const CONVO_FILTERS = [
-  ['needs', 'Needs you', c => !!c.draft || c.status === 'needs_human'],
-  ['open', 'Open', c => c.status !== 'closed'],
-  ['closed', 'Closed', c => c.status === 'closed'],
-  ['all', 'All', () => true],
+  ['needs', 'Te necesitan', c => !!c.draft || c.status === 'needs_human'],
+  ['open', 'Abiertas', c => c.status !== 'closed'],
+  ['closed', 'Cerradas', c => c.status === 'closed'],
+  ['all', 'Todas', () => true],
 ];
 
 async function loadConversations() {
@@ -2442,8 +2442,8 @@ async function loadConversations() {
   if (!data) { el.innerHTML = offlineState(); return; }
   _convos = data;
   if (!data.length) {
-    el.innerHTML = emptyState(icon('conversations'), 'No conversations yet',
-      'No prospects have replied so far. When they do, the Handler agent classifies each reply and responds — every thread shows up here.');
+    el.innerHTML = emptyState(icon('conversations'), 'Aún no hay conversaciones',
+      'Ningún prospecto ha respondido por ahora. Cuando lo hagan, el agente Handler clasificará cada respuesta y contestará: todos los hilos aparecerán aquí.');
     return;
   }
   // Open on "Needs you" only when something needs you.
@@ -2456,7 +2456,7 @@ function setConvoFilter(f) { _convoFilter = f; renderConversations(); }
 function renderConversations() {
   const el = document.getElementById('conversations-list');
   const filter = CONVO_FILTERS.find(f => f[0] === _convoFilter) || CONVO_FILTERS[3];
-  const bar = '<div class="toolbar"><div class="segmented" role="group" aria-label="Filter conversations">' +
+  const bar = '<div class="toolbar"><div class="segmented" role="group" aria-label="Filtrar conversaciones">' +
     CONVO_FILTERS.map(f => '<button class="' + (f[0] === filter[0] ? 'on' : '') + '" aria-pressed="' + (f[0] === filter[0]) +
       '" onclick="setConvoFilter(\'' + f[0] + '\')">' + f[1] + ' <span class="n">' +
       _convos.filter(f[2]).length + '</span></button>').join('') + '</div></div>';
@@ -2465,8 +2465,8 @@ function renderConversations() {
   const shown = _convos.filter(filter[2]).map((c, i) => [c, i])
     .sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(x => x[0]);
   if (!shown.length) {
-    el.innerHTML = bar + '<div class="card">' + emptyState(icon('check'), 'Nothing here',
-      'No conversation matches this filter.') + '</div>';
+    el.innerHTML = bar + '<div class="card">' + emptyState(icon('check'), 'Nada por aquí',
+      'Ninguna conversación coincide con este filtro.') + '</div>';
     return;
   }
   el.innerHTML = bar + shown.map(convoCard).join('');
@@ -2478,11 +2478,11 @@ function convoCard(c) {
     .map(it => ({...it, key: +parseTs(it.ts)}))
     // An item with no time goes last instead of scrambling the order.
     .sort((a, b) => (isNaN(a.key) ? Infinity : a.key) - (isNaN(b.key) ? Infinity : b.key) || 0);
-  const first = c.first_name || 'Them';
+  const first = c.first_name || 'Ellos';
   const thread = items.map(it => {
     if (it.email) {
       return '<div class="thread-email"><div class="te-head">' + icon('campaigns') +
-        '<b>Email ' + escHtml(String(it.email.step)) + '</b><span>' + escHtml(it.email.subject) + '</span>' +
+        '<b>Correo ' + escHtml(String(it.email.step)) + '</b><span>' + escHtml(it.email.subject) + '</span>' +
         '<span class="te-when">' + relTime(it.email.sent_at) + '</span></div>' +
         '<div class="te-body">' + escHtml(it.email.body) + '</div></div>';
     }
@@ -2492,11 +2492,11 @@ function convoCard(c) {
       escHtml(m.content) + '</div>';
   }).join('');
   const draft = c.draft
-    ? '<div class="thread-draft"><div class="sender">' + icon('pen') + 'Harvey drafted a reply · waiting for you</div>' +
+    ? '<div class="thread-draft"><div class="sender">' + icon('pen') + 'Harvey ha redactado una respuesta · te espera</div>' +
       '<div class="td-body">' + escHtml(c.draft.body) + '</div>' +
-      '<button class="btn btn-primary btn-sm" onclick="goTab(\'outbox\')">Review in Outbox' + icon('arrow') + '</button></div>'
+      '<button class="btn btn-primary btn-sm" onclick="goTab(\'outbox\')">Revisar en la bandeja de salida' + icon('arrow') + '</button></div>'
     : '';
-  const name = [c.first_name, c.last_name].filter(Boolean).join(' ') || 'Unknown';
+  const name = [c.first_name, c.last_name].filter(Boolean).join(' ') || 'Desconocido';
   const stage = own(STAGE_LABELS, c.stage) ? '<span class="tag">' + STAGE_LABELS[c.stage] + '</span>' : '';
   return '<div class="convo-card"><div class="convo-head">' +
     '<span class="avatar">' + initials(c.first_name, c.last_name) + '</span>' +
@@ -2505,7 +2505,7 @@ function convoCard(c) {
     // An escalation's intent badge says the same as its status: show one.
     '<div class="tags">' + (c.intent && !(c.status === 'needs_human' && c.intent === 'escalate') ? badge(c.intent) : '') +
       stage + badge(c.status) + '</div></div>' +
-    '<div class="thread">' + (thread || '<p class="muted" style="font-size:13px">No messages in this thread yet.</p>') +
+    '<div class="thread">' + (thread || '<p class="muted" style="font-size:13px">Aún no hay mensajes en este hilo.</p>') +
     draft + '</div>' + convoActions(c) + '</div>';
 }
 
@@ -2514,23 +2514,23 @@ function convoCard(c) {
 function convoActions(c) {
   if (c.status === 'needs_human') {
     return '<div class="convo-actions"><span class="muted">' + icon('alert') +
-      'Harvey handed this to you. Reply from your inbox, then:</span>' +
-      '<button class="btn btn-secondary btn-sm" onclick="setConvoStatus(' + jsq(c.id) + ',\'open\')">Hand back to Harvey</button>' +
-      '<button class="btn btn-secondary btn-sm" onclick="setConvoStatus(' + jsq(c.id) + ',\'closed\')">Close</button></div>';
+      'Harvey te ha pasado esta conversación. Responde desde tu bandeja de entrada y luego:</span>' +
+      '<button class="btn btn-secondary btn-sm" onclick="setConvoStatus(' + jsq(c.id) + ',\'open\')">Devolver a Harvey</button>' +
+      '<button class="btn btn-secondary btn-sm" onclick="setConvoStatus(' + jsq(c.id) + ',\'closed\')">Cerrar</button></div>';
   }
   if (c.status === 'open') {
     return '<div class="convo-actions"><button class="btn btn-ghost btn-sm" onclick="setConvoStatus(' +
-      jsq(c.id) + ',\'closed\')">Close conversation</button></div>';
+      jsq(c.id) + ',\'closed\')">Cerrar conversación</button></div>';
   }
   if (c.status === 'closed' && c.prospect_status === 'opted_out') {
     // Reopening wouldn't help: Harvey never answers someone who opted out.
-    return '<div class="convo-actions"><span class="muted">' + icon('alert') + 'Opted out. Harvey won’t write to them.</span>' +
+    return '<div class="convo-actions"><span class="muted">' + icon('alert') + 'Se dio de baja. Harvey no les escribirá.</span>' +
       '<button class="btn btn-secondary btn-sm" onclick="showOptOut(' + jsq(c.prospect_id) + ',' + jsq(c.prospect_email) +
-      ')">Why opted out?</button></div>';
+      ')">¿Por qué se dio de baja?</button></div>';
   }
   if (c.status === 'closed') {
     return '<div class="convo-actions"><button class="btn btn-ghost btn-sm" onclick="setConvoStatus(' +
-      jsq(c.id) + ',\'open\')">Reopen</button></div>';
+      jsq(c.id) + ',\'open\')">Reabrir</button></div>';
   }
   return '';
 }
@@ -2540,8 +2540,8 @@ async function setConvoStatus(id, status) {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({status: status}),
   });
-  if (data && data.success) showToast(status === 'open' ? 'Open again. Harvey will answer the next reply.' : 'Closed. A new reply starts a new conversation.', 'success');
-  else showToast(failMsg(data, 'Could not update that conversation.'), 'error');
+  if (data && data.success) showToast(status === 'open' ? 'Abierta de nuevo. Harvey responderá a la próxima respuesta.' : 'Cerrada. Una respuesta nueva abrirá una conversación nueva.', 'success');
+  else showToast(failMsg(data, 'No se pudo actualizar esa conversación.'), 'error');
   loadConversations();
   loadToday();
 }
@@ -2551,8 +2551,8 @@ async function loadActivity() {
   const data = await api('/api/activity');
   if (!data) { el.innerHTML = offlineState(); return; }
   if (!data.length) {
-    el.innerHTML = emptyState(icon('activity'), 'No activity yet',
-      'Harvey hasn\'t taken any actions. Every prospect found, email written, and reply handled will appear here the moment it happens.');
+    el.innerHTML = emptyState(icon('activity'), 'Aún no hay actividad',
+      'Harvey todavía no ha realizado ninguna acción. Cada prospecto encontrado, correo escrito y respuesta gestionada aparecerá aquí en el momento en que ocurra.');
     return;
   }
   let html = '<div class="card"><div class="timeline">';

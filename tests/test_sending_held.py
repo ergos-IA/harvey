@@ -193,7 +193,7 @@ def test_the_outbox_card_on_today_says_which_mode(client, monkeypatch):
         db.execute("INSERT INTO outbox (id, prospect_id, kind, step, to_email, subject, body, status, send_at) "
                    "VALUES ('o1', 'p', 'reply', 1, 'a@x.test', 's', 'b', 'pending_review', ?)", (_now_iso(),))
     db.close()
-    for approval, words in ((True, "Nothing sends until you approve it"), (False, "Autopilot sends the rest")):
+    for approval, words in ((True, "No se envía nada hasta que lo apruebes"), (False, "El piloto automático envía el resto")):
         monkeypatch.setattr(dash, "_require_approval_now", lambda a=approval: a)
         [card] = [i for i in client.get("/api/today").json()["items"] if i["key"] == "outbox"]
         assert words in card["detail"]

@@ -252,6 +252,27 @@ def test_a_passage_from_harveys_instructions_is_held(tmp_path):
     assert autopilot_review("hi", "Rival Corp is fine too.", _cfg(), root=tmp_path) == []
 
 
+def test_spanish_words_with_accents_are_one_word():
+    from harvey.gate import _words
+    assert _words("También diseñamos la campaña, ¿pingüino?") == [
+        "también", "diseñamos", "la", "campaña", "pingüino"]
+    # An accent typed as a separate mark is the same word.
+    assert _words("también") == ["también"]
+
+
+def test_a_spanish_passage_from_harveys_instructions_is_held(tmp_path):
+    (tmp_path / "skills").mkdir()
+    (tmp_path / "prompts").mkdir()
+    (tmp_path / "skills" / "competitive_intel.md").write_text(
+        "# Competencia\nRebajamos a Rival SL un treinta por ciento en precio y su rotación "
+        "es alta porque la implantación les lleva seis semanas a casi todos.\n", encoding="utf-8")
+    leaked = ("¡Claro! Rebajamos a Rival SL un treinta por ciento en precio y su rotación es "
+              "alta porque la implantación les lleva seis semanas.")
+    [reason] = autopilot_review("re: hola", leaked, _cfg(), root=tmp_path)
+    assert "competitive_intel.md" in reason
+    assert autopilot_review("hola", "Rival SL está bien también.", _cfg(), root=tmp_path) == []
+
+
 # ── where it applies ──
 
 

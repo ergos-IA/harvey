@@ -15,6 +15,7 @@ from pydantic import (
 )
 
 from harvey.paths import PROJECT_ROOT
+from harvey.accounts_config import AccountsConfig, ScoringConfig
 
 logger = logging.getLogger("harvey.config")
 
@@ -375,10 +376,18 @@ class PreclearedConfig(BaseModel):
 DEFAULT_OPT_OUT_LINE = 'Not interested? Reply "no thanks" and I won\'t email again.'
 # The replies the Handler always honours as an opt-out on their own; an
 # opt_out_line must ask for one of them ("Reply STOP", 'reply "no thanks"').
-OPT_OUT_WORDS = ("no thanks", "no thank you", "unsubscribe", "stop", "remove me",
-                 "opt out")
+OPT_OUT_WORDS_EN = ("no thanks", "no thank you", "unsubscribe", "stop", "remove me",
+                    "opt out")
+# Spanish: 'Responde "baja"', 'contesta "no, gracias"'.
+OPT_OUT_WORDS_ES = ("no gracias", "no, gracias", "baja")
+OPT_OUT_WORDS = OPT_OUT_WORDS_EN + OPT_OUT_WORDS_ES
 _ASKS_FOR_OPT_OUT_RE = re.compile(
     r"\breply(?:\s+with)?\s*[\"'\u201c\u2018]?\s*(?:"
+    + "|".join(re.escape(w) for w in OPT_OUT_WORDS_EN) + r")\b"
+    # T\u00fa or usted, with or without "con" and accents; \u00ab\u00bb quotes too.
+    # 'Responde STOP' is common in Spain, so the English words count here.
+    r"|\b(?:responde|responda|resp[o\u00f3]ndeme|resp[o\u00f3]ndame|contesta|conteste"
+    r"|cont[e\u00e9]stame|cont[e\u00e9]steme)(?:\s+con)?\s*[\"'\u201c\u2018\u00ab]?\s*(?:"
     + "|".join(re.escape(w) for w in OPT_OUT_WORDS) + r")\b", re.IGNORECASE)
 
 
@@ -605,6 +614,9 @@ class HarveyConfig(BaseModel):
     brain: BrainConfig = BrainConfig()
     compliance: ComplianceConfig = ComplianceConfig()
     writer: WriterConfig = WriterConfig()
+    # Account-based selling (harvey accounts ...): both optional, empty by default.
+    accounts: AccountsConfig = AccountsConfig()
+    scoring: ScoringConfig = ScoringConfig()
     # The file it was loaded from, so a running Harvey can re-read the
     # sending mode from that same file (refresh_sending_mode).
     _source_path: str | None = PrivateAttr(default=None)

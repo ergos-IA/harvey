@@ -872,3 +872,68 @@ def test_app_js_only_talks_to_the_api_through_authfetch():
     assert "localStorage.setItem('harvey-dashboard" not in app
     html = (WEB / "index.html").read_text(encoding="utf-8")
     assert "downloadCsv('/api/export/prospects.csv'" in html
+
+
+# ── Hosted mode (Railway) ──
+
+HOSTED = "harvey.up.railway.app"
+HOSTED_TOKEN = "h" * 43
+
+
+@pytest.fixture
+def hosted(env, monkeypatch):
+    monkeypatch.setenv("HARVEY_PUBLIC_HOSTS", HOSTED)
+    monkeypatch.setenv("HARVEY_DASHBOARD_TOKEN", HOSTED_TOKEN)
+    dash.token_store.configure(env["dir"] / "data" / "dashboard-token")
+    with TestClient(dash.app, base_url=f"https://{HOSTED}",
+                    headers={"Authorization": f"Bearer {HOSTED_TOKEN}"}) as c:
+        yield c
+
+
+def test_hosted_domain_is_accepted_with_the_env_token(hosted):
+    assert hosted.get("/api/setup-status").status_code != 401
+    r = hosted.post("/api/harvey/stop", headers={"Origin": f"https://{HOSTED}"})
+    assert r.status_code not in (400, 401, 403)
+
+
+def test_hosted_domain_still_needs_the_token(hosted):
+    r = hosted.get("/api/setup-status", headers={"Authorization": "Bearer " + "x" * 43})
+    assert r.status_code == 401
+
+
+def test_hosted_mode_refuses_other_hosts_and_plain_http_origins(hosted):
+    r = hosted.get("/api/setup-status", headers={"Host": "evil.example"})
+    assert r.status_code == 400
+    r = hosted.post("/api/harvey/stop", headers={"Origin": f"http://{HOSTED}"})
+    assert r.status_code == 403
+
+
+def test_without_public_hosts_only_loopback_is_accepted(env, monkeypatch):
+    monkeypatch.delenv("HARVEY_PUBLIC_HOSTS", raising=False)
+    monkeypatch.delenv("RAILWAY_PUBLIC_DOMAIN", raising=False)
+    with TestClient(dash.app, base_url=f"https://{HOSTED}",
+                    headers={"Authorization": f"Bearer {env['token']}"}) as c:
+        assert c.get("/api/setup-status").status_code == 400
+
+
+def test_hosted_bind_requires_an_env_token(tmp_path, monkeypatch):
+    import uvicorn
+    monkeypatch.setenv("RAILWAY_PUBLIC_DOMAIN", HOSTED)
+    monkeypatch.delenv("HARVEY_DASHBOARD_TOKEN", raising=False)
+    monkeypatch.setattr(uvicorn, "run", lambda *a, **k: pytest.fail("must not start"))
+    with pytest.raises(dash.DashboardSetupError, match="HARVEY_DASHBOARD_TOKEN"):
+        dash.start_dashboard(host="0.0.0.0", port=8080)
+    monkeypatch.setenv("HARVEY_DASHBOARD_TOKEN", "short")
+    with pytest.raises(dash.DashboardSetupError, match="43-128"):
+        dash.start_dashboard(host="0.0.0.0", port=8080)
+
+
+def test_hosted_bind_never_prints_the_token(monkeypatch, capsys):
+    import uvicorn
+    monkeypatch.setenv("RAILWAY_PUBLIC_DOMAIN", HOSTED)
+    monkeypatch.setenv("HARVEY_DASHBOARD_TOKEN", HOSTED_TOKEN)
+    calls = []
+    monkeypatch.setattr(uvicorn, "run", lambda app, **k: calls.append(k))
+    dash.start_dashboard(host="0.0.0.0", port=8080)
+    assert HOSTED_TOKEN not in capsys.readouterr().out
+    assert calls[0]["host"] == "0.0.0.0" and calls[0]["port"] == 8080

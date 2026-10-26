@@ -162,6 +162,29 @@ def test_gate_blocks_bad_content():
     assert reply_ok.ok
 
 
+@pytest.mark.parametrize("body", [
+    "Espero que este correo te encuentre bien. ¿Hablamos?",
+    "Pincha aquí para verlo.",
+    "Pincha AQUI para verlo.",                     # without the accent too
+    "Oferta exclusiva por tiempo limitado.",
+    "Resultados garantizados en 30 días.",
+    "Como IA, no puedo opinar sobre eso.",
+    "¿Y si te dijera que puedes duplicar ventas?",
+    "Esta solución de vanguardia revoluciona tu negocio.",
+])
+def test_gate_blocks_spanish_spam_and_ai_tells(body):
+    r = pre_send_check("jane@acme.com", "una pregunta", body)
+    assert any("banned" in x for x in r.reasons), body
+
+
+@pytest.mark.parametrize("body", [
+    "Vi que abrís una nueva clínica en Valencia. ¿Quién lleva las citas?",
+    "Usamos herramientas como IA generativa para contestar llamadas. ¿Te encaja?",
+])
+def test_gate_lets_ordinary_spanish_through(body):
+    assert pre_send_check("jane@acme.com", "una pregunta", body).ok
+
+
 def test_gate_link_and_html_limits():
     r = pre_send_check("a@b.co", "s", "See https://a.com and https://b.com")
     assert any("links" in x for x in r.reasons)

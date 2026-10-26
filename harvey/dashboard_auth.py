@@ -232,7 +232,7 @@ class TokenStore:
     def get(self) -> str:
         with self._lock:
             if self._token is None:
-                self._token = load_or_create_token(self.path)
+                self._token = env_token() or load_or_create_token(self.path)
             return self._token
 
 
@@ -272,6 +272,26 @@ def is_loopback(host: str) -> bool:
         return ipaddress.ip_address(host).is_loopback
     except ValueError:
         return False
+
+
+def public_hosts() -> frozenset[str]:
+    """Hostnames a hosted deployment (Railway) answers to, besides loopback:
+    ``HARVEY_PUBLIC_HOSTS`` (comma-separated) plus ``RAILWAY_PUBLIC_DOMAIN``.
+    Empty unless set, so a local dashboard stays loopback-only."""
+    raw = ",".join(os.environ.get(k, "") for k in ("HARVEY_PUBLIC_HOSTS",
+                                                    "RAILWAY_PUBLIC_DOMAIN"))
+    return frozenset(h.strip().lower() for h in raw.split(",") if h.strip())
+
+
+def env_token() -> str | None:
+    """``HARVEY_DASHBOARD_TOKEN``, when a hosted deployment sets one."""
+    token = os.environ.get("HARVEY_DASHBOARD_TOKEN", "").strip()
+    if not token:
+        return None
+    if not TOKEN_RE.fullmatch(token):
+        raise TokenError("HARVEY_DASHBOARD_TOKEN must be 43-128 characters of "
+                         "A-Z, a-z, 0-9, '-' or '_'.")
+    return token
 
 
 def is_public_path(method: str, path: str) -> bool:
@@ -340,10 +360,13 @@ class DashboardGuard:
         # 1. Host, before anything else.
         hosts = headers.get("host", [])
         host = parse_host(hosts[0]) if len(hosts) == 1 else None
-        if host is None or not is_loopback(host):
+        hosted = host is not None and host in public_hosts()
+        if host is None or not (is_loopback(host) or hosted):
             return await deny(400, "bad_host",
                               "This dashboard only answers to localhost / 127.0.0.1.")
         host_header = hosts[0].lower()
+        # A hosted dashboard sits behind the platform's TLS proxy.
+        scheme = "https" if hosted else "http"
 
         # 2. Browser provenance.
         public = is_public_path(method, path)
@@ -351,7 +374,7 @@ class DashboardGuard:
                       and headers.get("sec-fetch-mode", [""])[0] == "navigate"
                       and headers.get("sec-fetch-dest", [""])[0] == "document")
         origins = headers.get("origin", [])
-        if origins and (len(origins) != 1 or origins[0].lower() != f"http://{host_header}"):
+        if origins and (len(origins) != 1 or origins[0].lower() != f"{scheme}://{host_header}"):
             if not navigation:
                 return await deny(403, "cross_origin", "Cross-origin requests are refused.")
         site = headers.get("sec-fetch-site", [])

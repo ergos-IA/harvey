@@ -25,7 +25,24 @@ BANNED_PHRASES = (
     "cutting-edge solution", "revolutionize your", "unlock your",
     "supercharge your", "as an ai", "i'm an ai", "i am an ai",
     "as a language model",
+    # Spanish, written without accents: the text is accent-folded before
+    # it's checked, so "pincha aquí" and "pincha aqui" both count. Not "como
+    # ia" alone: "herramientas como IA generativa" is fine to write.
+    "espero que este correo te encuentre bien", "espero que te encuentres bien",
+    "haz clic aqui", "pincha aqui", "oferta exclusiva", "oferta limitada",
+    "por tiempo limitado", "sin compromiso", "100% gratis", "gratis total",
+    "resultados garantizados", "gana dinero", "duplica tus", "felicidades",
+    "enhorabuena, has", "imagina que", "y si te dijera", "en el mundo actual",
+    "en el acelerado mundo", "revoluciona tu", "revolucionar tu", "desbloquea tu",
+    "potencia al maximo", "solucion de vanguardia", "como ia,", "como una ia",
+    "soy una ia", "como modelo de lenguaje", "soy un modelo de lenguaje",
 )
+
+
+def _fold(text: str) -> str:
+    """Lowercase, accents dropped: "Pincha AQUÍ" -> "pincha aqui"."""
+    text = unicodedata.normalize("NFKD", (text or "").lower())
+    return "".join(c for c in text if not unicodedata.combining(c))
 
 MAX_SUBJECT_LEN = 90
 MAX_BODY_WORDS = 220        # hard ceiling; sequences aim far lower
@@ -198,7 +215,7 @@ def pre_send_check(
         reasons.append(f"unrendered merge tags: {sorted(set(leftover))[:3]}")
 
     # Banned phrases (spam triggers + AI tells)
-    lowered = (subject + " " + body).lower()
+    lowered = _fold(subject + " " + body)
     hits = [p for p in BANNED_PHRASES if p in lowered]
     if hits:
         reasons.append(f"banned phrases: {hits[:3]}")
@@ -380,7 +397,8 @@ def _shown(host: str, link: str, prefix: str) -> str:
 _SAY_ALOUD_FILES = frozenset({"email_frameworks.md", "product_knowledge.md",
                               "objection_handling.md", "README.md"})
 LEAK_RUN_WORDS = 12       # this many words in a row, copied, is a quote
-_WORD_RE = re.compile(r"[a-z0-9']+")
+# Spanish letters are part of a word: "también" is one word, not "tambi" + "n".
+_WORD_RE = re.compile(r"[a-z0-9'áéíóúüñ]+")
 # Lines the playbooks quote as scripts to use ("Would Thursday at 2pm work
 # for a quick call?"): saying them is the point, so they aren't checked.
 _SCRIPT_LINE_RE = re.compile(r"^\s*(?:[-*]\s*)?(?:>|[\"“'‘])")
@@ -391,7 +409,8 @@ _leak_cache: dict = {}
 
 
 def _words(text: str) -> list[str]:
-    return _WORD_RE.findall((text or "").lower())
+    # NFC: an "é" typed as "e" + accent is the same letter.
+    return _WORD_RE.findall(unicodedata.normalize("NFC", text or "").lower())
 
 
 def _instruction_runs(root) -> dict[tuple, str]:

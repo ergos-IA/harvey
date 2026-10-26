@@ -1,60 +1,60 @@
-# Contributing to Harvey
+# Contribuir a Harvey
 
-For anyone changing this repository and opening pull requests, and above all
-for coding agents (Claude Code, Codex, Cursor, Aider). `CLAUDE.md` is different:
-it guides someone *using* Harvey. This file is about contributing to it.
+Para quien modifique este repositorio y abra pull requests, y sobre todo
+para los agentes de programación (Claude Code, Codex, Cursor, Aider). `CLAUDE.md` es distinto:
+guía a quien *usa* Harvey. Este archivo trata de cómo contribuir a Harvey.
 
-## No real contact data, anywhere it gets published
+## Ningún dato de contacto real, en ningún sitio que se publique
 
-This repository is public. Harvey's job is finding real people at real businesses,
-so testing it turns up real names, addresses and phone numbers. Those stay on
-your machine. A pull request once listed thirteen real people's work addresses,
-with their names and employers, in its description and test fixtures, and
-cleaning it up meant rewriting the branch.
+Este repositorio es público. El trabajo de Harvey consiste en encontrar a personas reales en negocios reales,
+así que al probarlo aparecen nombres, direcciones y teléfonos reales. Esos datos se quedan en
+tu máquina. Una vez, un pull request enumeró las direcciones de trabajo de trece personas reales,
+con sus nombres y empleadores, en su descripción y en sus fixtures de test, y
+limpiarlo supuso reescribir la rama.
 
-**Never put any of these in a commit, test, fixture, comment, docstring, doc,
-changelog entry, commit message, PR title, PR description, PR comment, review or
+**No incluyas nunca nada de esto en un commit, test, fixture, comentario, docstring, documento,
+entrada del changelog, mensaje de commit, título de PR, descripción de PR, comentario de PR, revisión o
 issue:**
 
-- a real person's name, email address, phone number or street address;
-- a real business found while testing: its name, domain, website URL or
-  location, including inside HTML copied from its site;
-- anything taken from `data/harvey.db`, a user's export, an Outbox item, a reply,
-  or a live test run.
+- el nombre, la dirección de email, el teléfono o la dirección postal de una persona real;
+- un negocio real encontrado durante las pruebas: su nombre, dominio, URL del sitio web o
+  ubicación, incluido el HTML copiado de su sitio;
+- cualquier cosa sacada de `data/harvey.db`, de la exportación de un usuario, de un elemento del Outbox, de una respuesta
+  o de una ejecución de prueba en vivo.
 
-**Do this instead:**
+**Haz esto en su lugar:**
 
-- Write fixtures by hand with fictional businesses and people. Use the reserved
-  names wherever the code accepts them: `example.com`, `example.net`,
-  `example.org`, and the `.example`, `.test` and `.invalid` top-level domains.
-  `acme.com`-style placeholders are fine. Invented people get generic invented
-  names.
-- When a test needs markup that broke on a real site, rebuild the structure that
-  broke (a `<br>` inside a span, a sentence shape, a schema.org block) with
-  fictional content. Don't trim a copy of the real page.
-- Report live checks as counts and types only: "found the decision maker on 17
-  of 19 small-business sites (roofers, dentists, law firms)". Not a per-site
-  table, not the addresses found, not the domains tried. Keep the detailed
-  results in your local scratch directory.
-- Vendors and infrastructure are fine to name, because they aren't contacts:
-  Google, Cloudflare, Hunter, Instantly, DataForSEO, Greenhouse and so on.
-  Companies named only for public product facts (whose job board format was
-  tested) are fine too. Their staff are not.
+- Escribe los fixtures a mano con negocios y personas ficticios. Usa los nombres
+  reservados allí donde el código los acepte: `example.com`, `example.net`,
+  `example.org`, y los dominios de primer nivel `.example`, `.test` y `.invalid`. Los
+  marcadores de posición del estilo `acme.com` están bien. A las personas inventadas
+  ponles nombres inventados y genéricos.
+- Cuando un test necesite marcado que falló en un sitio real, reconstruye la estructura que
+  falló (un `<br>` dentro de un span, la forma de una frase, un bloque schema.org) con
+  contenido ficticio. No recortes una copia de la página real.
+- Informa de las comprobaciones en vivo solo como recuentos y tipos: "encontré al decisor en 17
+  de 19 sitios de pequeños negocios (tejadistas, dentistas, bufetes de abogados)". No una tabla
+  por sitio, ni las direcciones encontradas, ni los dominios probados. Guarda los resultados
+  detallados en tu directorio temporal local.
+- Se puede nombrar a proveedores e infraestructura, porque no son contactos:
+  Google, Cloudflare, Hunter, Instantly, DataForSEO, Greenhouse, etc.
+  También se puede nombrar a empresas citadas solo por datos públicos de producto (de quién era el formato
+  de bolsa de empleo que se probó). Su personal, no.
 
-**Before you push or open a PR**, check the diff and the description you're
-about to post for addresses:
+**Antes de hacer push o abrir un PR**, revisa el diff y la descripción que vas
+a publicar en busca de direcciones:
 
 ```bash
 git diff origin/main | grep '^+' | grep -oE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}' | sort -u
 ```
 
-Every hit should be a placeholder. If one isn't, fix it before pushing. Once
-something is pushed to a public repository, deleting it later doesn't remove it:
-old commits stay reachable by their hash and PR descriptions keep an edit
-history.
+Todo resultado debe ser un marcador de posición. Si alguno no lo es, corrígelo antes de hacer push. Una vez
+que algo se sube a un repositorio público, borrarlo después no lo elimina:
+los commits antiguos siguen accesibles por su hash y las descripciones de los PR conservan un
+historial de ediciones.
 
-## Test and verification email
+## Email de prueba y de verificación
 
-Every test or verification email goes to an address you own, set up for that
-purpose. Never to an address from a database, an export, a reply or a fixture.
-Tests never send real email: use the fake providers in `tests/`.
+Todo email de prueba o de verificación va a una dirección que sea tuya, creada
+para ese fin. Nunca a una dirección de una base de datos, una exportación, una respuesta o un fixture.
+Los tests nunca envían email real: usa los proveedores falsos de `tests/`.

@@ -1,108 +1,108 @@
-# Account Navigation: Working Multiple Contacts at One Company
+# Navegación de cuentas: trabajar varios contactos en una misma empresa
 
-## Companies vs Contacts
+## Empresas y contactos
 
-A company is an account. A contact is a person at that company. One company can have many contacts. Harvey must always create the company profile first, then attach contacts to it.
+Una empresa es una cuenta. Un contacto es una persona de esa empresa. Una empresa puede tener muchos contactos. Harvey debe crear siempre primero el perfil de la empresa y después asociarle los contactos.
 
-## Company Profiles
+## Perfiles de empresa
 
-Every company Harvey researches must have:
-- **Name**: The actual company name
-- **Domain**: Their website domain (e.g., acme.com)
-- **Website**: Full URL
-- **Description**: What the company does (1-2 sentences)
-- **Industry**: Primary industry
-- **Company size**: Employee range
-- **Location**: HQ city/region
-- **Source**: How Harvey found them (google, linkedin, website scrape)
-- **Source URL**: The exact URL where Harvey found the info
+Toda empresa que Harvey investigue debe tener:
+- **Name**: el nombre real de la empresa
+- **Domain**: el dominio de su web (p. ej., acme.com)
+- **Website**: la URL completa
+- **Description**: qué hace la empresa (1-2 frases)
+- **Industry**: sector principal
+- **Company size**: rango de empleados
+- **Location**: ciudad/región de la sede
+- **Source**: cómo la encontró Harvey (google, linkedin, website scrape)
+- **Source URL**: la URL exacta donde Harvey encontró la información
 
-Harvey should pull this from the company's website, LinkedIn company page, or Google results. Do not guess. If you can't verify a field, leave it blank.
+Harvey debe sacar esto de la web de la empresa, de su página de empresa en LinkedIn o de los resultados de Google. No adivines. Si no puedes verificar un campo, déjalo en blanco.
 
-## Contact Profiles
+## Perfiles de contacto
 
-Every contact must have at minimum:
-- **First name**: Required. Must be real, verified.
-- **Last name**: Required. Must be real, verified.
-- **Title**: Required. Must be their actual current title.
-- **Company**: Linked to the company profile.
+Todo contacto debe tener como mínimo:
+- **First name**: obligatorio. Real y verificado.
+- **Last name**: obligatorio. Real y verificado.
+- **Title**: obligatorio. Debe ser su cargo actual real.
+- **Company**: vinculada al perfil de la empresa.
 
-Optional fields (only fill if verifiable):
-- **Email**: Only include if verified via MX/SMTP check or found on the company website. Mark email_verified = true only if confirmed.
-- **Phone**: Very difficult to find. Only include if listed publicly (company website, LinkedIn profile). Mark phone_verified = true only if confirmed. Do NOT guess phone numbers.
-- **LinkedIn URL**: Include if found.
-- **Seniority**: c_suite, vp, director, manager, individual. Infer from title.
-- **Department**: Sales, marketing, engineering, operations, etc. Infer from title.
+Campos opcionales (rellénalos solo si son verificables):
+- **Email**: inclúyelo solo si está verificado mediante comprobación MX/SMTP o aparece en la web de la empresa. Marca email_verified = true solo si está confirmado.
+- **Phone**: muy difícil de encontrar. Inclúyelo solo si figura públicamente (web de la empresa, perfil de LinkedIn). Marca phone_verified = true solo si está confirmado. NO inventes números de teléfono.
+- **LinkedIn URL**: inclúyela si la encuentras.
+- **Seniority**: c_suite, vp, director, manager, individual. Dedúcelo del cargo.
+- **Department**: Sales, marketing, engineering, operations, etc. Dedúcelo del cargo.
 
-### Data Quality Rules
-1. Never fabricate contact information. If you can't verify it, don't include it.
-2. Email patterns (first.last@domain.com) are only valid after SMTP verification.
-3. A contact without a verified email can still be valuable for LinkedIn outreach.
-4. Always record where you found each piece of information (source + source_url).
+### Reglas de calidad de datos
+1. Nunca inventes datos de contacto. Si no puedes verificarlos, no los incluyas.
+2. Los patrones de email (nombre.apellido@dominio.com) solo son válidos tras una verificación SMTP.
+3. Un contacto sin email verificado puede seguir siendo valioso para LinkedIn.
+4. Registra siempre dónde encontraste cada dato (source + source_url).
 
-## Who to Contact at a Company
+## A quién contactar en una empresa
 
-### The Entry Point Matrix
+### La matriz del punto de entrada
 
-Not all contacts are equal. Who you reach out to first depends on the deal type:
+No todos los contactos valen lo mismo. A quién escribes primero depende del tipo de operación:
 
-| Deal Type | First Contact | Second Contact | Avoid First |
-|-----------|--------------|----------------|-------------|
-| **Small purchase** (<$500/mo) | End user / manager | Their boss | C-suite (too senior) |
-| **Mid-market** ($500-5k/mo) | Director / VP | Manager who'd use it | Individual contributors |
-| **Enterprise** ($5k+/mo) | VP / C-suite | Champion (manager who'll advocate) | Junior staff |
+| Tipo de operación | Primer contacto | Segundo contacto | Evitar al principio |
+|-------------------|-----------------|------------------|---------------------|
+| **Compra pequeña** (<500 $/mes) | Usuario final / responsable | Su jefe | C-suite (demasiado alto) |
+| **Mid-market** (500-5.000 $/mes) | Director / VP | Responsable que lo usaría | Contribuidores individuales |
+| **Enterprise** (5.000+ $/mes) | VP / C-suite | Champion (responsable que lo defenderá) | Personal junior |
 
-### Multi-Threading: Working Multiple Contacts
+### Multi-threading: trabajar varios contactos
 
-When Harvey finds multiple contacts at one company:
+Cuando Harvey encuentra varios contactos en una empresa:
 
-1. **Start with one.** Never email multiple people at the same company simultaneously. It looks spammy and they'll compare notes.
+1. **Empieza por uno.** Nunca escribas a varias personas de la misma empresa a la vez. Parece spam y comparan notas.
 
-2. **Start at the right level.** Pick the person most likely to:
-   - Feel the pain your product solves
-   - Have authority to evaluate solutions
-   - Actually read and respond to email
+2. **Empieza al nivel adecuado.** Elige a la persona con más probabilidades de:
+   - Sentir el problema que resuelve tu producto
+   - Tener autoridad para evaluar soluciones
+   - Leer y responder realmente al email
 
-3. **Move up or down based on response:**
-   - No response from manager? Try the VP.
-   - VP says "talk to my team"? Email the manager and reference the VP.
-   - Manager is interested? Ask if they'd like to loop in their boss.
+3. **Sube o baja según la respuesta:**
+   - ¿Sin respuesta del responsable? Prueba con el VP.
+   - ¿El VP dice "habla con mi equipo"? Escribe al responsable y menciona al VP.
+   - ¿El responsable está interesado? Pregúntale si quiere incluir a su jefe.
 
-4. **Wait between contacts.** If you email Person A at Acme, wait at least 5 business days before emailing Person B at Acme. Treat the company as one account, not individual contacts.
+4. **Espera entre contactos.** Si escribes a la persona A de Acme, espera al menos 5 días laborables antes de escribir a la persona B de Acme. Trata la empresa como una sola cuenta, no como contactos sueltos.
 
-5. **Share context across contacts.** If Person A replied, Harvey should know that when writing to Person B. "Your colleague Sarah mentioned she's evaluating options" is powerful.
+5. **Comparte el contexto entre contactos.** Si la persona A respondió, Harvey debe saberlo al escribir a la persona B. "Tu compañera Sara comentó que está evaluando opciones" tiene mucho peso.
 
-### Seniority Detection
+### Detección de seniority
 
-Infer seniority from the title:
+Deduce la seniority a partir del cargo:
 
-- **C-Suite**: CEO, CTO, CFO, CMO, COO, CRO, "Chief __"
-- **VP**: VP, Vice President, SVP, EVP, "Head of __"
-- **Director**: Director, Senior Director, "Director of __"
-- **Manager**: Manager, Senior Manager, Team Lead, "Manager of __"
-- **Individual**: Analyst, Specialist, Coordinator, Associate, Engineer
+- **C-Suite**: CEO, CTO, CFO, CMO, COO, CRO, "Chief __", director general, consejero delegado
+- **VP**: VP, Vice President, SVP, EVP, "Head of __", director de área
+- **Director**: Director, Senior Director, "Director of __", director/a de departamento
+- **Manager**: Manager, Senior Manager, Team Lead, "Manager of __", responsable, jefe de equipo
+- **Individual**: Analyst, Specialist, Coordinator, Associate, Engineer, analista, técnico, especialista
 
-### When to Stop
+### Cuándo parar
 
-Stop contacting a company if:
-- 3 different contacts have been emailed with no response
-- Any contact explicitly says "not interested" or "stop emailing"
-- The company doesn't match ICP after further research
+Deja de contactar con una empresa si:
+- Has escrito a 3 contactos distintos sin respuesta
+- Cualquier contacto dice explícitamente "no me interesa" o "dejad de escribirme"
+- La empresa no encaja con el ICP tras investigar más
 
-## Sample Verification
+## Verificación con una muestra
 
-Before adding prospects to the live pipeline, Harvey should create a sample batch of 5-10 company + contact profiles and present them to the user for review. This ensures:
+Antes de añadir prospectos al pipeline real, Harvey debe crear un lote de muestra de 5-10 perfiles de empresa y contacto y presentárselo al usuario para que lo revise. Así se asegura que:
 
-1. The ICP targeting is correct (right industries, right company sizes)
-2. The contact titles match what the user wants
-3. The data quality meets expectations
-4. The research sources are legitimate
+1. La segmentación del ICP es correcta (sectores y tamaños de empresa adecuados)
+2. Los cargos de los contactos coinciden con lo que quiere el usuario
+3. La calidad de los datos cumple las expectativas
+4. Las fuentes de investigación son legítimas
 
-### Sample Flow
-1. Harvey researches 5-10 companies and their contacts
-2. Presents them as a sample: "Here are 8 companies I found. Each has 1-2 contacts. Take a look and let me know if these are the right kind of targets."
-3. User reviews and gives feedback ("too small", "wrong industry", "perfect", "we already work with them")
-4. Harvey adjusts targeting based on feedback
-5. After approval, Harvey proceeds with full prospecting
+### Flujo de la muestra
+1. Harvey investiga 5-10 empresas y sus contactos
+2. Las presenta como muestra: "Aquí tienes 8 empresas que he encontrado. Cada una tiene 1-2 contactos. Échales un vistazo y dime si son el tipo de objetivo correcto."
+3. El usuario revisa y da su opinión ("demasiado pequeñas", "sector equivocado", "perfecto", "ya trabajamos con ellos")
+4. Harvey ajusta la segmentación según el feedback
+5. Tras la aprobación, Harvey continúa con la prospección completa
 
-This sample step only happens once at the start (or when the ICP changes). After the user approves the sample, Harvey prospects autonomously.
+Este paso de muestra solo ocurre una vez al principio (o cuando cambia el ICP). Una vez que el usuario aprueba la muestra, Harvey prospecta de forma autónoma.

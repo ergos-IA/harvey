@@ -97,6 +97,19 @@ TECH_FINGERPRINTS: dict[str, tuple[str, ...]] = {
     "Stripe": (r"js\.stripe\.com",),
 }
 
+
+def _with_spain_fingerprints():
+    # Helpdesk/chat and e-commerce platforms common on Spanish B2B sites
+    # (Zendesk, Freshdesk, PrestaShop, Magento, VTEX...). Existing names keep
+    # their own patterns.
+    from harvey.collectors.spain.web import ECOMMERCE_FINGERPRINTS, HELPDESK_FINGERPRINTS
+    for table in (HELPDESK_FINGERPRINTS, ECOMMERCE_FINGERPRINTS):
+        for name, patterns in table.items():
+            TECH_FINGERPRINTS.setdefault(name, patterns)
+
+
+_with_spain_fingerprints()
+
 GOOGLE_ADS = (r"googleadservices\.com", r"gtag/js\?id=AW-", r"google_conversion",
               r"googletagmanager\.com/gtag/js\?id=AW-")
 META_PIXEL = (r"connect\.facebook\.net/[^\"']*fbevents\.js", r"fbq\s*\(\s*['\"]init")
@@ -1121,6 +1134,12 @@ class ProfileCollector:
         if tech:
             add("TECH_STACK", text=", ".join(tech))
 
+        # Spain account signals from the same homepage HTML: languages,
+        # export claims, helpdesk, e-commerce, B2B portal, ERP mentions.
+        from harvey.collectors.spain.web import web_observations
+        for code, kwargs in web_observations(home, site, domain):
+            add(code, **kwargs)
+
         # Structured data gap
         has_schema = bool(re.search(r'application/ld\+json', home, re.I)
                           and re.search(r'"@type"', home))
@@ -1267,6 +1286,9 @@ class ProfileCollector:
         is kept; generic industry and navigation text does not establish identity."""
         better = self.site_names.pop(company["id"], "")
         current = company.get("name") or ""
+        if better and await self._imported(company["id"]):
+            return      # a hand-picked account keeps the name it was imported with
+
         fallback = current == name_from_domain(domain)
         if not better or better == current or (
                 name_matches_domain(current, domain) and not fallback):
@@ -1276,6 +1298,13 @@ class ProfileCollector:
             logger.info(f"profile: {domain} named '{better}' (was '{current}')")
         except Exception as e:
             logger.debug(f"rename_company failed for {domain}: {e}")
+
+    async def _imported(self, company_id: str) -> bool:
+        try:
+            record = await self.state.get_company(company_id)
+        except Exception:
+            return False
+        return getattr(record, "source", "") == "import"
 
     async def _mark_checked(self, company_id: str):
         try:

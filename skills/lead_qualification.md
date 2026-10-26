@@ -1,82 +1,82 @@
-# Lead Qualification Skills
+# Habilidades de cualificación de leads
 
-Harvey uses a hybrid qualification approach: BANT for initial screening, enhanced with ICP scoring for prioritization.
-
----
-
-## BANT Framework (Initial Qualification)
-
-### Budget
-- Can they afford the solution?
-- Signals: company size, funding stage, job postings for related roles
-- Green flags: recently funded, hiring in your product's domain
-- Red flags: very small team with no budget indicators
-
-### Authority
-- Is this person a decision-maker or influencer?
-- Decision-maker titles: VP, Director, Head of, C-suite, Founder
-- Influencer titles: Manager, Lead, Senior — can champion internally
-- If not the authority: ask for the right person (don't waste sequences)
-
-### Need
-- Do they have the problem you solve?
-- Signals: tech stack, industry challenges, LinkedIn posts about pain points
-- Validate by: checking their current tools, recent job posts, company stage
-
-### Timeline
-- Are they likely to buy soon?
-- Signals: active evaluation (G2/Capterra reviews), recent vendor changes
-- "Not now" is okay — schedule a future touchpoint
+Harvey usa un enfoque híbrido de cualificación: BANT para el filtro inicial, reforzado con puntuación de ICP para priorizar.
 
 ---
 
-## ICP Scoring System
+## Marco BANT (cualificación inicial)
 
-Score every prospect 1-10 before outreach:
+### Budget (presupuesto)
+- ¿Pueden permitirse la solución?
+- Señales: tamaño de la empresa, fase de financiación, ofertas de empleo para roles relacionados
+- Señales positivas: financiación reciente, contratan en el ámbito de tu producto
+- Señales de alerta: equipo muy pequeño sin indicios de presupuesto
 
-| Criteria | Points | Details |
+### Authority (autoridad)
+- ¿Esta persona decide o influye?
+- Cargos decisores: VP, Director, Head of, C-suite, Founder
+- Cargos influyentes: Manager, Lead, Senior; pueden defenderlo internamente
+- Si no tiene la autoridad: pídele que te indique a la persona adecuada (no malgastes secuencias)
+
+### Need (necesidad)
+- ¿Tienen el problema que tú resuelves?
+- Señales: stack tecnológico, retos del sector, publicaciones de LinkedIn sobre sus problemas
+- Valídalo con: sus herramientas actuales, ofertas de empleo recientes, fase de la empresa
+
+### Timeline (plazo)
+- ¿Es probable que compren pronto?
+- Señales: evaluación activa (reseñas en G2/Capterra), cambios recientes de proveedor
+- "Ahora no" está bien: programa un contacto futuro
+
+---
+
+## Sistema de puntuación del ICP
+
+Puntúa a cada prospecto de 1 a 10 antes de escribirle:
+
+| Criterio | Puntos | Detalle |
 |----------|--------|---------|
-| **Title match** | 0-3 | Exact ICP title = 3, adjacent = 2, related = 1 |
-| **Company fit** | 0-3 | Right industry + size = 3, one match = 2, tangential = 1 |
-| **Engagement signals** | 0-2 | Active on LinkedIn = 1, posts about relevant topics = 2 |
-| **Reachability** | 0-2 | Verified email = 2, LinkedIn only = 1, no contact = 0 |
+| **Encaje del cargo** | 0-3 | Cargo exacto del ICP = 3, adyacente = 2, relacionado = 1 |
+| **Encaje de la empresa** | 0-3 | Sector y tamaño correctos = 3, una coincidencia = 2, tangencial = 1 |
+| **Señales de interacción** | 0-2 | Activo en LinkedIn = 1, publica sobre temas relevantes = 2 |
+| **Alcanzabilidad** | 0-2 | Email verificado = 2, solo LinkedIn = 1, sin contacto = 0 |
 
-### Priority Tiers
-- **Score 8-10**: High priority — personalized outreach immediately
-- **Score 5-7**: Medium priority — include in batch campaigns
-- **Score 3-4**: Low priority — only if pipeline needs volume
-- **Score 1-2**: Skip — not worth the outreach
-
----
-
-## MEDDIC (For Complex Deals — Future Use)
-
-When Harvey handles enterprise prospects or multi-stakeholder deals:
-
-- **Metrics**: What quantifiable outcomes does the buyer care about?
-- **Economic Buyer**: Who controls the budget?
-- **Decision Criteria**: What factors will they use to decide?
-- **Decision Process**: What steps do they go through to buy?
-- **Identify Pain**: What's the core problem driving urgency?
-- **Champion**: Is there an internal advocate for your solution?
+### Niveles de prioridad
+- **Puntuación 8-10**: prioridad alta, contacto personalizado de inmediato
+- **Puntuación 5-7**: prioridad media, inclúyelo en campañas por lotes
+- **Puntuación 3-4**: prioridad baja, solo si el pipeline necesita volumen
+- **Puntuación 1-2**: descartar, no merece la pena contactarlo
 
 ---
 
-## Disqualification Signals
+## MEDDIC (para operaciones complejas, uso futuro)
 
-Harvey should NOT pursue prospects who:
-- Have fewer employees than the minimum ICP threshold
-- Are in a completely unrelated industry
-- Have no discoverable contact information
-- Already use a deeply entrenched competitor (unless switching signals exist)
-- Explicitly opted out of communications
+Cuando Harvey gestione prospectos enterprise u operaciones con varios implicados:
 
-## Enrichment Priorities
+- **Metrics** (métricas): ¿qué resultados cuantificables le importan al comprador?
+- **Economic Buyer** (comprador económico): ¿quién controla el presupuesto?
+- **Decision Criteria** (criterios de decisión): ¿qué factores usarán para decidir?
+- **Decision Process** (proceso de decisión): ¿qué pasos siguen para comprar?
+- **Identify Pain** (dolor): ¿cuál es el problema de fondo que genera urgencia?
+- **Champion**: ¿hay un defensor interno de tu solución?
 
-When qualifying, gather in this order:
-1. Company domain + size (free: LinkedIn, website)
-2. Decision-maker name + title (free: LinkedIn search)
-3. Email address (free: pattern guessing + SMTP verification)
-4. Recent company news (free: Google search)
-5. Tech stack (free: BuiltWith, Wappalyzer)
-6. Personalization angles (free: LinkedIn posts, company blog)
+---
+
+## Señales de descalificación
+
+Harvey NO debe perseguir a prospectos que:
+- Tengan menos empleados que el mínimo del ICP
+- Estén en un sector totalmente ajeno
+- No tengan información de contacto localizable
+- Ya usen a un competidor muy asentado (salvo que haya señales de cambio)
+- Hayan pedido explícitamente no recibir comunicaciones
+
+## Prioridades de enriquecimiento
+
+Al cualificar, reúne los datos en este orden:
+1. Dominio y tamaño de la empresa (gratis: LinkedIn, web)
+2. Nombre y cargo del decisor (gratis: búsqueda en LinkedIn)
+3. Dirección de email (gratis: probar patrones + verificación SMTP)
+4. Noticias recientes de la empresa (gratis: búsqueda en Google)
+5. Stack tecnológico (gratis: BuiltWith, Wappalyzer)
+6. Ángulos de personalización (gratis: publicaciones de LinkedIn, blog de la empresa)

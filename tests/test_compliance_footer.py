@@ -559,3 +559,110 @@ async def test_template_lines_with_merge_tags_are_recognised_when_quoted(state):
     handler.brain = RecordingBrain("interested")
     await handler._run_native()
     assert handler.brain.prompts  # our pitch's "attorney" didn't escalate
+
+
+# ── Spanish replies ──
+
+from harvey.agents.handler import _opt_out_reason  # noqa: E402
+from harvey.config import OPT_OUT_WORDS  # noqa: E402
+
+ES_LINE = 'Si prefieres que no te escriba, contesta "no gracias".'
+
+
+def test_every_word_an_opt_out_line_can_ask_for_is_honoured():
+    # The validator accepts a line asking for any of these, so a reply of
+    # just that word, however it's capitalised or quoted, must be an opt-out.
+    for word in OPT_OUT_WORDS:
+        for reply in (word, word.upper() + ".", f'"{word.capitalize()}"'):
+            assert _opt_out_reason(reply, reply), reply
+
+
+@pytest.mark.parametrize("body", [
+    "Baja", "BAJA.", "No, gracias.", "no gracias", "¡No, gracias!",
+    "Por favor, dadme de baja de vuestra lista.",
+    "Quiero darme de baja",
+    "No me escribáis más.", "no me escribais mas", "No me contactes, por favor.",
+    "No me escribas por favor",
+    "Dejad de escribirme.", "No quiero recibir más correos.",
+    "Eliminad mis datos de vuestra base.", "Borra mis datos.",
+    "No vuelvas a escribirme.", "No me volváis a escribir",
+    "No, gracias. Ya tenemos proveedor.",
+    "Baja\n\nEnviado desde mi iPhone",
+    "No gracias\n\nObtener Outlook para Android",
+    "Baja\n\nEnviado desde mi móvil Huawei",
+])
+def test_spanish_opt_outs_are_caught(body):
+    assert _opt_out_reason(body, body), body
+
+
+@pytest.mark.parametrize("body", [
+    "No, gracias a vosotros por escribir. ¿Hablamos el martes?",
+    "No gracias a que tengamos presupuesto, sino a que encaja.",
+    "¿Tiene permanencia, sí o no, gracias",
+    "El lunes sí, el martes no\nGracias, Ana",
+    "Estoy de baja de maternidad hasta enero, escribidme entonces.",
+    "No me escribas al móvil, mejor por email. Me interesa.",
+    "No me contactes hasta enero, ahora estamos a tope.",
+    "Bajamos los precios la semana pasada, ¿qué ofrecéis?",
+])
+def test_spanish_replies_that_only_look_like_an_opt_out(body):
+    assert _opt_out_reason(body, body) is None, body
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body", ["No, gracias.", "Baja", "Dadme de baja, gracias."],
+                         ids=["no-gracias", "baja", "dadme-de-baja"])
+async def test_spanish_opt_outs_are_honoured_without_the_model(state, body):
+    status, prompts = await _reply(state, body)
+    assert status == "opted_out" and prompts == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body", [
+    "Mi abogado se pondrá en contacto con vosotros.",
+    "Voy a denunciar esto ante la AEPD.",
+    "Esto incumple el RGPD y la LSSI.",
+    "Os enviaré un burofax.",
+    "Si seguís, os voy a demandar.",
+    "Esto es acoso.",
+], ids=["abogado", "aepd", "rgpd-lssi", "burofax", "demandar", "acoso"])
+async def test_spanish_legal_threats_escalate(state, body):
+    status, prompts = await _reply(state, body)
+    assert status != "opted_out"
+    assert prompts == []  # escalated by keyword, no model call, no auto-reply
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body", [
+    "Hay mucha demanda en verano, ¿cómo lo hacéis?",
+    "Trabajamos bajo demanda. ¿Qué precio tiene?",
+], ids=["mucha-demanda", "bajo-demanda"])
+async def test_everyday_spanish_doesnt_escalate(state, body):
+    status, prompts = await _reply(state, body)
+    assert status != "opted_out"
+    assert prompts  # read by the model, not escalated by keyword
+
+
+@pytest.mark.asyncio
+async def test_our_quoted_spanish_footer_is_not_an_opt_out(state):
+    sent = "Una nota breve. ¿Te encaja?\n\n" + ADDRESS + "\n" + ES_LINE
+    body = ("Sí, me interesa. ¿El jueves?\n\nEl mar, Harvey escribió:\n> "
+            + sent.replace("\n", "\n> "))
+    status, prompts = await _reply_after_sending(state, body, sent_bodies=[sent], line=ES_LINE)
+    assert status != "opted_out"
+    # The classifier reads their words, not our quoted footer.
+    assert prompts and "no gracias" not in prompts[0].lower()
+    assert "me interesa" in prompts[0].lower()
+
+
+def test_a_spanish_opt_out_line_validates():
+    import pydantic
+    for good in ('¿No te interesa? Responde "baja" y no volveré a escribirte.',
+                 ES_LINE,
+                 "Si no quieres más correos, respóndeme con «baja».",
+                 "¿No le interesa? Conteste no, gracias, y no volveré a escribirle.",
+                 "Responde STOP y no te escribo más."):
+        assert ComplianceConfig(opt_out_line=good).opt_out_line == good
+    for bad in ('Responde "paso" y no te escribo más.', "Escríbeme si no te interesa."):
+        with pytest.raises(pydantic.ValidationError):
+            ComplianceConfig(opt_out_line=bad)

@@ -113,7 +113,7 @@ def test_an_edit_the_sender_would_block_is_refused_with_the_reason(client, body)
     state, item_id = asyncio.run(_seed(client.db_path))
     r = client.post(f"/api/outbox/{item_id}/edit", json={"subject": "your portal", "body": body})
     assert r.status_code == 400
-    assert "blocked" in r.json()["message"]
+    assert "bloqueado" in r.json()["message"]
     assert asyncio.run(state.get_outbox_item(item_id))["subject"] == "your client portal"
 
 

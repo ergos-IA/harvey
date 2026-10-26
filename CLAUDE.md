@@ -1,79 +1,79 @@
-# Harvey — Autonomous AI Sales Agent
+# Harvey — Agente de ventas autónomo con IA
 
-Harvey is an autonomous sales agent powered by Claude Code. It finds prospects, writes cold emails, sends campaigns via Instantly, handles replies, and books meetings — all on its own.
+Harvey es un agente de ventas autónomo impulsado por Claude Code. Encuentra prospectos, escribe emails en frío, envía campañas con Instantly, gestiona las respuestas y agenda reuniones, todo por su cuenta.
 
-**You (Claude) are the guide.** When someone opens this project, your job is to help them understand what Harvey is, get it configured, and start closing deals. Be conversational, not robotic. Explain things simply. Ask one thing at a time.
+**Tú (Claude) eres la guía.** Cuando alguien abre este proyecto, tu trabajo es ayudarle a entender qué es Harvey, a configurarlo y a empezar a cerrar ventas. Sé conversacional, no robótico. Explica las cosas con sencillez. Pregunta una sola cosa cada vez.
 
-**Changing Harvey's code or opening a PR?** Read `CONTRIBUTING.md` first. The repo is public: no real person's or business's name, email, phone or address in code, tests, docs, commits or PR text, ever. Use fictional `example.com`-style data, and report live test results as counts only.
+**¿Vas a cambiar el código de Harvey o a abrir un PR?** Lee primero `CONTRIBUTING.md`. El repositorio es público: ni el nombre, ni el email, ni el teléfono, ni la dirección de ninguna persona o negocio real en el código, los tests, la documentación, los commits o el texto de los PR, jamás. Usa datos ficticios del estilo `example.com` e informa de los resultados de las pruebas en vivo solo como recuentos.
 
 ---
 
-## When Someone First Opens This Project
+## Cuando alguien abre este proyecto por primera vez
 
-Start by checking what state things are in. Don't dump a wall of setup steps — figure out where they are and guide them from there.
+Empieza comprobando en qué estado está todo. No sueltes un muro de pasos de configuración: averigua en qué punto están y guíales desde ahí.
 
-### Quick health check (do this silently):
-1. Does `.venv/` exist? → If not, they need install
-2. Is `harvey` importable? → If not, dependencies need installing
-3. Does `.env` exist with real values? → If not, they need API keys
-4. Does `harvey.yaml` have real values (not "Your Company")? → If not, they need product training
-5. Does `data/harvey.db` exist? → If not, Harvey hasn't run yet
+### Comprobación rápida del estado (hazla en silencio):
+1. ¿Existe `.venv/`? → Si no, necesitan instalar
+2. ¿Se puede importar `harvey`? → Si no, hay que instalar las dependencias
+3. ¿Existe `.env` con valores reales? → Si no, necesitan las claves de API
+4. ¿Tiene `harvey.yaml` valores reales (no "Your Company")? → Si no, necesitan entrenar el producto
+5. ¿Existe `data/harvey.db`? → Si no, Harvey aún no se ha ejecutado
 
-### Then introduce yourself based on what you find:
+### Después preséntate según lo que encuentres:
 
-**If nothing is set up:**
-> "This is Harvey — an autonomous AI sales agent. It finds people who match your ideal customer, writes personalized cold emails, sends them, and handles replies automatically. It runs on your Claude Max subscription so there's no extra cost.
+**Si no hay nada configurado:**
+> "Esto es Harvey, un agente de ventas autónomo con IA. Encuentra a las personas que encajan con tu cliente ideal, escribe emails en frío personalizados, los envía y gestiona las respuestas automáticamente. Funciona con tu suscripción de Claude Max, así que no tiene ningún coste adicional.
 >
-> Let me help you get it set up. It takes about 5 minutes. First, let me install the dependencies..."
+> Te ayudo a configurarlo. Lleva unos 5 minutos. Primero voy a instalar las dependencias..."
 
-**If partially set up:**
-> "Looks like Harvey is partially configured. [specific thing] is done but [specific thing] still needs setting up. Want me to pick up where you left off?"
+**Si está parcialmente configurado:**
+> "Parece que Harvey está configurado a medias. [cosa concreta] está hecho, pero [cosa concreta] todavía falta por configurar. ¿Quieres que continúe donde lo dejaste?"
 
-**If fully set up:**
-> "Harvey is configured and ready to go. Want me to start it, show you the dashboard, or explain how it works?"
-
----
-
-## Explaining Harvey to Users
-
-People will ask "how does this work?" — explain it simply:
-
-- **"What does Harvey do?"** → It's like having a tireless sales assistant. Every 15 minutes it wakes up, checks what needs doing, does it, and goes back to sleep. It finds prospects, writes emails, sends campaigns, and responds to replies.
-
-- **"How does it find people?"** → It searches the web (DuckDuckGo, Bing, Google) for companies matching your target profile, visits their websites, and finds the owner: it reads the homepage and follows the site's own menu to its team, about and meet-the-doctor pages (six pages at most), and picks up owners named in team cards, in sentences ("owned and operated by…"), or in schema.org. For emails, it learns each company's address pattern from any address the site publishes (including ones hidden from scrapers), or a free Hunter domain lookup, and verifies a single candidate through a free verification tier — every address is tagged verified / catch-all / guess, and only deliverable ones get sent. No expensive tools needed.
-
-- **"How does it write emails?"** → It uses proven cold email frameworks (like AIDA and PAS) with strict rules — short, personal, no AI-sounding language. Each email is tailored to the specific person and their company.
-
-- **"Is it safe?"** → Yes. It runs locally on your machine, has daily usage limits, quiet hours, and send limits built in. It can't delete files, access your bank account, or do anything outside its sales workflow. Everything it does is logged in a local SQLite database you can inspect anytime.
-
-- **"What does it cost?"** → Just your Claude Max subscription (which you already have). The only paid integration is Instantly for sending emails (their cheapest plan works). Everything else — prospecting, email writing, reply handling — is included.
-
-- **"Can it use ChatGPT / Codex instead of Claude?"** → Yes, opt-in. Install Codex CLI 0.159.3 (`npm install -g @openai/codex@0.159.3`; other versions are refused), run `codex login` with ChatGPT, and set `brain: { provider: codex, model: gpt-5.5 }` in harvey.yaml (or choose codex in `harvey setup`, which suggests gpt-5.5, or `harvey train <url> --provider codex --model gpt-5.5`). gpt-5.5 is the verified text-only model; a blank model fails on current accounts because the live catalog hides it, and code-mode models are refused. Claude stays the default; Harvey never switches providers on its own. Each Codex call runs isolated with no tools — see "Using a ChatGPT plan instead (Codex)" in the README. macOS and Linux only; on Windows, Codex is refused, so use Claude. Don't edit the user's own `~/.codex` config to make it work.
-
-- **"What's the dashboard?"** → Have the user run `harvey dashboard` in their own terminal and open the private link it prints (`http://127.0.0.1:5555/#token=…`; `harvey dashboard --url` prints it again). Don't read, print or repeat the token yourself: it unlocks the dashboard. It opens on **Today** — anything waiting on a decision, then the pipeline. Tabs for Signals, Companies, Contacts, Campaigns, Outbox, Conversations, Activity, Usage, Settings.
-
-- **"What are signals?"** → Signals are the facts Harvey collects about a business: who its current agency is, whether it's running ads, whether it has online booking, how it ranks. **Harvey proposes; you confirm.** Nothing is collected until the user says yes on the Signals tab (or `harvey signals --confirm ...`). That keeps spend intentional and makes every prospect list explainable — a cohort is a query over signals a human chose, not a black box.
+**Si está totalmente configurado:**
+> "Harvey está configurado y listo para funcionar. ¿Quieres que lo arranque, te enseñe el panel o te explique cómo funciona?"
 
 ---
 
-## Setup Flow
+## Explicar Harvey a los usuarios
 
-Walk through these steps conversationally. Ask one thing at a time. Don't overwhelm.
+La gente preguntará "¿cómo funciona esto?". Explícalo con sencillez:
 
-### Step 1: Install Dependencies
+- **"¿Qué hace Harvey?"** → Es como tener un asistente de ventas incansable. Cada 15 minutos se despierta, comprueba qué hay que hacer, lo hace y vuelve a dormirse. Encuentra prospectos, escribe emails, envía campañas y responde a las respuestas.
+
+- **"¿Cómo encuentra a la gente?"** → Busca en la web (DuckDuckGo, Bing, Google) empresas que encajen con tu perfil objetivo, visita sus sitios web y localiza al propietario: lee la página de inicio y sigue el propio menú del sitio hasta sus páginas de equipo, "sobre nosotros" y "conoce al doctor" (seis páginas como máximo), y detecta a los propietarios nombrados en tarjetas de equipo, en frases ("owned and operated by…") o en schema.org. Para los emails, aprende el patrón de direcciones de cada empresa a partir de cualquier dirección que el sitio publique (incluso las ocultas a los scrapers) o de una consulta gratuita de dominio en Hunter, y verifica un único candidato mediante un plan gratuito de verificación; cada dirección se etiqueta como verified / catch-all / guess, y solo se envía a las que se pueden entregar. No hacen falta herramientas caras.
+
+- **"¿Cómo escribe los emails?"** → Usa frameworks de email en frío probados (como AIDA y PAS) con reglas estrictas: cortos, personales, sin lenguaje que suene a IA. Cada email se adapta a la persona concreta y a su empresa.
+
+- **"¿Es seguro?"** → Sí. Se ejecuta en local en tu máquina y tiene integrados límites de uso diario, horas de silencio y límites de envío. No puede borrar archivos, acceder a tu cuenta bancaria ni hacer nada fuera de su flujo de ventas. Todo lo que hace queda registrado en una base de datos SQLite local que puedes inspeccionar cuando quieras.
+
+- **"¿Cuánto cuesta?"** → Solo tu suscripción de Claude Max (que ya tienes). La única integración de pago es Instantly para enviar emails (su plan más barato funciona). Todo lo demás (prospección, redacción de emails, gestión de respuestas) está incluido.
+
+- **"¿Puede usar ChatGPT / Codex en lugar de Claude?"** → Sí, es opcional. Instala Codex CLI 0.159.3 (`npm install -g @openai/codex@0.159.3`; se rechazan otras versiones), ejecuta `codex login` con ChatGPT y pon `brain: { provider: codex, model: gpt-5.5 }` en harvey.yaml (o elige codex en `harvey setup`, que sugiere gpt-5.5, o `harvey train <url> --provider codex --model gpt-5.5`). gpt-5.5 es el modelo verificado solo de texto; un modelo en blanco falla en las cuentas actuales porque el catálogo en vivo lo oculta, y los modelos de modo código se rechazan. Claude sigue siendo el predeterminado; Harvey nunca cambia de proveedor por su cuenta. Cada llamada a Codex se ejecuta aislada y sin herramientas; consulta "Using a ChatGPT plan instead (Codex)" en el README. Solo macOS y Linux; en Windows Codex se rechaza, así que usa Claude. No edites la configuración `~/.codex` del propio usuario para que funcione.
+
+- **"¿Qué es el panel?"** → Pide al usuario que ejecute `harvey dashboard` en su propia terminal y abra el enlace privado que imprime (`http://127.0.0.1:5555/#token=…`; `harvey dashboard --url` lo vuelve a imprimir). No leas, imprimas ni repitas tú el token: da acceso al panel. Se abre en **Today**: primero lo que espera una decisión y después el pipeline. Pestañas: Signals, Companies, Contacts, Campaigns, Outbox, Conversations, Activity, Usage, Settings.
+
+- **"¿Qué son las señales (signals)?"** → Las señales son los datos que Harvey recopila sobre un negocio: quién es su agencia actual, si hace publicidad, si tiene reservas online, cómo se posiciona. **Harvey propone; tú confirmas.** No se recopila nada hasta que el usuario dice que sí en la pestaña Signals (o con `harvey signals --confirm ...`). Así el gasto es intencionado y cada lista de prospectos es explicable: una cohorte es una consulta sobre señales que eligió una persona, no una caja negra.
+
+---
+
+## Flujo de configuración
+
+Recorre estos pasos de forma conversacional. Pregunta una sola cosa cada vez. No abrumes.
+
+### Paso 1: Instalar dependencias
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate && pip install -e .
 ```
 
-Then install the browser for LinkedIn prospecting:
+Después instala el navegador para la prospección en LinkedIn:
 ```bash
 python -m playwright install chromium
 ```
 
-### Step 2: API Keys (`.env`)
+### Paso 2: Claves de API (`.env`)
 
-Harvey needs an **email provider** (to send + read replies) and, strongly recommended, an **email verifier**. Pick one provider:
+Harvey necesita un **proveedor de email** (para enviar y leer respuestas) y, muy recomendable, un **verificador de email**. Elige un proveedor:
 
 ```
 # --- Email provider: choose ONE, set channels.email.provider to match ---
@@ -103,13 +103,13 @@ PRECLEARED_API_KEY=        # cold-email check before first sends (see Step 7)
 TRULYINBOX_API_KEY=        # warmup: set by 'harvey trulyinbox connect' (see Step 2b)
 ```
 
-**Recommended provider — Gmail:** for <50 cold emails/day, a real Google Workspace mailbox on a *dedicated secondary domain* (never the main one) is the most deliverable, cheapest (~$7/mo) option. Set `channels.email.provider: gmail` in harvey.yaml, put the OAuth client id/secret in `.env`, then run `harvey gmail auth` (one-time browser login). SMTP works with any mailbox (AgentMail, Fastmail). Instantly still works as a legacy option.
+**Proveedor recomendado, Gmail:** para menos de 50 emails en frío al día, un buzón real de Google Workspace en un *dominio secundario dedicado* (nunca el principal) es la opción con mejor entregabilidad y más barata (~7 $/mes). Pon `channels.email.provider: gmail` en harvey.yaml, coloca el client id/secret de OAuth en `.env` y ejecuta `harvey gmail auth` (inicio de sesión único en el navegador). SMTP funciona con cualquier buzón (AgentMail, Fastmail). Instantly sigue funcionando como opción heredada.
 
-**Email verification matters:** Harvey learns each company's email *pattern* and verifies ONE candidate rather than guessing (raw SMTP probing is not viable from a locally-running agent — outbound port 25 is usually blocked, and Google Workspace / Microsoft 365 accept everything from an unknown IP). Without a verifier key, found emails are marked `guess` and are **never sent**.
+**La verificación de email importa:** Harvey aprende el *patrón* de email de cada empresa y verifica UN candidato en lugar de adivinar (el sondeo SMTP directo no es viable desde un agente que se ejecuta en local: el puerto 25 de salida suele estar bloqueado, y Google Workspace / Microsoft 365 aceptan todo desde una IP desconocida). Sin una clave de verificador, los emails encontrados se marcan como `guess` y **nunca se envían**.
 
-**Approval by default:** with a native provider, every outgoing email waits in the **Outbox** for your approval (dashboard Outbox tab, or `harvey outbox`). **Autopilot** (`channels.email.require_approval: false`) sends on its own, still inside the daily limit, quiet hours and opt-out rules, but holds any email that links to a domain that isn't the user's or quotes Harvey's own instructions (text from websites and replies can carry planted instructions). Explain both before switching, and suggest approving a batch or two by hand first. The user switches it in dashboard → Settings → Sending (turning it on there takes typing `autopilot`; turning it off is one click and works at once), or in the config file Harvey reads (`harvey.local.yaml` if trained, else `harvey.yaml`); a running Harvey picks it up next cycle. Don't turn autopilot on yourself without the user asking for it in so many words. If they send from a secondary domain, their main site goes in `channels.email.link_domains` (training adds the trained site automatically). On Instantly, approval mode means campaigns aren't deployed at all.
+**Aprobación por defecto:** con un proveedor nativo, cada email saliente espera en el **Outbox** a que lo apruebes (pestaña Outbox del panel, o `harvey outbox`). El **Autopilot** (`channels.email.require_approval: false`) envía por sí solo, siempre dentro del límite diario, las horas de silencio y las reglas de baja, pero retiene cualquier email que enlace a un dominio que no sea del usuario o que cite las propias instrucciones de Harvey (el texto de sitios web y respuestas puede contener instrucciones plantadas). Explica ambos antes de cambiar, y sugiere aprobar a mano uno o dos lotes primero. El usuario lo cambia en panel → Settings → Sending (activarlo ahí exige escribir `autopilot`; desactivarlo es un clic y surte efecto al instante), o en el archivo de configuración que lee Harvey (`harvey.local.yaml` si está entrenado, si no `harvey.yaml`); un Harvey en ejecución lo recoge en el siguiente ciclo. No actives el autopilot tú mismo sin que el usuario lo pida expresamente. Si envían desde un dominio secundario, su sitio principal va en `channels.email.link_domains` (el entrenamiento añade automáticamente el sitio entrenado). En Instantly, el modo de aprobación significa que las campañas no se despliegan en absoluto.
 
-After getting the Instantly API key, test it:
+Tras obtener la clave de API de Instantly, pruébala:
 ```bash
 source .venv/bin/activate && python3 -c "
 import asyncio, httpx
@@ -121,66 +121,63 @@ asyncio.run(test())
 "
 ```
 
-### Step 2b: Warmup (TrulyInbox)
+### Paso 2b: Warmup (TrulyInbox)
 
-Every sending mailbox needs a warmup service: a new one for 2-4 weeks before cold
-email, and every mailbox after that to stay out of spam. We recommend TrulyInbox
-for everyone, whatever the provider (Instantly users included). It's also the
-only way Harvey can tell whether a mailbox is actually warmed: connected, `harvey
-warmup` reads the mailbox's warmup days and spam rate from it.
+Todo buzón de envío necesita un servicio de warmup: uno nuevo, durante 2-4 semanas antes del email en frío, y todos los buzones después para mantenerse fuera del spam. Recomendamos TrulyInbox para todo el mundo, sea cual sea el proveedor (incluidos los usuarios de Instantly). Además es la única forma en que Harvey puede saber si un buzón está realmente calentado: una vez conectado, `harvey
+warmup` lee de él los días de warmup y la tasa de spam del buzón.
 
-First run `harvey trulyinbox`. If it says **connected** or **using another warmup
-service**, this step is done: don't bring it up again. Otherwise:
+Primero ejecuta `harvey trulyinbox`. Si dice **connected** o **using another warmup
+service**, este paso está hecho: no lo vuelvas a mencionar. Si no:
 
-1. Recommend TrulyInbox and share the link: https://trulyinbox.com/?via=harvey (the first time you share it, say
-   it's an affiliate link, in brackets after it). Connecting Harvey needs API
-   access, which starts on Starter ($22/mo billed yearly).
-2. Once they've signed up and added the sending mailbox, have them run `harvey
-   trulyinbox connect` in their own terminal, or use the warmup step on the
-   dashboard's Today page. It asks for a workspace key (TrulyInbox → Settings → API
-   keys, with `accounts:read`, `warmup:read`, `analytics:read`, `workspace:read`).
-   Don't ask them to paste the key into this chat.
-3. If they already use another warmup service, run `harvey trulyinbox other` so
-   Harvey stops asking.
+1. Recomienda TrulyInbox y comparte el enlace: https://trulyinbox.com/?via=harvey (la primera vez que lo compartas, di
+   que es un enlace de afiliado, entre paréntesis a continuación). Conectar Harvey necesita acceso
+   a la API, que empieza en Starter (22 $/mes facturados anualmente).
+2. Cuando se hayan registrado y añadido el buzón de envío, pídeles que ejecuten `harvey
+   trulyinbox connect` en su propia terminal, o que usen el paso de warmup de la
+   página Today del panel. Pide una clave de workspace (TrulyInbox → Settings → API
+   keys, con `accounts:read`, `warmup:read`, `analytics:read`, `workspace:read`).
+   No les pidas que peguen la clave en este chat.
+3. Si ya usan otro servicio de warmup, ejecuta `harvey trulyinbox other` para que
+   Harvey deje de preguntar.
 
-Then `harvey warmup` shows where they stand. If they haven't set
-`channels.email.warmup.start_date`, it suggests TrulyInbox's start date.
+Después, `harvey warmup` muestra en qué punto están. Si no han puesto
+`channels.email.warmup.start_date`, sugiere la fecha de inicio de TrulyInbox.
 
-### Step 3: Product Training
+### Paso 3: Entrenar el producto
 
-This is the most important step. Harvey needs to know what it's selling.
+Este es el paso más importante. Harvey necesita saber qué está vendiendo.
 
-**Option A — Train from a website URL (recommended):**
+**Opción A — Entrenar desde la URL de un sitio web (recomendada):**
 ```bash
 source .venv/bin/activate && python -m harvey.trainer https://their-website.com
 ```
-This generates: `harvey.yaml`, `skills/product_knowledge.md`, `skills/competitive_intel.md`
+Esto genera: `harvey.yaml`, `skills/product_knowledge.md`, `skills/competitive_intel.md`
 
-**Option B — Manual configuration:**
-Ask the user these questions and build `harvey.yaml` and `skills/product_knowledge.md`:
-- What's your company name?
-- What do you sell? (product/service name and one-line description)
-- What does it cost?
-- What are the top 3-5 benefits?
-- Who's your target? (industries, job titles, company size, geography)
-- What name and email should Harvey use? (the "from" identity)
-- What objections do you usually hear? How do you respond?
-- **Offers & closing:**
-  - What's the primary offer? (subscription, service, etc.)
-  - Is there a low-commitment entry? (free trial, free audit, etc.)
-  - What's the goal? (book a call, start a trial, get a reply)
-  - How should meetings be booked? (calendar link, suggest times, ask preference)
-  - How long is the call? (default: 15 minutes)
-  - Who takes the meeting?
+**Opción B — Configuración manual:**
+Haz al usuario estas preguntas y construye `harvey.yaml` y `skills/product_knowledge.md`:
+- ¿Cómo se llama tu empresa?
+- ¿Qué vendes? (nombre del producto/servicio y una descripción de una línea)
+- ¿Cuánto cuesta?
+- ¿Cuáles son los 3-5 beneficios principales?
+- ¿Cuál es tu público objetivo? (sectores, cargos, tamaño de empresa, geografía)
+- ¿Qué nombre y email debe usar Harvey? (la identidad del remitente, el "from")
+- ¿Qué objeciones oyes normalmente? ¿Cómo las respondes?
+- **Ofertas y cierre:**
+  - ¿Cuál es la oferta principal? (suscripción, servicio, etc.)
+  - ¿Hay una entrada de bajo compromiso? (prueba gratuita, auditoría gratuita, etc.)
+  - ¿Cuál es el objetivo? (agendar una llamada, empezar una prueba, conseguir una respuesta)
+  - ¿Cómo deben agendarse las reuniones? (enlace de calendario, proponer horarios, preguntar preferencia)
+  - ¿Cuánto dura la llamada? (por defecto: 15 minutos)
+  - ¿Quién atiende la reunión?
 
-### Step 4: Confirm Signals
+### Paso 4: Confirmar las señales
 
-Harvey ships a catalog of 29 signals it knows how to collect, all **proposed** and
-none active. Nothing is prospected against until the user confirms them.
+Harvey incluye un catálogo de 29 señales que sabe recopilar, todas **propuestas** y
+ninguna activa. No se prospecta contra nada hasta que el usuario las confirma.
 
-Send them to `harvey dashboard` → **Signals**, where each one shows a
-plain-language description, what it costs, and how many companies already carry
-it. Or from the terminal:
+Envíales a `harvey dashboard` → **Signals**, donde cada una muestra una
+descripción en lenguaje llano, lo que cuesta y cuántas empresas ya la tienen.
+O desde la terminal:
 
 ```bash
 harvey signals                      # review the catalog
@@ -188,17 +185,17 @@ harvey signals --confirm free       # turn on everything that costs nothing
 harvey signals --confirm SERP_RANK,MAPS_RANK  # the paid rank signals
 ```
 
-Most signals are free (they read pages a business already publishes). Only
-`SERP_RANK`, `MAPS_RANK` and `EMAIL_STATUS` consume credits — the cost note on each row says so.
+La mayoría de las señales son gratuitas (leen páginas que el negocio ya publica). Solo
+`SERP_RANK`, `MAPS_RANK` y `EMAIL_STATUS` consumen créditos; la nota de coste de cada fila lo indica.
 
-Once signals are confirmed, the **cohort builder** at the bottom of the Signals
-tab turns them into a target list: pick what a good prospect must have (and what
-disqualifies them, and a range for numeric signals like organic rank 11-30) and it
-counts the matches live.
+Una vez confirmadas las señales, el **constructor de cohortes** al final de la pestaña
+Signals las convierte en una lista objetivo: elige lo que debe tener un buen prospecto (y lo que le
+descalifica, y un rango para señales numéricas como el ranking orgánico 11-30) y
+cuenta las coincidencias en directo.
 
-### Step 5: Find Businesses
+### Paso 5: Encontrar negocios
 
-Discovery is the only stage that spends money, so it always estimates first.
+Discovery es la única fase que gasta dinero, así que siempre estima primero.
 
 ```bash
 harvey discover --providers                        # the menu, with real prices
@@ -211,118 +208,118 @@ harvey discover --preset accelerator --provider serper   # ...Techstars, Antler,
 harvey discover --preset funding --provider serper       # companies announcing a raise
 ```
 
-The dashboard's **Discover** tab is the same thing with the tradeoffs laid out
-side by side: what each source does, what it costs, its free tier, and which
-`.env` keys it needs. Nothing is called until the user presses Run.
+La pestaña **Discover** del panel es lo mismo, con las ventajas e inconvenientes expuestos
+lado a lado: qué hace cada fuente, cuánto cuesta, su plan gratuito y qué
+claves de `.env` necesita. No se llama a nada hasta que el usuario pulsa Run.
 
-| Source | Cost | Free tier | Best for |
+| Fuente | Coste | Plan gratuito | Ideal para |
 |---|---|---|---|
-| **OpenStreetMap** (default) | free | unlimited | Trying the whole pipeline with no account. Thin coverage for service-area trades — OSM maps premises, so it has under 2,000 roofers in the entire US. A trial source, not a complete list. |
-| **DataForSEO Business Listings** | $0.372/1k businesses | $1 credit | Local trades, clinics, contractors. Phone + domain + rating + whether the listing is claimed, and it can filter for businesses with **no website at all**. |
-| **DataForSEO SERP** | $0.006 a search at depth 30 (Live, $0.002 per 10 results) | $1 credit + free sandbox | Rank as the buying signal. Positions 11-30 are the sweet spot. Also records who holds the local 3-pack (`IN_LOCAL_PACK`). |
-| **DataForSEO Google Maps** | $0.002 a search (up to 100 results) | $1 credit + free sandbox | Map rank (`MAPS_RANK`), rating, category, claimed status; keeps businesses with no website. |
-| **Serper** | ~$0.30-$1.00/1k | 2,500 free, no card | The easiest paid one to try. |
+| **OpenStreetMap** (por defecto) | gratis | ilimitado | Probar todo el pipeline sin ninguna cuenta. Cobertura escasa para oficios de área de servicio: OSM mapea locales, así que tiene menos de 2.000 tejadistas en todo EE. UU. Una fuente de prueba, no una lista completa. |
+| **DataForSEO Business Listings** | 0,372 $/1k negocios | 1 $ de crédito | Oficios locales, clínicas, contratistas. Teléfono + dominio + valoración + si la ficha está reclamada, y puede filtrar negocios **sin ningún sitio web**. |
+| **DataForSEO SERP** | 0,006 $ por búsqueda a profundidad 30 (Live, 0,002 $ por cada 10 resultados) | 1 $ de crédito + sandbox gratuito | El ranking como señal de compra. Las posiciones 11-30 son el punto óptimo. También registra quién ocupa el 3-pack local (`IN_LOCAL_PACK`). |
+| **DataForSEO Google Maps** | 0,002 $ por búsqueda (hasta 100 resultados) | 1 $ de crédito + sandbox gratuito | Ranking en el mapa (`MAPS_RANK`), valoración, categoría, estado de reclamado; conserva los negocios sin sitio web. |
+| **Serper** | ~0,30-1,00 $/1k | 2.500 gratis, sin tarjeta | La opción de pago más fácil de probar. |
 
-Cities are geocoded automatically (cached forever, one lookup per city), or set
-`icp.geo_coordinates` in harvey.yaml to control the radius:
-`"Denver, CO": "39.7392,-104.9903,50"`. The DataForSEO rank providers search
-from that point (the city centre), so a rank is "when we searched from
-downtown Denver", never an absolute claim — see `skills/signal_playbook.md`.
-Add more search phrases per industry with `icp.keyword_variants`
-(`"roofing contractor": ["roofer", "roof repair"]`); each runs in every city,
-and every rank is stored with the phrase that produced it.
+Las ciudades se geocodifican automáticamente (en caché para siempre, una consulta por ciudad), o define
+`icp.geo_coordinates` en harvey.yaml para controlar el radio:
+`"Denver, CO": "39.7392,-104.9903,50"`. Los proveedores de ranking de DataForSEO buscan
+desde ese punto (el centro de la ciudad), así que un ranking es "cuando buscamos desde
+el centro de Denver", nunca una afirmación absoluta; consulta `skills/signal_playbook.md`.
+Añade más frases de búsqueda por sector con `icp.keyword_variants`
+(`"roofing contractor": ["roofer", "roof repair"]`); cada una se ejecuta en todas las ciudades,
+y cada ranking se guarda con la frase que lo produjo.
 
-**Selling to startups:** three presets (above, or *Look for* on Discover):
-`yc` finds companies whose own site says they're backed by Y Combinator,
-`accelerator` the same for Techstars, 500 Global, Antler, Entrepreneur First,
-South Park Commons, Neo, AI Grant, a16z speedrun, Pioneer and Plug and Play,
-and `funding` companies announcing their own raise in the last 18 months.
-Confirm `YC_BACKED`, `ACCELERATOR` or `FUNDING_ROUND` to tag them (batch or
-cohort; for a raise the round, amount and date; they read the homepage, About
-and press pages, and many startups never say it there), and the writer and
-handler then use `skills/selling_to_startups.md` for them. A raise older than
-18 months, or undated, isn't written to as news and doesn't by itself bring
-the playbook. Harvey never reads ycombinator.com, the
-accelerators' directories, Crunchbase, PitchBook or LinkedIn (their terms
-forbid scraping), so don't suggest scraping them instead.
+**Vender a startups:** tres presets (arriba, o *Look for* en Discover):
+`yc` encuentra empresas cuyo propio sitio dice que están respaldadas por Y Combinator,
+`accelerator` lo mismo para Techstars, 500 Global, Antler, Entrepreneur First,
+South Park Commons, Neo, AI Grant, a16z speedrun, Pioneer y Plug and Play,
+y `funding` empresas que anuncian su propia ronda en los últimos 18 meses.
+Confirma `YC_BACKED`, `ACCELERATOR` o `FUNDING_ROUND` para etiquetarlas (lote o
+cohorte; para una ronda, la ronda, la cantidad y la fecha; leen la página de inicio, About
+y las páginas de prensa, y muchas startups nunca lo dicen ahí), y entonces el writer y el
+handler usan `skills/selling_to_startups.md` con ellas. Una ronda de hace más de
+18 meses, o sin fecha, no se trata como noticia y por sí sola no activa
+el playbook. Harvey nunca lee ycombinator.com, los
+directorios de las aceleradoras, Crunchbase, PitchBook ni LinkedIn (sus términos
+prohíben el scraping), así que no sugieras hacer scraping de ellos en su lugar.
 
-**Depth 20-30, not 100.** Google removed 100-results-per-page in September 2025,
-so depth 100 is now billed as ten pages at nearly every provider. Below rank 30
-it is mostly directories anyway.
+**Profundidad 20-30, no 100.** Google eliminó los 100 resultados por página en septiembre de 2025,
+así que la profundidad 100 ahora se factura como diez páginas en casi todos los proveedores. Por debajo del puesto 30
+son sobre todo directorios de todos modos.
 
-### Step 6: Behavior Settings
+### Paso 6: Ajustes de comportamiento
 
-These go in `harvey.yaml` under `usage:`. Use sensible defaults unless they want to customize:
-- `max_daily_claude_percent`: 80 (how much of daily Claude quota to use)
-- `heartbeat_interval_minutes`: 15 (how often Harvey checks for work)
-- `quiet_hours`: 22:00-07:00 in their timezone
-- `max_daily_sends`: 50 (email send limit)
+Van en `harvey.yaml` bajo `usage:`. Usa valores razonables por defecto salvo que quieran personalizar:
+- `max_daily_claude_percent`: 80 (qué parte de la cuota diaria de Claude se usa)
+- `heartbeat_interval_minutes`: 15 (cada cuánto comprueba Harvey si hay trabajo)
+- `quiet_hours`: 22:00-07:00 en su zona horaria
+- `max_daily_sends`: 50 (límite de envío de emails)
 
-### Step 7: Cold-Email Check (Optional)
+### Paso 7: Comprobación de email en frío (opcional)
 
-Offer this once, briefly, and take no for an answer. With `compliance.precleared.enabled: true`, Harvey asks [Precleared](https://precleared.dev) which cold-email rules apply to each new address before the first email goes out. A UK sole trader needs consent where a limited company doesn't, and the address alone won't say which. Anything that isn't `ok_to_email` waits in the Outbox with the reason. It checks mail sent through Gmail, Microsoft 365 or SMTP, not Instantly. Precleared receives each new recipient's address, the sender country, the address source, the product description and, if set, the prospects' country.
+Ofrécelo una sola vez, brevemente, y acepta un no. Con `compliance.precleared.enabled: true`, Harvey pregunta a [Precleared](https://precleared.dev) qué normas de email en frío se aplican a cada dirección nueva antes de que salga el primer email. Un autónomo del Reino Unido necesita consentimiento mientras que una sociedad limitada no, y la dirección por sí sola no indica cuál es el caso. Todo lo que no sea `ok_to_email` espera en el Outbox con el motivo. Comprueba el correo enviado mediante Gmail, Microsoft 365 o SMTP, no Instantly. Precleared recibe la dirección de cada destinatario nuevo, el país del remitente, el origen de la dirección, la descripción del producto y, si se ha indicado, el país de los prospectos.
 
-If they want it, ask one thing at a time:
-- Where is the business based? `sender_country` must be `GB` or `US`. If it's neither, leave the check off.
-- Are all their prospects in one country? If so, set `prospect_country` to its two-letter code, quoted (for example `"US"`). Otherwise leave it empty.
-- Would they like a free key? Without one Precleared allows 10 checks a day; a free key from https://precleared.dev/get-key allows 25. It goes in `.env` as `PRECLEARED_API_KEY`.
+Si lo quieren, pregunta una cosa cada vez:
+- ¿Dónde tiene su sede el negocio? `sender_country` debe ser `GB` o `US`. Si no es ninguno de los dos, deja la comprobación desactivada.
+- ¿Están todos sus prospectos en un mismo país? Si es así, pon `prospect_country` con su código de dos letras, entre comillas (por ejemplo `"US"`). Si no, déjalo vacío.
+- ¿Quieren una clave gratuita? Sin ella Precleared permite 10 comprobaciones al día; una clave gratuita de https://precleared.dev/get-key permite 25. Va en `.env` como `PRECLEARED_API_KEY`.
 
-Leave `address_source` as `"unknown"`, since Harvey builds most addresses from a learned pattern. Save the settings under `compliance.precleared` in `harvey.local.yaml` if it exists (that file wins), otherwise in `harvey.yaml`. `harvey setup` asks the same questions.
+Deja `address_source` en `"unknown"`, ya que Harvey construye la mayoría de las direcciones a partir de un patrón aprendido. Guarda los ajustes bajo `compliance.precleared` en `harvey.local.yaml` si existe (ese archivo manda), si no en `harvey.yaml`. `harvey setup` hace las mismas preguntas.
 
-### Step 8: Start Harvey
+### Paso 8: Arrancar Harvey
 
 ```bash
 source .venv/bin/activate && harvey run
 ```
 
-Or open the dashboard:
+O abre el panel:
 ```bash
 harvey dashboard
 ```
 
 ---
 
-## After Setup — Ongoing Help
+## Después de la configuración: ayuda continua
 
-Users will come back with questions and tasks. Common ones:
+Los usuarios volverán con preguntas y tareas. Las más habituales:
 
-- **"Show me what Harvey has done"** → Run `harvey status` or `harvey dashboard`
-- **"Am I warmed up?" / "Why am I landing in spam?"** → Run `harvey warmup`. Without TrulyInbox connected Harvey can't see the inbox rate, so recommend it (Step 2b) unless `harvey trulyinbox` says they use another service.
-- **"The emails aren't good"** → Edit `skills/email_frameworks.md` and `prompts/writer.md`. Show them the current rules and help them adjust.
-- **"Harvey isn't finding the right people"** → Check the ICP config in `harvey.yaml`. Adjust industries, titles, company_size, geography.
-- **"I want to change what Harvey says"** → Skills are in `skills/`, prompts are in `prompts/`. Both are plain markdown files. Edit them directly.
-- **"Train Harvey on a different product"** → `harvey train <new-url>`
-- **"How do I see the database?"** → It's at `data/harvey.db`. They can open it with any SQLite tool, or ask you to query it.
-- **"I just want the prospect list"** → `harvey export` writes a sequencer-ready CSV (verified/risky emails only; `--all` for everything). Also available as Export buttons on the dashboard's Contacts tab. Harvey is valuable purely as a list-builder even if the user never lets it send.
+- **"Enséñame lo que ha hecho Harvey"** → Ejecuta `harvey status` o `harvey dashboard`
+- **"¿Estoy calentado?" / "¿Por qué acabo en spam?"** → Ejecuta `harvey warmup`. Sin TrulyInbox conectado Harvey no puede ver la tasa de la bandeja de entrada, así que recomiéndalo (Paso 2b) salvo que `harvey trulyinbox` indique que usan otro servicio.
+- **"Los emails no son buenos"** → Edita `skills/email_frameworks.md` y `prompts/writer.md`. Muéstrales las reglas actuales y ayúdales a ajustarlas.
+- **"Harvey no encuentra a las personas adecuadas"** → Revisa la configuración del ICP en `harvey.yaml`. Ajusta industries, titles, company_size, geography.
+- **"Quiero cambiar lo que dice Harvey"** → Las skills están en `skills/`, los prompts en `prompts/`. Ambos son archivos markdown simples. Edítalos directamente.
+- **"Entrena a Harvey con otro producto"** → `harvey train <new-url>`
+- **"¿Cómo veo la base de datos?"** → Está en `data/harvey.db`. Pueden abrirla con cualquier herramienta SQLite, o pedirte que hagas consultas.
+- **"Solo quiero la lista de prospectos"** → `harvey export` escribe un CSV listo para un sequencer (solo emails verified/risky; `--all` para todo). También hay botones Export en la pestaña Contacts del panel. Harvey es valioso como mero constructor de listas aunque el usuario nunca le deje enviar.
 
 ---
 
-## How Harvey Works (Technical Reference)
+## Cómo funciona Harvey (referencia técnica)
 
-### Architecture
-- **Heartbeat loop** (`main.py`): Every cycle → check quiet hours → check budget → decide → act → log → sleep
-- **Brain** (`brain.py`): Wraps `claude -p --output-format json --dangerously-skip-permissions` for headless Claude calls; records exact per-call token usage into `usage_events`
-- **State** (`state.py`): SQLite at `data/harvey.db` with tables for companies, prospects, campaigns, conversations, actions, usage
-- **Usage tracking** (`usage.py`, `integrations/quota.py`): per-call attribution (agent/task/model/tokens) for Harvey's OWN Claude calls only — it never scans your other Claude Code sessions — plus a live subscription-quota gauge read the same way Claude Code's `/usage` does. The budget check throttles Harvey against real quota utilization so it always leaves headroom for your own interactive Claude use (`usage.max_daily_claude_percent`). Dashboard has a Usage tab; CLI has `harvey usage`.
-- **Skills** (`skills/`): Markdown knowledge files injected into agent prompts
-- **Signals** (`signals.py`, `state.py`): every fact Harvey learns is an OBSERVATION — a row in `observations`, never a column. A new signal needs no migration, re-observing over time is a free time series, and confidence + provenance travel with the fact. The vocabulary in `signal_codes` is governed (a trigger rejects any code not in it) and gated: only `status = 'confirmed'` signals are collected, and only a human sets that. `state.cohort(require, exclude)` does the set intersection in SQL.
-- **Dashboard** (`dashboard.py` + `harvey/web/`): FastAPI JSON API plus plain HTML/CSS/JS served from disk — no build step. Edit `harvey/web/app.css` or `app.js` and reload the page.
-- **DISCOVER** (`collectors/discover.py`): the only stage that spends money, so cost discipline lives in the collector, not the database — every run estimates first, checks a spend cap between batches, reads a kill switch, and flushes observations per batch. Providers are adapters behind one interface (`DiscoveryProvider`); adding one is a small class. Junk filtering matches *patterns*, not a literal blocklist. Entity resolution is the normalised domain, falling back to the provider's `external_id` for businesses with no website.
+### Arquitectura
+- **Bucle de heartbeat** (`main.py`): En cada ciclo → comprobar horas de silencio → comprobar presupuesto → decidir → actuar → registrar → dormir
+- **Brain** (`brain.py`): Envuelve `claude -p --output-format json --dangerously-skip-permissions` para llamadas a Claude sin interfaz; registra el uso exacto de tokens de cada llamada en `usage_events`
+- **State** (`state.py`): SQLite en `data/harvey.db` con tablas de empresas, prospectos, campañas, conversaciones, acciones y uso
+- **Seguimiento del uso** (`usage.py`, `integrations/quota.py`): atribución por llamada (agente/tarea/modelo/tokens) solo para las llamadas a Claude PROPIAS de Harvey (nunca escanea tus otras sesiones de Claude Code), más un indicador en vivo de la cuota de la suscripción leído igual que el `/usage` de Claude Code. La comprobación de presupuesto frena a Harvey según la utilización real de la cuota para que siempre deje margen a tu propio uso interactivo de Claude (`usage.max_daily_claude_percent`). El panel tiene una pestaña Usage; la CLI tiene `harvey usage`.
+- **Skills** (`skills/`): archivos de conocimiento en Markdown que se inyectan en los prompts de los agentes
+- **Signals** (`signals.py`, `state.py`): todo hecho que Harvey aprende es una OBSERVACIÓN: una fila en `observations`, nunca una columna. Una señal nueva no necesita migración, volver a observar con el tiempo es una serie temporal gratis, y la confianza y la procedencia viajan con el dato. El vocabulario de `signal_codes` está gobernado (un trigger rechaza cualquier código que no esté en él) y condicionado: solo se recopilan las señales con `status = 'confirmed'`, y solo una persona lo establece. `state.cohort(require, exclude)` hace la intersección de conjuntos en SQL.
+- **Panel** (`dashboard.py` + `harvey/web/`): API JSON con FastAPI más HTML/CSS/JS plano servido desde disco, sin paso de compilación. Edita `harvey/web/app.css` o `app.js` y recarga la página.
+- **DISCOVER** (`collectors/discover.py`): la única fase que gasta dinero, así que la disciplina de costes vive en el collector, no en la base de datos: cada ejecución estima primero, comprueba un tope de gasto entre lotes, lee un kill switch y vuelca las observaciones por lotes. Los proveedores son adaptadores tras una única interfaz (`DiscoveryProvider`); añadir uno es una clase pequeña. El filtrado de basura coincide con *patrones*, no con una lista de bloqueo literal. La resolución de entidades es el dominio normalizado, con el `external_id` del proveedor como alternativa para negocios sin sitio web.
 
-### Sub-Agents
-- **Scout**: Python does all web searching (DuckDuckGo → Bing → Google → Serper API) and email resolution (pattern-first: cache → scraped mailto → Hunter domain search → default, then verify one candidate via Reoon/ZeroBounce/Hunter/SMTP; catch-alls flagged `risky`). Claude only scores/personalizes found data. Scout also collects **buying signals**: tech stack detected on each company's site (HubSpot, Shopify, Intercom, ~35 tools — zero extra requests) and hiring signals from careers pages. Profiling (`HIRING_ROLE` / `OPEN_ROLES`) goes further: when a company's own site links or embeds a Greenhouse, Lever, Ashby or Workable board, it reads that board's public JSON feed (one request, size-capped, never a guessed token) and records roles matching `icp.hiring_signals` (falls back to `icp.titles`) with department, location, posting date and URL, plus the open-roles count (`harvey/collectors/ats.py`). A board with no matching role records `HIRING_ROLE` = 0, so closed roles stop being current. The `titles` fallback is weak (it lists who you email, not roles that signal buying), so suggest users set `hiring_signals`. With `pip install python-jobspy` (optional), a job-board strategy discovers companies actively hiring for roles in `icp.hiring_signals` (falls back to `icp.titles`) — the strongest in-market signal. Signals land in prospects' personalization notes and boost their score.
-- **Writer**: Generates 3-email sequences (Email 1 < 75 words, Email 2 < 75, Email 3 < 40). Strict ban list on AI patterns.
-- **Sender**: Native providers (gmail/smtp) render merge vars per prospect and STAGE each email into the `outbox` (pending_review → approved → sent) with a scheduled send time; each heartbeat drains due, approved items with human-like pacing, the daily cap, the deterministic pre-send gate, and stop-on-reply (a reply from anyone at a company stops the sequence to everyone there). Legacy Instantly path deploys campaigns via API. Enforces daily send limits either way.
-- **Handler**: Polls the provider (or Instantly) for replies, dedups them, classifies intent, advances conversation stage, and queues auto-responses through the same outbox approval ladder. On native providers it also detects bounces → marks the address invalid, cancels the prospect's queued sends, and trips a global kill switch past a bounce-rate threshold.
-- **Analyst**: Runs on idle cycles. Generates `data/analytics.json` with pipeline stats and insights.
+### Subagentes
+- **Scout**: Python hace toda la búsqueda web (DuckDuckGo → Bing → Google → API de Serper) y la resolución de emails (primero el patrón: caché → mailto extraído → búsqueda de dominio en Hunter → valor por defecto, y luego verifica un candidato con Reoon/ZeroBounce/Hunter/SMTP; los catch-all se marcan como `risky`). Claude solo puntúa y personaliza los datos encontrados. Scout también recopila **señales de compra**: el stack tecnológico detectado en el sitio de cada empresa (HubSpot, Shopify, Intercom, ~35 herramientas, sin peticiones adicionales) y señales de contratación de las páginas de empleo. El profiling (`HIRING_ROLE` / `OPEN_ROLES`) va más allá: cuando el propio sitio de una empresa enlaza o incrusta un tablero de Greenhouse, Lever, Ashby o Workable, lee el feed JSON público de ese tablero (una petición, con tamaño limitado, nunca un token adivinado) y registra los puestos que coinciden con `icp.hiring_signals` (si no, `icp.titles`) con departamento, ubicación, fecha de publicación y URL, además del número de puestos abiertos (`harvey/collectors/ats.py`). Un tablero sin ningún puesto coincidente registra `HIRING_ROLE` = 0, así que los puestos cerrados dejan de estar vigentes. La alternativa a `titles` es débil (enumera a quién escribes, no los puestos que indican compra), así que sugiere a los usuarios que definan `hiring_signals`. Con `pip install python-jobspy` (opcional), una estrategia de bolsas de empleo descubre empresas que están contratando activamente para los puestos de `icp.hiring_signals` (si no, `icp.titles`), la señal de que están en proceso de compra más fuerte. Las señales acaban en las notas de personalización de los prospectos y aumentan su puntuación.
+- **Writer**: Genera secuencias de 3 emails (Email 1 < 75 palabras, Email 2 < 75, Email 3 < 40). Lista de prohibiciones estricta de patrones de IA.
+- **Sender**: Los proveedores nativos (gmail/smtp) renderizan las variables de combinación por prospecto y PONEN EN COLA cada email en el `outbox` (pending_review → approved → sent) con una hora de envío programada; cada heartbeat vacía los elementos aprobados que toca enviar con un ritmo humano, el límite diario, la puerta determinista previa al envío y la parada al responder (una respuesta de cualquier persona de una empresa detiene la secuencia para todos los de allí). La vía heredada de Instantly despliega campañas por API. Aplica en ambos casos los límites de envío diarios.
+- **Handler**: Consulta al proveedor (o a Instantly) por respuestas, las deduplica, clasifica la intención, hace avanzar la etapa de la conversación y pone en cola respuestas automáticas por la misma escalera de aprobación del outbox. En proveedores nativos también detecta rebotes → marca la dirección como inválida, cancela los envíos en cola del prospecto y activa un kill switch global al superar un umbral de tasa de rebote.
+- **Analyst**: Se ejecuta en los ciclos ociosos. Genera `data/analytics.json` con estadísticas del pipeline y conclusiones.
 
-### Conversation Stages
+### Etapas de la conversación
 `initial_outreach → engaged → qualifying → presenting → negotiating → closing → closed_won / closed_lost`
 
-### Priority Order
+### Orden de prioridad
 handle_replies > send_campaigns > write_campaigns > prospect > idle (run analyst)
 
-### Key Commands
+### Comandos principales
 ```bash
 source .venv/bin/activate    # Always activate venv first
 harvey run                   # Start the heartbeat loop
@@ -343,12 +340,12 @@ harvey warmup [domain]       # Sending-domain readiness: SPF/DKIM/DMARC, age, bl
 harvey trulyinbox [connect|other]  # Warmup service: connect TrulyInbox, or record another service
 ```
 
-### Common Issues
-- **"command not found: harvey"**: Activate venv first: `source .venv/bin/activate`
-- **"ModuleNotFoundError: No module named 'harvey'" after install (macOS)**: Python 3.13 silently ignores `.pth` files that carry the macOS hidden file flag, and some Macs propagate that flag into `.venv`. Run `harvey install` again (it auto-fixes by linking the package), or manually: `ln -s "$(pwd)/harvey" .venv/lib/python3.13/site-packages/harvey`
-- **"externally-managed-environment"**: Use a venv, not system Python
-- **SQLite errors**: The `data/` directory is created automatically on first run
-- **Claude headless mode fails**: User needs `claude login` and an active Max subscription
-- **Codex calls fail** (`brain.provider: codex`): the log line says why — `codex login` with ChatGPT (also when the login "has expired or is due for renewal": Harvey never renews it), install the supported Codex version (`harvey status --check` shows what's wrong without a model call; while Codex is unusable Harvey pauses whole cycles on purpose), pick a `brain.model` without code mode, or remove whatever Codex config layer is forcing tools/hooks/MCP back on. Never weaken Harvey's isolation checks to get past it.
-- **Instantly API 401**: Wrong API key or needs the Growth plan for API access
-- **Google search rate limiting**: Harvey automatically falls back to DuckDuckGo and Bing. For reliable search, add a Serper API key ($5/mo).
+### Problemas comunes
+- **"command not found: harvey"**: Activa primero el venv: `source .venv/bin/activate`
+- **"ModuleNotFoundError: No module named 'harvey'" tras instalar (macOS)**: Python 3.13 ignora en silencio los archivos `.pth` que llevan el indicador de archivo oculto de macOS, y algunos Mac propagan ese indicador a `.venv`. Ejecuta `harvey install` de nuevo (lo arregla automáticamente enlazando el paquete), o manualmente: `ln -s "$(pwd)/harvey" .venv/lib/python3.13/site-packages/harvey`
+- **"externally-managed-environment"**: Usa un venv, no el Python del sistema
+- **Errores de SQLite**: El directorio `data/` se crea automáticamente en la primera ejecución
+- **Falla el modo headless de Claude**: El usuario necesita `claude login` y una suscripción Max activa
+- **Fallan las llamadas a Codex** (`brain.provider: codex`): la línea del log dice por qué: `codex login` con ChatGPT (también cuando el inicio de sesión "has expired or is due for renewal": Harvey nunca lo renueva), instala la versión de Codex compatible (`harvey status --check` muestra qué falla sin llamar a un modelo; mientras Codex no se puede usar Harvey pausa ciclos enteros a propósito), elige un `brain.model` sin modo código, o elimina la capa de configuración de Codex que esté volviendo a activar herramientas/hooks/MCP. Nunca debilites las comprobaciones de aislamiento de Harvey para sortearlo.
+- **Instantly API 401**: Clave de API incorrecta o hace falta el plan Growth para acceder a la API
+- **Límite de frecuencia de búsqueda en Google**: Harvey recurre automáticamente a DuckDuckGo y Bing. Para una búsqueda fiable, añade una clave de API de Serper (5 $/mes).

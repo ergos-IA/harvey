@@ -18,7 +18,7 @@ from harvey.integrations.mail_provider import NATIVE_PROVIDERS
 from harvey.pidfile import (
     LOCK_FILE, hold_loop_lock, read_pid, release_loop_lock, remove_pid_file, write_pid_file,
 )
-from harvey.pipeline import run_profile_stage
+from harvey.pipeline import run_account_signals_stage, run_profile_stage
 from harvey.state import StateManager
 
 logging.basicConfig(
@@ -418,6 +418,9 @@ async def heartbeat(stop_event: asyncio.Event | None = None):
             # turns a name and a domain into something worth writing about.
             if summary.get("unprofiled", 0):
                 tasks.append(("profile", run_profile_stage(state, limit=25, config=config)))
+            # Tracked accounts (harvey accounts import): jobs, BORME and press,
+            # confirmed signals only, on their own cadence. Free; no model call.
+            tasks.append(("account_signals", run_account_signals_stage(state, config)))
 
             outcomes = await _run_agents(tasks)
 

@@ -1,131 +1,73 @@
-# Signal-Based Outreach Playbook
+# Playbook de prospección basada en señales
 
-The single biggest lever on cold-email reply rates is *relevance at the
-moment of need*. Emails that reference a real, current signal get **5-18%
-replies vs 1-3%** for generic ICP-matched outreach. Scout attaches signals
-to prospects (in `personalization_notes` and on the company record); this
-playbook says how to turn each signal into a first line that earns a reply.
+La mayor palanca sobre las tasas de respuesta del email en frío es la *relevancia en el momento de la necesidad*. Los emails que mencionan una señal real y actual consiguen **entre un 5 y un 18 % de respuestas, frente a un 1-3 %** de la prospección genérica que solo encaja con el ICP. Scout asocia señales a los prospectos (en `personalization_notes` y en el registro de la empresa); este playbook explica cómo convertir cada señal en una primera línea que consiga respuesta.
 
-## The core rule
+## La regla central
 
-The signal is the *reason you're emailing them today* — say it plainly, in
-the first sentence, as an observation. Never dress it up ("I was so
-impressed to see..."). Never claim more than the signal proves. If the only
-signal is "they exist and match the ICP," you don't have a signal — fall
-back to a role/industry problem observation, and keep it honest.
+La señal es el *motivo por el que les escribes hoy*: dilo con claridad, en la primera frase, como una observación. Nunca la adornes ("Me impresionó mucho ver..."). Nunca afirmes más de lo que demuestra la señal. Si la única señal es "existen y encajan con el ICP", no tienes una señal: recurre a una observación sobre un problema del rol o del sector, y sé honesto.
 
-Every claim in the email must trace to a signal or a stored fact. No
-invented funding rounds, no "saw your post" unless the notes say so, no
-fabricated metrics. A wrong specific is worse than a right generic.
+Toda afirmación del email debe poder rastrearse hasta una señal o un dato almacenado. Sin rondas de financiación inventadas, sin "vi tu publicación" salvo que las notas lo digan, sin métricas inventadas. Un dato concreto equivocado es peor que uno genérico acertado.
 
-## Signal → angle map
+## Mapa señal → ángulo
 
-### Hiring signal (they're hiring for a relevant role)
-The strongest, most actionable signal. A company hiring a Head of Growth is
-buying growth tooling *right now*; the person you're emailing owns that
-problem this quarter.
+### Señal de contratación (están contratando para un rol relevante)
+La señal más fuerte y más accionable. Una empresa que contrata a un Head of Growth está comprando herramientas de crecimiento *ahora mismo*; la persona a la que escribes es dueña de ese problema este trimestre.
 
-- **Angle**: the workload behind the hire, not the hire itself.
-- **Good**: "Saw you're hiring a second SDR. Usually means the first one is
-  buried — how are you handling reply volume while the seat's open?"
-- **Bad**: "Congrats on the new role posting!" (flattery, no substance)
-- Only reference the specific role if the notes name it. "Hiring in growth"
-  is fine; inventing "hiring 3 AEs" is not.
+- **Ángulo**: la carga de trabajo que hay detrás de la contratación, no la contratación en sí.
+- **Bien**: "Vi que estáis contratando a un segundo SDR. Suele significar que el primero está desbordado. ¿Cómo gestionáis el volumen de respuestas mientras el puesto está vacante?"
+- **Mal**: "¡Enhorabuena por la nueva oferta de empleo!" (halago sin sustancia)
+- Menciona el rol concreto solo si las notas lo nombran. "Contratando en crecimiento" está bien; inventar "contratando 3 AEs" no.
 
-#### Using a job posting as the hook
-When the signal is a posting from their job board ("Head of Growth ·
-Marketing · Remote · posted 2026-10-01"), it is a public page anyone can
-read. Write like someone who read it, nothing more.
+#### Usar una oferta de empleo como gancho
+Cuando la señal es una oferta de su portal de empleo ("Head of Growth · Marketing · Remote · posted 2026-10-01"), es una página pública que cualquiera puede leer. Escribe como alguien que la ha leído, nada más.
 
-- **Cite the role as posted.** "Saw the Head of Growth opening" — the title
-  they used, not a paraphrase that changes the seniority.
-- **Never guess salary, headcount, budget, or why the seat is open.** Not
-  "the role you're paying $180k for", not "your growth team of 4", not
-  "since your last Head of Growth left".
-- **Don't imply inside knowledge.** No "heard you're struggling to fill it",
-  no "I know the team is stretched". You saw a posting; say so or say less.
-- **Mind the date.** A posting date more than ~60 days old may be filled or
-  evergreen: talk about the function ("you're building out growth"), not
-  "your new opening". No date, no "just posted".
-- **One role, not the list.** If they're hiring for several matching roles,
-  pick the most relevant; a list of their openings reads as surveillance.
+- **Cita el rol tal como se publicó.** "Vi la oferta de Head of Growth": el título que usaron, no una paráfrasis que cambie la seniority.
+- **Nunca adivines salario, plantilla, presupuesto ni por qué está vacante el puesto.** Ni "el puesto por el que pagáis 180.000 €", ni "vuestro equipo de crecimiento de 4 personas", ni "desde que se fue vuestro último Head of Growth".
+- **No insinúes información privilegiada.** Nada de "me han dicho que os cuesta cubrirlo" ni "sé que el equipo está justo". Viste una oferta; dilo o di menos.
+- **Atiende a la fecha.** Una oferta con más de ~60 días puede estar cubierta o ser permanente: habla de la función ("estáis montando el área de crecimiento"), no de "vuestra nueva vacante". Sin fecha, no digas "recién publicada".
+- **Un rol, no la lista.** Si contratan para varios roles que encajan, elige el más relevante; una lista de sus vacantes parece vigilancia.
 
-### Tech-stack signal (a tool detected on their site)
-You know something concrete about how they operate. Use it to place your
-product in their actual stack, or to point at a gap.
+### Señal de stack tecnológico (herramienta detectada en su web)
+Sabes algo concreto sobre cómo operan. Úsalo para situar tu producto en su stack real o para señalar una carencia.
 
-- **Angle**: integration, migration, or a gap next to what they run.
-- **Good (present)**: "You're on HubSpot — so this plugs into the workflow
-  your team already lives in rather than adding another tab."
-- **Good (gap)**: "Noticed there's no chat widget on your pricing page.
-  How are you catching the people who get that far but don't fill out the
-  form?"
-- **Bad**: listing their whole stack back at them (creepy, and it reads as
-  scraped). Reference at most one tool, and only if it's load-bearing to
-  the point.
+- **Ángulo**: integración, migración o una carencia junto a lo que ya usan.
+- **Bien (presente)**: "Usáis HubSpot, así que esto encaja en el flujo de trabajo en el que ya vive vuestro equipo en lugar de añadir otra pestaña."
+- **Bien (carencia)**: "Noté que no hay un chat en vuestra página de precios. ¿Cómo captáis a quienes llegan hasta ahí pero no rellenan el formulario?"
+- **Mal**: devolverles todo su stack listado (inquieta y parece rastreado). Menciona como mucho una herramienta, y solo si es clave para el argumento.
 
-### Funding signal (recent raise)
-60-90 days post-raise is peak buying window. But everyone emails post-raise
-companies, so the bar for specificity is higher.
+### Señal de financiación (ronda reciente)
+Entre 60 y 90 días después de una ronda es la ventana de compra más fuerte. Pero todo el mundo escribe a empresas recién financiadas, así que la exigencia de concreción es mayor.
 
-- **Angle**: the specific pressure the raise creates (hiring fast, new
-  targets, scaling a motion), not "congrats on the round."
-- **Good**: "Post-Series-A usually means the pipeline target just doubled
-  overnight. Is outbound the gap, or is it converting what's already coming
-  in?"
-- **Bad**: "Congratulations on your recent funding!" (every vendor sent
-  that the same week).
+- **Ángulo**: la presión concreta que genera la ronda (contratar rápido, nuevos objetivos, escalar una forma de vender), no "enhorabuena por la ronda".
+- **Bien**: "Después de una Serie A, el objetivo de pipeline suele duplicarse de la noche a la mañana. ¿Lo que falta es outbound, o convertir lo que ya os entra?"
+- **Mal**: "¡Enhorabuena por vuestra reciente financiación!" (todos los proveedores la mandaron la misma semana).
 
-### New-domain / new-business signal
-They just started up. Relevant only if you sell to early-stage/new
-businesses.
+### Señal de dominio nuevo / negocio nuevo
+Acaban de arrancar. Solo es relevante si vendes a negocios nuevos o en fase temprana.
 
-- **Angle**: the thing they haven't set up yet that you provide.
-- Keep it low-key — a brand-new company is drowning in vendor pitches.
+- **Ángulo**: lo que todavía no han montado y tú proporcionas.
+- Mantén un tono discreto: una empresa recién creada está saturada de propuestas de proveedores.
 
-### Search-rank signal (SERP_RANK, MAPS_RANK, IN_LOCAL_PACK)
-Each rank is stored with the exact search that produced it ("roofer
-Denver, CO"). For a local business owner, "where do I show up when someone
-nearby searches for what I do" is a question they already care about.
+### Señal de posicionamiento en búsquedas (SERP_RANK, MAPS_RANK, IN_LOCAL_PACK)
+Cada posición se guarda junto con la búsqueda exacta que la produjo ("roofer Denver, CO"). Para el dueño de un negocio local, "dónde aparezco cuando alguien cercano busca lo que hago" es una pregunta que ya le importa.
 
-- **Always say where you searched from.** Google ranks differently for
-  every searcher's location, device and history, and Harvey searched once,
-  from the city centre. So the wording is "when we searched 'roofer Denver'
-  from downtown Denver, you came up 14th" — never "you rank #14" or "you're
-  on page 2", which they can disprove from their own office in ten seconds.
-- **Quote the search phrase exactly as stored.** Don't swap in a phrase
-  that sounds better; you didn't search for it.
-- **Organic 11-30**: the sweet spot. Visible enough to be trying, not
-  winning. Angle: the gap to page one, and who's above them. "Three of the
-  ten above you were directories" is fine only if you saw that.
-- **Map rank 4+ / not in the local pack**: most local searchers only see
-  the three map slots. Angle: being on the map but below the fold.
-- **In the local pack (IN_LOCAL_PACK)**: they're already winning local
-  search. Don't pitch rank; congratulating them on it is flattery. Use a
-  different signal, or skip them for rank-based offers.
-- **Bad**: "Your SEO is broken and you're losing thousands a month." You
-  don't know their traffic or revenue.
-- A rank is a snapshot. Past about a month, say "recently" or re-check it
-  before quoting a number.
+- **Di siempre desde dónde buscaste.** Google posiciona de forma distinta según la ubicación, el dispositivo y el historial de cada persona, y Harvey buscó una sola vez, desde el centro de la ciudad. Así que la formulación es "cuando buscamos 'tejados Denver' desde el centro de Denver, aparecíais en el puesto 14", nunca "estáis en el puesto 14" ni "estáis en la página 2", algo que pueden desmentir desde su oficina en diez segundos.
+- **Cita la frase de búsqueda tal como está guardada.** No pongas otra que suene mejor: no buscaste esa.
+- **Orgánico 11-30**: el punto ideal. Lo bastante visibles como para estar intentándolo, sin ganar. Ángulo: la distancia hasta la primera página y quién está por encima. "Tres de los diez de arriba eran directorios" solo si lo viste.
+- **Posición en el mapa 4+ / fuera del paquete local**: la mayoría de quienes buscan en local solo ven los tres huecos del mapa. Ángulo: estar en el mapa pero por debajo del pliegue.
+- **En el paquete local (IN_LOCAL_PACK)**: ya están ganando en la búsqueda local. No les vendas posicionamiento; felicitarles por ello es halago. Usa otra señal, o descártalos para ofertas basadas en posición.
+- **Mal**: "Vuestro SEO está roto y estáis perdiendo miles de euros al mes." No conoces su tráfico ni sus ingresos.
+- Una posición es una foto fija. Pasado aproximadamente un mes, di "recientemente" o vuelve a comprobarla antes de citar un número.
 
-## Which signal wins when there are several
+## Qué señal gana cuando hay varias
 
-Rank by recency and actionability: **hiring > funding > tech-gap >
-tech-present > industry problem > nothing**. Use exactly ONE signal as the
-hook. Stacking two ("you raised AND you're hiring AND you use X") reads as a
-dossier and kills the human feel. Bank the others for follow-ups.
+Ordena por actualidad y capacidad de acción: **contratación > financiación > carencia tecnológica > tecnología presente > problema del sector > nada**. Usa exactamente UNA señal como gancho. Apilar dos ("levantasteis una ronda Y contratáis Y usáis X") parece un dosier y mata la sensación humana. Guarda las demás para los seguimientos.
 
-## Following up on a signal
+## Seguimiento de una señal
 
-- Email 2 can take a *different* signal or a proof point — never repeat
-  email 1's hook.
-- If the signal has aged (a 4-month-old job post that's now filled), don't
-  reference it as current. Stale specifics destroy credibility.
+- El email 2 puede usar una señal *distinta* o una prueba; nunca repitas el gancho del email 1.
+- Si la señal ha envejecido (una oferta de hace 4 meses que ya está cubierta), no la menciones como actual. Los datos concretos caducados destruyen la credibilidad.
 
-## When you have no real signal
+## Cuando no tienes una señal real
 
-Be honest about it. Fall back to a genuine problem the role or industry
-faces right now — stated as an observation, not a fake personalization.
-"Most teams at your headcount still reconcile this by hand" is a true,
-useful opener.
-"I was looking at your website and love what you're doing" is not.
+Sé honesto al respecto. Recurre a un problema genuino que el rol o el sector afronta ahora mismo, expresado como una observación, no como una falsa personalización. "La mayoría de los equipos de vuestro tamaño todavía concilian esto a mano" es un arranque verdadero y útil. "Estuve mirando vuestra web y me encanta lo que hacéis" no lo es.

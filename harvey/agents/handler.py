@@ -10,6 +10,7 @@ sending domain while nobody's watching.
 import html
 import logging
 import re
+import unicodedata
 from datetime import datetime, timezone
 
 from harvey.brain import Brain, BrainUnavailable
@@ -71,17 +72,58 @@ OPT_OUT_PATTERNS = (
     "never contact",
     "delete my info",
     "delete my data",
+    # Spanish, written without accents: replies are matched accent-folded
+    # (_fold), so "no volváis" and "no volvais" both count. Not "de baja
+    # de": "estoy de baja de maternidad" is an out-of-office.
+    "darme de baja",
+    "dadme de baja",
+    "dame de baja",
+    "denme de baja",
+    "darse de baja",
+    "deja de escribir",
+    "dejad de escribir",
+    "dejen de escribir",
+    "no quiero recibir",
+    "elimina mis datos",
+    "eliminad mis datos",
+    "eliminen mis datos",
+    "borra mis datos",
+    "borrad mis datos",
+    "suprime mis datos",
+    "suprimid mis datos",
+    "no vuelvas a escribir",
+    "no volvais a escribir",
+    "no vuelva a escribir",
+    "no me vuelvas a escribir",
+    "no me volvais a escribir",
+    "no me vuelva a escribir",
+    "no me vuelvan a escribir",
 )
+# "No me escribas / no me contactéis" asks to stop, unless what follows says
+# how or when instead ("no me escribas al móvil, mejor por email", "no me
+# contactes hasta enero"): those are left to the model. "por favor" isn't
+# a channel. Matched on accent-folded, flattened text.
+ES_DONT_WRITE_RE = re.compile(
+    r"\bno me (?:escrib(?:as|ais|an|a)|contact(?:es|eis|en|e))\b"
+    r"(?! (?:por(?! favor)|al|a mi|a este|a esta|en|hasta|antes|despues|mas tarde"
+    r"|ahora|hoy|todavia|aun|de momento|el|la|los|las|aqui|ahi)\b)")
 # "No thanks" (what cold email's footer asks for) as a phrase: not "no
 # Thanksgiving", "Bruno / Thanks," or "yes or no, thanks".
 # Checked one line at a time: "...the answer is no / Thanks!" is a sign-off.
 NO_THANKS_RE = re.compile(
     r"(?<!\bor )\bno,?[ \t]+thank(?:s|[ \t]+you)\b(?![ \t]+(?:needed|necessary|required))")
+# The same in Spanish: "no, gracias", not "sí o no, gracias" or "no, gracias
+# a vosotros" / "no gracias a que..." (thanks *to*). Accent-folded text.
+NO_GRACIAS_RE = re.compile(r"(?<!\bo )\bno,?[ \t]+gracias\b(?![ \t]+(?:a|al)\b)")
 # A reply that says only this (signature aside) is an opt-out ("Reply STOP").
+# Compared after punctuation is dropped, so "No, gracias." is "no gracias".
 BARE_OPT_OUTS = {"stop", "unsubscribe", "remove", "remove me", "opt out",
-                 "no thanks", "no thank you"}
+                 "no thanks", "no thank you",
+                 "baja", "no gracias", "dame de baja", "darme de baja"}
 _MOBILE_SIGNATURE_RE = re.compile(
-    r"^[ \t]*(?:sent from my \w[^\n]*|get outlook for \w[^\n]*|sent from \w+ mail[^\n]*)$",
+    r"^[ \t]*(?:sent from my \w[^\n]*|get outlook for \w[^\n]*|sent from \w+ mail[^\n]*"
+    r"|enviado desde mi \w[^\n]*|obtener outlook para \w[^\n]*"
+    r"|enviado desde (?:el )?correo (?:de|para) \w[^\n]*)$",
     re.IGNORECASE | re.MULTILINE)
 # A line of their reply at least this long that repeats what Harvey wrote
 # for this person is our text, not theirs. Shorter unmarked lines are always
@@ -101,6 +143,13 @@ def _flat(text: str) -> str:
     text = (text.replace("\u201c", '"').replace("\u201d", '"')
             .replace("\u2018", "'").replace("\u2019", "'"))
     return " ".join(text.lower().split())
+
+
+def _fold(text: str) -> str:
+    """_flat, with accents dropped ("volváis" -> "volvais", "ñ" -> "n"), for
+    the keyword checks: Spanish replies often come without accents."""
+    text = unicodedata.normalize("NFKD", _flat(text))
+    return "".join(c for c in text if not unicodedata.combining(c))
 
 
 class OurText:
@@ -149,18 +198,24 @@ def _opt_out_reason(their_text: str, own_words: str) -> dict | None:
     their_text: everything they wrote, our text removed. own_words: their
     reply without the quote. Longer phrases match across a line wrap; "no
     thanks" only within a line. The result is kept with the opt-out so a
-    human can see why Harvey stopped, and undo it if it was wrong."""
-    flat = _flat(their_text)
+    human can see why Harvey stopped, and undo it if it was wrong.
+    Everything is compared accent-folded (_fold)."""
+    flat = _fold(their_text)
     for p in OPT_OUT_PATTERNS:
         if p in flat:
             return {"rule": "phrase", "matched": p,
                     "why": f'Their reply contains "{p}".'}
+    m = ES_DONT_WRITE_RE.search(flat)
+    if m:
+        return {"rule": "phrase", "matched": m.group(0),
+                "why": f'Their reply contains "{m.group(0)}".'}
     for line in their_text.split("\n"):
-        m = NO_THANKS_RE.search(_flat(line))
+        folded = _fold(line)
+        m = NO_THANKS_RE.search(folded) or NO_GRACIAS_RE.search(folded)
         if m:
             return {"rule": "no_thanks", "matched": m.group(0),
                     "why": f'Their reply says "{m.group(0)}", what the opt-out line asks for.'}
-    bare = _flat(_MOBILE_SIGNATURE_RE.sub("", own_words or ""))
+    bare = _fold(_MOBILE_SIGNATURE_RE.sub("", own_words or ""))
     bare = re.sub(r"[^\w\s-]", "", bare).strip()
     if bare in BARE_OPT_OUTS:
         return {"rule": "only_words", "matched": bare,
@@ -187,6 +242,24 @@ ESCALATION_PATTERNS = (
     "gdpr",
     "can-spam",
     "blacklist",
+    # Spanish, accent-folded like the reply. Not "demanda" alone: "hay mucha
+    # demanda" is everyday sales talk. "lopd" also covers "lopdgdd", "lssi"
+    # "lssice", "denuncia" "denunciar", "abogado" "abogados".
+    "abogado",
+    "denuncia",
+    "demandar",
+    "demanda judicial",
+    "acoso",
+    "acosando",
+    "aepd",
+    "agencia espanola de proteccion de datos",
+    "proteccion de datos",
+    "rgpd",
+    "lopd",
+    "lssi",
+    "burofax",
+    "reclamacion formal",
+    "hoja de reclamaciones",
 )
 
 
@@ -460,7 +533,7 @@ class Handler:
         # sent (our footer says "no thanks") is ours, not theirs.
         ours = await self._our_text(prospect)
         their_text = ours.remove(reply_text)
-        keyword_text = _flat(their_text)
+        keyword_text = _fold(their_text)
         stripped = strip_quoted_reply(reply_text) or reply_text
         reply_text = ours.remove(stripped).strip() or stripped
 

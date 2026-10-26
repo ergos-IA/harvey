@@ -11,7 +11,8 @@ The recipient's zone comes from what Harvey already knows, in this order:
 
 1. the company's location: a US state ("Austin, TX", "Brooklyn, New York"),
    a Canadian province or Australian state ("Toronto, ON, Canada",
-   "Sydney NSW 2000"), or a country with a single time zone ("Oslo, Norway");
+   "Sydney NSW 2000"), the Canary Islands ("Las Palmas de Gran Canaria,
+   España"), or a country with a single time zone ("Oslo, Norway");
 2. the coordinates discovery cached when it geocoded that location (the
    ``geo:<place>`` settings), for a country with several zones or a place
    given without its country;
@@ -175,6 +176,19 @@ COUNTRY_ALIASES = {
     "the netherlands": "NL", "holland": "NL", "deutschland": "DE",
     "south korea": "KR", "korea": "KR", "uae": "AE", "czechia": "CZ",
     "republic of ireland": "IE", "eire": "IE",
+    "espana": "ES", "reino de espana": "ES",
+}
+# Spain's other zone: the Canary Islands, an hour behind the mainland. These
+# names settle it on their own; "Las Palmas", "La Palma", "Santa Cruz" and the
+# smaller islands only next to Spain (there are other Las Palmas and Santa Cruzes).
+ES_CANARY_ZONE = "Atlantic/Canary"
+ES_CANARY_NAMES = {
+    "canarias", "islas canarias", "canary islands", "las palmas de gran canaria",
+    "santa cruz de tenerife", "tenerife", "gran canaria", "lanzarote", "fuerteventura",
+}
+ES_CANARY_NAMES_IN_SPAIN = {
+    "las palmas", "la palma", "la gomera", "el hierro", "santa cruz",
+    "arrecife", "puerto del rosario", "san cristobal de la laguna", "la laguna",
 }
 # Other spellings of provinces and states, mapped to their codes.
 REGION_ALIASES = {"newfoundland": "NL", "labrador": "NL", "pei": "PE", "yukon territory": "YT"}
@@ -346,8 +360,8 @@ def _ref_km(point, zone: str) -> float:
 
 
 def _region(parts: list[str], text_country: str, hint: str) -> str:
-    """The zone of a US state, Canadian province or Australian state named
-    in the location, or "".
+    """The zone of a US state, Canadian province, Australian state or the
+    Canary Islands named in the location, or "".
 
     ``text_country`` is a country written in the location itself, ``hint``
     one known from elsewhere. A two-letter code that is both a US state and
@@ -378,6 +392,9 @@ def _region(parts: list[str], text_country: str, hint: str) -> str:
             for key, (full, zone) in AU_STATES.items():
                 if name == full or (key in codes and (context == "AU" or key in AU_CODES_ALONE)):
                     return zone
+        if context in ("", "ES"):
+            if name in ES_CANARY_NAMES or (context == "ES" and name in ES_CANARY_NAMES_IN_SPAIN):
+                return ES_CANARY_ZONE
     return ""
 
 

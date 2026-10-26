@@ -386,6 +386,12 @@ SIGNAL_CATALOG: list[dict] = [
     },
 ]
 
+# Account-based selling to Spanish mid-sized companies (imported accounts,
+# BORME, press, Spanish job boards, ICP score). Kept in their own module.
+from harvey.collectors.spain.catalog import SPAIN_SIGNALS  # noqa: E402
+
+SIGNAL_CATALOG += SPAIN_SIGNALS
+
 
 async def seed_signal_catalog(state) -> int:
     """Register the catalog as PROPOSED signals awaiting user confirmation.

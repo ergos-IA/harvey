@@ -67,6 +67,19 @@ FINGERPRINTS: dict[str, list[str]] = {
     "Vercel": [r"vercel\.app", r"x-vercel"],
 }
 
+
+def _add_spain_fingerprints() -> None:
+    """Helpdesks and shop platforms common on Spanish B2B sites (Freshdesk,
+    Gorgias, Zoho Desk, PrestaShop, Magento, Salesforce Commerce Cloud,
+    VTEX...). Names already listed above keep their own patterns."""
+    from harvey.collectors.spain.web import ECOMMERCE_FINGERPRINTS, HELPDESK_FINGERPRINTS
+    for table in (HELPDESK_FINGERPRINTS, ECOMMERCE_FINGERPRINTS):
+        for name, patterns in table.items():
+            FINGERPRINTS.setdefault(name, list(patterns))
+
+
+_add_spain_fingerprints()
+
 _compiled: dict[str, list[re.Pattern]] | None = None
 
 

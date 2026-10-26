@@ -18,20 +18,25 @@
    [data-theme] change between them.
    ══════════════════════════════════════════════════════════════ */
 
+/* Marca AI Fast Track: Space Grotesk + JetBrains Mono, fondo casi negro,
+   cian como acento de interfaz y amarillo para la acción principal. */
 @font-face {
-  font-family: 'Geist'; font-style: normal; font-weight: 400 600;
-  font-display: swap; src: url('/static/fonts/geist.woff2') format('woff2');
+  font-family: 'Space Grotesk'; font-style: normal; font-weight: 300 700;
+  font-display: swap; src: url('/static/fonts/space-grotesk.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'Geist Mono'; font-style: normal; font-weight: 400 500;
-  font-display: swap; src: url('/static/fonts/geist-mono.woff2') format('woff2');
+  font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400 600;
+  font-display: swap; src: url('/static/fonts/jetbrains-mono.woff2') format('woff2');
 }
 
 /* ── Tokens ──────────────────────────────────────────────────── */
 
 :root {
-  --sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --brand-yellow: #FFDB05;
+  --brand-yellow-hover: #FFE94D;
+  --brand-ink: #040506;
 
   /* Type scale: size / line-height pairs, by role. */
   --fs-caption: 0.75rem;     /* 12 */
@@ -48,32 +53,34 @@
 
   /* Radii: controls sit inside cards with 6px padding+, so cards are
      concentric with the controls they hold. */
-  --r-xs: 4px;   /* tags, kbd */
-  --r-sm: 6px;   /* buttons, inputs */
-  --r-md: 10px;  /* inner panels */
-  --r-lg: 14px;  /* cards */
+  --r-xs: 2px;   /* tags, kbd */
+  --r-sm: 2px;   /* buttons, inputs */
+  --r-md: 3px;   /* inner panels */
+  --r-lg: 4px;   /* cards */
 
   --sidebar-w: 236px;
   --content-w: 1180px;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 
-  /* Light — neutral, a touch cool. */
-  --bg:          #F6F6F7;
+  /* Light — neutral, a touch cool; accent is the brand cyan, darkened for contrast. */
+  --bg:          #F4F5F6;
   --surface:     #FFFFFF;
-  --surface-2:   #F3F3F4;   /* hover, inset panels */
-  --surface-3:   #EBEBED;   /* pressed, tracks */
-  --line:        #E7E7EA;
-  --line-strong: #D6D6DB;
-  --text:        #111113;
-  --text-2:      #5B5B63;
-  --text-3:      #8B8B93;
-  --accent:      #1D4ED8;
-  --accent-hover:#1E40AF;
+  --surface-2:   #EEF0F2;   /* hover, inset panels */
+  --surface-3:   #E3E6E9;   /* pressed, tracks */
+  --line:        #DFE3E7;
+  --line-strong: #C9CFD5;
+  --text:        #040506;
+  --text-2:      #4A545D;
+  --text-3:      #7A858F;
+  --accent:      #007E99;
+  --accent-hover:#006A80;
   --accent-text: #FFFFFF;
-  --accent-soft: #EBF1FE;
-  --accent-line: #CCDBFC;
-  --chart-muted: #BCD0FA;
+  --accent-soft: #E3F7FB;
+  --accent-line: #B5E6F0;
+  --chart-muted: #A8DCE8;
+  --glow:        rgb(0 126 153 / 0.10);
+  --grid-line:   rgb(4 5 6 / 0.04);
 
   --good:   #1F7A4D; --good-bg:   #E8F6EE; --good-line:   #C6EAD5;
   --wait:   #8A5A00; --wait-bg:   #FFF4DE; --wait-line:   #F6DFAE;
@@ -98,21 +105,23 @@
 /* Dark — near-black, neutral. Declared twice on purpose: once for an
    explicit choice, once for the system preference when none is chosen. */
 :root[data-theme='dark'] {
-  --bg:          #0E0E10;
-  --surface:     #161618;
-  --surface-2:   #1D1D20;
-  --surface-3:   #26262A;
-  --line:        #26262A;
-  --line-strong: #34343A;
-  --text:        #F3F3F5;
-  --text-2:      #A3A3AC;
-  --text-3:      #6E6E77;
-  --accent:      #3D6FF5;
-  --accent-hover:#5A85FF;
-  --accent-text: #FFFFFF;
-  --accent-soft: #111C36;
-  --accent-line: #1E3366;
-  --chart-muted: #22365F;
+  --bg:          #040506;
+  --surface:     #080B0D;
+  --surface-2:   #0D1114;
+  --surface-3:   #14191E;
+  --line:        #1D242B;
+  --line-strong: #2A323A;
+  --text:        #E8ECEF;
+  --text-2:      #AAB4BD;
+  --text-3:      #8B96A0;
+  --accent:      #00D9FF;
+  --accent-hover:#5CE6FF;
+  --accent-text: #040506;
+  --accent-soft: #06232A;
+  --accent-line: #0B4452;
+  --chart-muted: #0D3A45;
+  --glow:        rgb(0 217 255 / 0.14);
+  --grid-line:   rgb(232 236 239 / 0.03);
 
   --good:   #5CCB8F; --good-bg:   #10261B; --good-line:   #1C4130;
   --wait:   #F0B84F; --wait-bg:   #2A2010; --wait-line:   #4A3817;
@@ -130,11 +139,12 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg:#0E0E10; --surface:#161618; --surface-2:#1D1D20; --surface-3:#26262A;
-    --line:#26262A; --line-strong:#34343A;
-    --text:#F3F3F5; --text-2:#A3A3AC; --text-3:#6E6E77;
-    --accent:#3D6FF5; --accent-hover:#5A85FF; --accent-text:#FFFFFF;
-    --accent-soft:#111C36; --accent-line:#1E3366; --chart-muted:#22365F;
+    --bg:#040506; --surface:#080B0D; --surface-2:#0D1114; --surface-3:#14191E;
+    --line:#1D242B; --line-strong:#2A323A;
+    --text:#E8ECEF; --text-2:#AAB4BD; --text-3:#8B96A0;
+    --accent:#00D9FF; --accent-hover:#5CE6FF; --accent-text:#040506;
+    --accent-soft:#06232A; --accent-line:#0B4452; --chart-muted:#0D3A45;
+    --glow: rgb(0 217 255 / 0.14); --grid-line: rgb(232 236 239 / 0.03);
     --good:#5CCB8F; --good-bg:#10261B; --good-line:#1C4130;
     --wait:#F0B84F; --wait-bg:#2A2010; --wait-line:#4A3817;
     --bad:#FF7A85; --bad-bg:#2C1316; --bad-line:#4C1F25;
@@ -202,9 +212,11 @@ svg.icon { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: no
   background: var(--bg);
   overflow-y: auto; overscroll-behavior: contain;
 }
-.brand { display: flex; flex-direction: column; gap: 2px; padding: 4px 8px; }
-.brand h1 { font-size: 17px; font-weight: 650; letter-spacing: -0.025em; line-height: 1.15; }
-.brand .tagline { font-size: var(--fs-caption); color: var(--text-3); line-height: 1.2; }
+.brand { display: flex; align-items: center; gap: 12px; padding: 4px 8px; }
+.brand img { width: 30px; height: 30px; flex: none; display: block; }
+.brand .brand-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.brand h1 { font: 600 15px/1 var(--mono); letter-spacing: 0.24em; }
+.brand .tagline { font: 400 10px/1.2 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); }
 
 nav { display: flex; flex-direction: column; gap: var(--sp-4); }
 .nav-group { display: flex; flex-direction: column; gap: 1px; }
@@ -397,12 +409,12 @@ main.content { min-width: 0; padding: var(--sp-6) var(--sp-6) 96px; }
 .btn:not(:disabled):active { scale: 0.96; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn .icon { width: 15px; height: 15px; }
-.btn-primary { background: var(--accent); color: var(--accent-text); box-shadow: var(--btn-primary-shadow); }
+.btn-primary { background: var(--brand-yellow); color: var(--brand-ink); box-shadow: none; font-weight: 600; }
 .btn-secondary { background: var(--surface); color: var(--text); }
 .btn-ghost { background: none; box-shadow: none; color: var(--text-2); }
 .btn-danger { background: var(--surface); color: var(--bad); }
 @media (hover: hover) {
-  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn-primary:hover:not(:disabled) { background: var(--brand-yellow-hover); }
   .btn-secondary:hover:not(:disabled), .btn-danger:hover:not(:disabled) { background: var(--surface-2); }
   .btn-ghost:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
 }
@@ -1032,3 +1044,39 @@ table.clip td { max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
 .warmup-actions { margin-top: var(--sp-2); align-items: center; }
 a.btn, a.btn:hover { text-decoration: none; }
 .warmup-actions .form-input { flex: 1 1 200px; height: 28px; min-width: 0; }
+
+/* ── AI Fast Track ───────────────────────────────────────────── */
+/* La capa de marca, en un solo sitio: rejilla y halo de fondo, bordes
+   finos en lugar de sombras, y etiquetas en mono con espaciado ancho. */
+
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(900px 600px at 70% -10%, var(--glow), transparent 70%),
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: auto, 80px 80px, 80px 80px;
+  background-attachment: fixed;
+}
+.sidebar { background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: blur(12px); }
+
+.card, .kpi { border: 1px solid var(--line); box-shadow: none; }
+@media (hover: hover) { .kpi:hover { border-color: var(--line-strong); } }
+
+.section-head h2 { font-weight: 500; letter-spacing: -0.03em; }
+
+.nav-label, .kpi-label, .card-head .meta, .subhead .hint, th {
+  font-family: var(--mono); letter-spacing: 0.14em; text-transform: uppercase;
+}
+.nav-label, .kpi-label { font-size: 10.5px; }
+.kpi-value { font-weight: 500; }
+
+nav button.active { box-shadow: inset 0 0 0 1px var(--line-strong); }
+nav button.active .icon { color: var(--accent); filter: drop-shadow(0 0 6px var(--accent)); }
+
+.status-dot.running { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+:focus-visible { outline-color: var(--accent); }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent);
+}

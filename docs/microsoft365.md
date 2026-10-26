@@ -1,40 +1,40 @@
-# Sending from a Microsoft 365 mailbox
+# Enviar desde un buzón de Microsoft 365
 
-Harvey can send and read mail through a Microsoft 365 / Outlook mailbox
-(Exchange Online) using Microsoft Graph. Use it when your sending domain's
-mail lives in Microsoft 365.
+Harvey puede enviar y leer correo a través de un buzón de Microsoft 365 / Outlook
+(Exchange Online) mediante Microsoft Graph. Úsalo cuando el correo del dominio desde el que envías
+esté en Microsoft 365.
 
-## Why not SMTP + IMAP?
+## ¿Por qué no SMTP + IMAP?
 
-Exchange Online no longer accepts a password for IMAP, and SMTP AUTH is off
-by default in most tenants. The `smtp` provider can sometimes still send, but
-it can't read the inbox. Harvey has to read replies to stop sequences, honor
-opt-outs and catch bounces. If it can send but can't read, it keeps emailing
-people who already answered.
+Exchange Online ya no acepta contraseña para IMAP, y SMTP AUTH está desactivado
+por defecto en la mayoría de los tenants. El proveedor `smtp` a veces todavía puede enviar, pero
+no puede leer la bandeja de entrada. Harvey tiene que leer las respuestas para detener secuencias, respetar
+las bajas y detectar rebotes. Si puede enviar pero no leer, sigue escribiendo
+a gente que ya ha respondido.
 
-The `microsoft` provider signs in with OAuth (authorization code + PKCE)
-instead. Harvey never stores a password or a client secret.
+El proveedor `microsoft` inicia sesión con OAuth (código de autorización + PKCE)
+en su lugar. Harvey nunca guarda una contraseña ni un secreto de cliente.
 
-## Setup
+## Configuración
 
-### 1. Register an app in Entra ID
+### 1. Registra una aplicación en Entra ID
 
-At [entra.microsoft.com](https://entra.microsoft.com), go to
+En [entra.microsoft.com](https://entra.microsoft.com), ve a
 **Applications → App registrations → New registration**:
 
-| Field | Value |
+| Campo | Valor |
 |---|---|
 | Name | `Harvey` |
 | Supported account types | *Accounts in this organizational directory only* |
 | Redirect URI, platform | **Public client/native (mobile & desktop)** |
 | Redirect URI, value | `http://localhost:8766` |
 
-From the app's **Overview**, copy the **Application (client) ID** and the
+En el **Overview** de la aplicación, copia el **Application (client) ID** y el
 **Directory (tenant) ID**.
 
-Don't create a client secret. Harvey is a public client.
+No crees un secreto de cliente. Harvey es un cliente público.
 
-### 2. Configure Harvey
+### 2. Configura Harvey
 
 `.env`:
 
@@ -43,7 +43,7 @@ M365_CLIENT_ID=<Application (client) ID>
 M365_TENANT_ID=<Directory (tenant) ID>
 ```
 
-`harvey.yaml` (or `harvey.local.yaml`):
+`harvey.yaml` (o `harvey.local.yaml`):
 
 ```yaml
 persona:
@@ -53,132 +53,132 @@ channels:
     provider: "microsoft"
 ```
 
-### 3. Sign in once
+### 3. Inicia sesión una vez
 
 ```bash
 harvey microsoft auth   # opens the browser; sign in as persona.email
 harvey microsoft test   # → ✓ Connected as you@yourdomain.com
 ```
 
-Harvey asks for four **delegated** permissions:
+Harvey solicita cuatro permisos **delegados**:
 
-| Permission | Why it's needed |
+| Permiso | Por qué se necesita |
 |---|---|
-| `Mail.ReadWrite` | read replies, and create drafts (reply threading) |
-| `Mail.Send` | send them |
-| `User.Read` | check which mailbox the token belongs to |
-| `offline_access` | keep working without signing in again |
+| `Mail.ReadWrite` | leer respuestas y crear borradores (hilos de respuesta) |
+| `Mail.Send` | enviarlos |
+| `User.Read` | comprobar a qué buzón pertenece el token |
+| `offline_access` | seguir funcionando sin volver a iniciar sesión |
 
-The refresh token is stored in `data/m365_token.json` (gitignored). On macOS
-and Linux the file is mode 600 (owner only). Windows has no such mode bits:
-the file is protected only by the access permissions (ACLs) of the folder
-Harvey lives in, so keep Harvey in a folder only you can read.
-Microsoft rotates it on every use, and Harvey saves the new one each time.
+El token de actualización se guarda en `data/m365_token.json` (ignorado por git). En macOS
+y Linux el archivo tiene modo 600 (solo el propietario). Windows no tiene esos bits de modo:
+el archivo solo está protegido por los permisos de acceso (ACL) de la carpeta en la que
+vive Harvey, así que mantén Harvey en una carpeta que solo tú puedas leer.
+Microsoft lo rota en cada uso, y Harvey guarda el nuevo cada vez.
 
-### If you see "Need admin approval"
+### Si ves "Need admin approval"
 
-Your tenant doesn't let users consent to apps themselves. An admin has to
-approve the app once:
+Tu tenant no permite que los usuarios den su consentimiento a aplicaciones por sí mismos. Un administrador tiene que
+aprobar la aplicación una vez:
 
-1. In Entra, open **App registrations → Harvey → API permissions**. Add the
-   four Microsoft Graph delegated permissions above, then click
+1. En Entra, abre **App registrations → Harvey → API permissions**. Añade los
+   cuatro permisos delegados de Microsoft Graph indicados arriba y luego haz clic en
    **Grant admin consent**.
-2. Run `harvey microsoft auth` again and sign in as the **sending mailbox**,
-   not as the admin. Harvey always acts as whoever signs in.
+2. Ejecuta `harvey microsoft auth` de nuevo e inicia sesión con el **buzón remitente**,
+   no con el administrador. Harvey siempre actúa como quien inicia sesión.
 
-To make sure nobody else in the tenant can use the app, go to
+Para asegurarte de que nadie más del tenant pueda usar la aplicación, ve a
 **Enterprise applications → Harvey**:
 
-1. **Users and groups**: assign only the sending mailbox.
-2. **Properties**: set **Assignment required?** to **Yes**. Do this after
-   step 1, or the sending mailbox is locked out too.
+1. **Users and groups**: asigna solo el buzón remitente.
+2. **Properties**: pon **Assignment required?** en **Yes**. Hazlo después del
+   paso 1, o el buzón remitente también quedará bloqueado.
 
-## How it behaves
+## Cómo se comporta
 
-- **Sending.** Harvey creates a draft and then sends it, so the email's
-  RFC `Message-ID` is known. Bounces and replies are matched on it. Bodies
-  are plain text.
-- **Replies are threaded.** Harvey answers with `createReply` on the
-  prospect's own message, so `In-Reply-To` and `References` are correct. If
-  that message was deleted, the reply goes out as a new email.
-- **Your inbox is left alone.** Each cycle, Harvey reads the last 7 days of
-  the inbox, newest first, all of it (page by page), and skips your own mail. It never marks anything
-  read, moves it or deletes it. It keeps its own record of what it has
-  handled.
-- **It only acts as the right mailbox.** If the signed-in mailbox isn't
-  `persona.email`, every read and send is refused with a message saying so.
-  This catches the common mistake of signing in as the admin who approved
-  the app.
-- **Failures hold sending.** If the inbox can't be read (expired login,
-  Graph outage, throttling), the cycle sends nothing. A reply nobody read
-  can't have stopped its follow-ups. Graph throttling (429/503 with a short
-  `Retry-After`) is retried once. A read that fails part-way through counts
-  as a failed read: Harvey never acts on part of the inbox.
-- **Unsent drafts are cleaned up.** If a send fails, its draft is deleted
-  so it doesn't sit in your Drafts folder.
-- **The sender name is the mailbox's.** Mail goes out under the mailbox's
-  display name in Microsoft 365, not `persona.name`.
+- **Envío.** Harvey crea un borrador y luego lo envía, de modo que se conoce el
+  `Message-ID` RFC del email. Los rebotes y las respuestas se emparejan con él. Los cuerpos
+  son texto plano.
+- **Las respuestas van en hilo.** Harvey responde con `createReply` sobre el
+  mensaje del propio prospecto, así que `In-Reply-To` y `References` son correctos. Si
+  ese mensaje se eliminó, la respuesta sale como un email nuevo.
+- **Tu bandeja de entrada no se toca.** En cada ciclo, Harvey lee los últimos 7 días de
+  la bandeja de entrada, empezando por lo más reciente, todo (página a página), y omite tu propio correo. Nunca marca nada como
+  leído, ni lo mueve ni lo elimina. Mantiene su propio registro de lo que ha
+  gestionado.
+- **Solo actúa como el buzón correcto.** Si el buzón con el que se ha iniciado sesión no es
+  `persona.email`, cada lectura y cada envío se rechaza con un mensaje que lo indica.
+  Así se evita el error común de iniciar sesión como el administrador que aprobó
+  la aplicación.
+- **Los fallos detienen el envío.** Si no se puede leer la bandeja de entrada (sesión caducada,
+  caída de Graph, limitación de peticiones), el ciclo no envía nada. Una respuesta que nadie leyó
+  no puede haber detenido sus seguimientos. La limitación de Graph (429/503 con un `Retry-After`
+  corto) se reintenta una vez. Una lectura que falla a mitad cuenta
+  como lectura fallida: Harvey nunca actúa sobre una parte de la bandeja de entrada.
+- **Los borradores no enviados se limpian.** Si un envío falla, su borrador se elimina
+  para que no se quede en tu carpeta de Borradores.
+- **El nombre del remitente es el del buzón.** El correo sale con el nombre visible
+  del buzón en Microsoft 365, no con `persona.name`.
 
-## Troubleshooting
+## Solución de problemas
 
-| Symptom | Fix |
+| Síntoma | Solución |
 |---|---|
-| `Timed out waiting for the browser round-trip` | The browser never came back to `localhost:8766`. Check that nothing else uses the port, and that the redirect URI is `http://localhost:8766` under *Mobile and desktop applications* (not *Web*). |
-| `AADSTS50011` (redirect URI mismatch) | Same as above: the URI and its platform must match exactly. |
-| `Need admin approval` | See [If you see "Need admin approval"](#if-you-see-need-admin-approval). |
-| `signed in as X, but persona.email is Y` | Run `harvey microsoft auth` again and pick the right account. Use "Use another account" if the browser is already signed in as someone else. |
-| `token refresh rejected` | The login expired (90 days unused) or was revoked. Run `harvey microsoft auth` again. |
+| `Timed out waiting for the browser round-trip` | El navegador nunca volvió a `localhost:8766`. Comprueba que nada más use el puerto y que el URI de redirección sea `http://localhost:8766` en *Mobile and desktop applications* (no en *Web*). |
+| `AADSTS50011` (redirect URI mismatch) | Igual que arriba: el URI y su plataforma deben coincidir exactamente. |
+| `Need admin approval` | Consulta [Si ves "Need admin approval"](#si-ves-need-admin-approval). |
+| `signed in as X, but persona.email is Y` | Ejecuta `harvey microsoft auth` de nuevo y elige la cuenta correcta. Usa "Use another account" si el navegador ya tiene la sesión iniciada con otra persona. |
+| `token refresh rejected` | La sesión caducó (90 días sin uso) o se revocó. Ejecuta `harvey microsoft auth` de nuevo. |
 
-To revoke Harvey's access, go to
-[myaccount.microsoft.com](https://myaccount.microsoft.com) → **Apps**, or
-delete the app registration. Then delete `data/m365_token.json`.
+Para revocar el acceso de Harvey, ve a
+[myaccount.microsoft.com](https://myaccount.microsoft.com) → **Apps**, o
+elimina el registro de la aplicación. Después elimina `data/m365_token.json`.
 
-## Deliverability notes
+## Notas sobre entregabilidad
 
-- **Enable DKIM** for your domain in Microsoft Defender (Email
-  authentication → DKIM). Without it, mail from Exchange Online isn't
-  signed with your domain.
-- **Mind the tenant.** Exchange Online watches outbound spam for the whole
-  tenant. If you share it with an organization, its sending reputation
-  depends on yours: keep `max_daily_sends` low and `require_approval: true`.
+- **Activa DKIM** para tu dominio en Microsoft Defender (Email
+  authentication → DKIM). Sin él, el correo de Exchange Online no se firma
+  con tu dominio.
+- **Ten en cuenta el tenant.** Exchange Online vigila el spam saliente de todo el
+  tenant. Si lo compartes con una organización, su reputación de envío
+  depende de la tuya: mantén `max_daily_sends` bajo y `require_approval: true`.
 
-## For developers
+## Para desarrolladores
 
-| File | What it is |
+| Archivo | Qué es |
 |---|---|
-| `harvey/integrations/microsoft.py` | `MicrosoftProvider` (a `MailProvider`) and `run_auth_flow` |
-| `harvey/integrations/mail_provider.py` | Registers `microsoft` in `NATIVE_PROVIDERS` and `get_mail_provider` |
+| `harvey/integrations/microsoft.py` | `MicrosoftProvider` (un `MailProvider`) y `run_auth_flow` |
+| `harvey/integrations/mail_provider.py` | Registra `microsoft` en `NATIVE_PROVIDERS` y `get_mail_provider` |
 | `harvey/cli.py` | `harvey microsoft auth\|test` |
-| `tests/test_microsoft.py` | Graph and login faked with `httpx.MockTransport`; no network |
+| `tests/test_microsoft.py` | Graph y el inicio de sesión simulados con `httpx.MockTransport`; sin red |
 
-`get_replies` **raises** `GraphError` when the inbox can't be read, instead
-of returning `[]`. The handler turns that into a failed read, and the
-heartbeat holds sending. It returns the whole 7-day window or nothing:
+`get_replies` **lanza** `GraphError` cuando no se puede leer la bandeja de entrada, en vez de
+devolver `[]`. El handler lo convierte en una lectura fallida, y el
+heartbeat detiene el envío. Devuelve toda la ventana de 7 días o nada:
 
-- **Every page.** `limit` is only the page size (`$top`). Harvey follows
-  `@odata.nextLink` until Graph stops sending one, using the link exactly
-  as given, without re-adding the first request's parameters or touching
-  `$skip`, as Microsoft asks. Messages repeated across pages (new mail
-  shifts `$skip` mid-read) are returned once.
-- **Links are checked before the token is attached.** A `nextLink` must be
-  `https://graph.microsoft.com` (default port), on the path
-  `/v1.0/me/mailFolders/inbox/messages`, with a query, and no credentials,
-  fragment, backslash or control characters. A link that repeats an earlier
-  page is a loop. Either way the read fails without sending the request.
-- **Bounded.** More than `MAX_INBOX_PAGES` (40) pages, i.e. 2,000 messages
-  in a week at the default page size, fails the read rather than truncating.
-- **Malformed data fails.** Any Graph response must be a JSON object; only
-  `202`/`204` (send, delete) may be empty. A page whose `value` is missing
-  or isn't a list, or a message with the wrong shape (no `id`, `from` or
-  `body` not an object, non-string fields, headers not a list) raises. A
-  message with no sender address is skipped, as before.
+- **Todas las páginas.** `limit` es solo el tamaño de página (`$top`). Harvey sigue
+  `@odata.nextLink` hasta que Graph deja de enviarlo, usando el enlace exactamente
+  como viene, sin volver a añadir los parámetros de la primera petición ni tocar
+  `$skip`, como pide Microsoft. Los mensajes repetidos entre páginas (el correo nuevo
+  desplaza `$skip` a mitad de la lectura) se devuelven una sola vez.
+- **Los enlaces se comprueban antes de adjuntar el token.** Un `nextLink` debe ser
+  `https://graph.microsoft.com` (puerto por defecto), con la ruta
+  `/v1.0/me/mailFolders/inbox/messages`, con una query, y sin credenciales,
+  fragmento, barra invertida ni caracteres de control. Un enlace que repite una
+  página anterior es un bucle. En ambos casos la lectura falla sin enviar la petición.
+- **Acotado.** Más de `MAX_INBOX_PAGES` (40) páginas, es decir, 2.000 mensajes
+  en una semana con el tamaño de página por defecto, hace fallar la lectura en vez de truncarla.
+- **Los datos malformados fallan.** Toda respuesta de Graph debe ser un objeto JSON; solo
+  `202`/`204` (envío, borrado) pueden estar vacías. Una página cuyo `value` falte
+  o no sea una lista, o un mensaje con una forma incorrecta (sin `id`, `from` o
+  `body` que no sean un objeto, campos que no sean cadenas, cabeceras que no sean una lista) lanza una excepción. Un
+  mensaje sin dirección de remitente se omite, como antes.
 
-Limitations: a mailbox with more than 2,000 inbox messages in 7 days holds
-sending every cycle until the volume drops (raise `MAX_INBOX_PAGES` or the
-page size). If Graph ever returns a `nextLink` in another shape (say
-`/users/{id}/...`), reads fail closed until the check is widened. Mail that
-arrives while pages are being read can shift `$skip` so one message is
-missed that cycle; the next cycle reads it, since the window is 7 days.
+Limitaciones: un buzón con más de 2.000 mensajes en la bandeja de entrada en 7 días detiene
+el envío en cada ciclo hasta que baje el volumen (sube `MAX_INBOX_PAGES` o el
+tamaño de página). Si Graph llegara a devolver un `nextLink` con otra forma (por ejemplo
+`/users/{id}/...`), las lecturas fallan de forma segura hasta que se amplíe la comprobación. El correo que
+llega mientras se leen las páginas puede desplazar `$skip` y hacer que se pierda un mensaje
+ese ciclo; el siguiente ciclo lo lee, ya que la ventana es de 7 días.
 
-The loopback callback server listens on both `127.0.0.1` and `::1`, because
-`localhost` resolves to both and browsers differ in which one they try.
+El servidor de callback de loopback escucha tanto en `127.0.0.1` como en `::1`, porque
+`localhost` se resuelve a ambos y los navegadores difieren en cuál prueban.

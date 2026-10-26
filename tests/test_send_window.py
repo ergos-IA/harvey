@@ -117,6 +117,30 @@ def test_zone_from_location(location, zone):
     assert zone_for(location) == zone
 
 
+@pytest.mark.parametrize("location, country, zone", [
+    ("Madrid, España", "", "Europe/Madrid"),
+    ("08001 Barcelona, Spain", "", "Europe/Madrid"),
+    ("Sevilla", "ES", "Europe/Madrid"),
+    ("", "ES", "Europe/Madrid"),
+    # The Canary Islands are an hour behind the mainland.
+    ("35001 Las Palmas de Gran Canaria, Las Palmas, España", "", "Atlantic/Canary"),
+    ("Santa Cruz de Tenerife, Spain", "", "Atlantic/Canary"),
+    ("Arrecife, Lanzarote", "", "Atlantic/Canary"),
+    ("Islas Canarias", "", "Atlantic/Canary"),
+    ("Telde, Canarias, España", "", "Atlantic/Canary"),
+    ("Las Palmas", "ES", "Atlantic/Canary"),
+    ("Santa Cruz, España", "", "Atlantic/Canary"),
+    # Names other countries have too count only next to Spain.
+    ("Santa Cruz, CA", "", "America/Los_Angeles"),
+    ("Santa Cruz, Bolivia", "", "America/La_Paz"),
+    # Coordinates settle a Spanish place given without its island.
+    ("Telde, Spain", "", "Atlantic/Canary"),
+])
+def test_spain_and_the_canary_islands(location, country, zone):
+    point = "27.99,-15.42" if location == "Telde, Spain" else ""
+    assert zone_for(location, country=country, point=point) == zone
+
+
 @pytest.mark.parametrize("location", ["", "Remote", "United States", "Houston"])
 def test_location_that_cannot_settle_a_zone(location):
     assert zone_for(location) == ""

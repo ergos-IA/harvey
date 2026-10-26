@@ -81,6 +81,34 @@ async def run_profile_stage(
     return len(pending), observations, run_id
 
 
+async def run_account_signals_stage(state, config, limit: int = 10) -> dict:
+    """Jobs, BORME and press for tracked accounts, on a cadence.
+
+    Account-based selling's equivalent of the profile stage: hand-picked
+    accounts (``harvey accounts import``) get their Spain signals refreshed
+    every ``accounts.enrich_every_days``, a few accounts per heartbeat so a
+    cycle never runs long. Only confirmed signals are collected; with none
+    confirmed, or no tracked accounts, it does nothing. Website signals need
+    nothing here: the profile stage already reads every company's homepage.
+    """
+    from harvey.accounts_config import AccountsConfig
+    from harvey.collectors.spain.enrich import BORME_CODES, JOBS_CODES, NEWS_CODES, enrich_accounts
+
+    cfg = getattr(config, "accounts", None) or AccountsConfig()
+    if not cfg.heartbeat:
+        return {}
+    confirmed = await state.confirmed_signal_codes()
+    kinds = [kind for kind, codes in (("jobs", JOBS_CODES), ("borme", BORME_CODES),
+                                      ("news", NEWS_CODES)) if codes & confirmed]
+    if not kinds:
+        return {}
+    report = await enrich_accounts(state, config, only=kinds, stale_days=cfg.enrich_every_days,
+                                   limit=limit)
+    if any(report.written.values()):
+        logger.info("account signals: " + ", ".join(report.summary_lines()))
+    return report.written
+
+
 async def run_prospecting(
     state,
     config,

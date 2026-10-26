@@ -1,12 +1,12 @@
 # Skills
 
-Skills are editable Markdown files that give Harvey foundational sales knowledge. Each agent loads the skills it needs before making decisions.
+Las skills son archivos Markdown editables que dan a Harvey conocimientos básicos de ventas. Cada agente carga las skills que necesita antes de tomar decisiones.
 
-## How Skills Work
+## Cómo funcionan las skills
 
-When an agent runs, it calls `brain.load_skills_for_agent("agent_name")` which concatenates the relevant skill files and injects them into the prompt. This means you can change Harvey's behavior by editing these files — no code changes needed.
+Cuando se ejecuta un agente, llama a `brain.load_skills_for_agent("agent_name")`, que concatena los archivos de skills pertinentes y los inyecta en el prompt. Esto significa que puedes cambiar el comportamiento de Harvey editando estos archivos, sin tocar el código.
 
-## Skill → Agent Mapping
+## Correspondencia entre skills y agentes
 
 | Skill | Scout | Writer | Handler | Sender | LinkedIn |
 |-------|-------|--------|---------|--------|----------|
@@ -23,30 +23,30 @@ When an agent runs, it calls `brain.load_skills_for_agent("agent_name")` which c
 | `competitive_intel.md` | | x | x | | |
 | `selling_to_startups.md` | | x* | x* | | |
 
-\* Only for prospects whose company is a startup by its own site's account (the `YC_BACKED` or `ACCELERATOR` signal, or a `FUNDING_ROUND` from the last 18 months), not loaded for everyone.
+\* Solo para prospectos cuya empresa es una startup según su propio sitio web (la señal `YC_BACKED` o `ACCELERATOR`, o un `FUNDING_ROUND` de los últimos 18 meses); no se carga para todos.
 
-## Built-in Skills
+## Skills incluidas
 
-- **`prospecting_tactics.md`** — Google dorking queries, company website scraping, trigger events, referral mining
-- **`lead_qualification.md`** — BANT screening, ICP scoring, MEDDIC framework, disqualification criteria
-- **`account_navigation.md`** — Multi-contact handling, entry point strategy, multi-threading rules
-- **`selling_to_startups.md`** — Writing to early-stage founders: who reads, timing around a YC or accelerator batch and Demo Day, writing to companies that just raised (and when a raise is too old to mention), what not to do, handling their replies. Used automatically for YC-backed, accelerator-backed and recently funded prospects.
-- **`signal_playbook.md`** — Turning buying signals (hiring, tech stack, funding) into the email's first line; which signal wins when there are several; using a job posting as the hook without guessing or implying inside knowledge
-- **`email_frameworks.md`** — Cold email copywriting rules, banned AI patterns, 2026 reply-rate data (length, offer CTAs, cadence, no tracking), 5 frameworks (AIDA, PAS, BAB, QVC, 3Ps)
-- **`sales_methodology.md`** — ABC Loop, conversation flow, tone calibration, ethical guidelines
-- **`offer_strategy.md`** — Offer ladder by engagement level, closing mechanics, timing rules
-- **`objection_handling.md`** — LAARC framework, 4 objection categories with responses
-- **`linkedin_outreach.md`** — Connection sequences, messaging templates, rate limits
+- **`prospecting_tactics.md`** — consultas de Google dorking, scraping de sitios web de empresas, eventos desencadenantes, búsqueda de referidos
+- **`lead_qualification.md`** — filtrado BANT, puntuación de ICP, marco MEDDIC, criterios de descalificación
+- **`account_navigation.md`** — gestión de varios contactos, estrategia de punto de entrada, reglas de multi-threading
+- **`selling_to_startups.md`** — cómo escribir a fundadores en fase inicial: quién lee, el momento adecuado en torno a un batch de YC o de una aceleradora y el Demo Day, cómo escribir a empresas que acaban de levantar capital (y cuándo una ronda es demasiado antigua para mencionarla), qué no hacer y cómo gestionar sus respuestas. Se usa automáticamente con prospectos respaldados por YC, por aceleradoras o con financiación reciente.
+- **`signal_playbook.md`** — cómo convertir las señales de compra (contratación, stack tecnológico, financiación) en la primera línea del email; qué señal gana cuando hay varias; usar una oferta de empleo como gancho sin adivinar ni dar a entender que se tiene información interna
+- **`email_frameworks.md`** — reglas de copywriting para email en frío, patrones de IA prohibidos, datos de tasa de respuesta de 2026 (longitud, CTA de oferta, cadencia, sin tracking), 5 frameworks (AIDA, PAS, BAB, QVC, 3Ps)
+- **`sales_methodology.md`** — ABC Loop, flujo de la conversación, calibración del tono, pautas éticas
+- **`offer_strategy.md`** — escalera de ofertas según el nivel de interés, mecánica de cierre, reglas de momento oportuno
+- **`objection_handling.md`** — marco LAARC, 4 categorías de objeciones con sus respuestas
+- **`linkedin_outreach.md`** — secuencias de conexión, plantillas de mensajes, límites de frecuencia
 
-## Auto-Generated Skills
+## Skills generadas automáticamente
 
-These are created by `harvey train <url>` and are specific to your product:
+Las crea `harvey train <url>` y son específicas de tu producto:
 
-- **`product_knowledge.md`** — Features, benefits, pricing, use cases, pain points, buying triggers
-- **`competitive_intel.md`** — Battle cards for each competitor, differentiation angles, migration paths
+- **`product_knowledge.md`** — funcionalidades, beneficios, precios, casos de uso, puntos de dolor, desencadenantes de compra
+- **`competitive_intel.md`** — battle cards de cada competidor, ángulos de diferenciación, rutas de migración
 
-## Adding or Editing Skills
+## Añadir o editar skills
 
-1. Edit any `.md` file in this directory
-2. Changes take effect on the next heartbeat cycle (no restart needed)
-3. To add a new skill, create the file and add it to the `skill_map` in `harvey/brain.py`
+1. Edita cualquier archivo `.md` de este directorio
+2. Los cambios surten efecto en el siguiente ciclo de heartbeat (no hace falta reiniciar)
+3. Para añadir una skill nueva, crea el archivo y añádelo al `skill_map` de `harvey/brain.py`

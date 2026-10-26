@@ -190,20 +190,21 @@ async def get_setup_status():
 
     # 1. Venv
     checks.append({
-        "id": "venv", "label": "Python virtual environment",
-        "done": (PROJECT_ROOT / ".venv").is_dir(),
+        "id": "venv", "label": "Entorno virtual de Python",
+        # A hosted image installs its dependencies system-wide.
+        "done": (PROJECT_ROOT / ".venv").is_dir() or bool(auth.public_hosts()),
         "required": True,
-        "help": "Run: python3 -m venv .venv && source .venv/bin/activate && pip install -e .",
+        "help": "Ejecuta: python3 -m venv .venv && source .venv/bin/activate && pip install -e .",
     })
 
     # 2. Env file
     env_vars = _read_env_file()
     env_exists = ENV_FILE.exists() and bool(env_vars)
     checks.append({
-        "id": "env_file", "label": "Environment file (.env)",
+        "id": "env_file", "label": "Archivo de entorno (.env)",
         "done": env_exists,
         "required": True,
-        "help": "Go to the Settings tab to enter your API keys.",
+        "help": "Ve a la pestaña Ajustes para introducir tus claves de API.",
     })
 
     # 3. Email provider configured (matches channels.email.provider)
@@ -215,22 +216,22 @@ async def get_setup_status():
     if provider == "gmail":
         provider_done = _has("GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET") and \
             (PROJECT_ROOT / "data" / "gmail_token.json").is_file()
-        provider_help = ("Set GMAIL_CLIENT_ID/SECRET in Settings, then run "
-                         "'harvey gmail auth' in your terminal.")
+        provider_help = ("Define GMAIL_CLIENT_ID/SECRET en Ajustes y ejecuta "
+                         "'harvey gmail auth' en tu terminal.")
     elif provider == "microsoft":
         provider_done = _has("M365_CLIENT_ID") and \
             (PROJECT_ROOT / "data" / "m365_token.json").is_file()
-        provider_help = ("Set the Microsoft 365 client and tenant IDs in Settings, then run "
-                         "'harvey microsoft auth' in your terminal.")
+        provider_help = ("Define el ID de cliente y el de tenant de Microsoft 365 en Ajustes y ejecuta "
+                         "'harvey microsoft auth' en tu terminal.")
     elif provider == "smtp":
         provider_done = _has("SMTP_HOST", "SMTP_USERNAME", "SMTP_PASSWORD")
-        provider_help = "Enter your SMTP host, username, and password in Settings."
+        provider_help = "Introduce en Ajustes el host, el usuario y la contraseña SMTP."
     else:
         instantly_key = env_vars.get("INSTANTLY_API_KEY", "") or os.getenv("INSTANTLY_API_KEY", "")
         provider_done = bool(instantly_key) and instantly_key != "your_instantly_api_key_here"
-        provider_help = "Enter your Instantly API key in Settings."
+        provider_help = "Introduce tu clave de API de Instantly en Ajustes."
     checks.append({
-        "id": "email_provider", "label": f"Email provider configured ({provider})",
+        "id": "email_provider", "label": f"Proveedor de email configurado ({provider})",
         "done": provider_done,
         "required": True,
         "help": provider_help,
@@ -239,11 +240,11 @@ async def get_setup_status():
     # 4. Email verification (needed for addresses to be sendable, not 'guess')
     verifier_set = _has("REOON_API_KEY") or _has("ZEROBOUNCE_API_KEY") or _has("HUNTER_API_KEY")
     checks.append({
-        "id": "verifier", "label": "Email verification key",
+        "id": "verifier", "label": "Clave de verificación de emails",
         "done": verifier_set,
         "required": True,
-        "help": "Add a Reoon (free 600/mo), ZeroBounce, or Hunter key in Settings — "
-                "without one, found emails stay 'guess' and are never sent.",
+        "help": "Añade en Ajustes una clave de Reoon (600 gratis al mes), ZeroBounce o Hunter: "
+                "sin ella, los emails encontrados quedan como 'guess' y nunca se envían.",
     })
 
     # 5. Config valid
@@ -258,39 +259,39 @@ async def get_setup_status():
         except Exception:
             pass
     checks.append({
-        "id": "config", "label": f"Harvey configured ({config_path.name})",
+        "id": "config", "label": f"Harvey configurado ({config_path.name})",
         "done": config_valid,
         "required": True,
-        "help": "Train Harvey on your product. Use the trainer or set up manually through Claude.",
+        "help": "Entrena a Harvey con tu producto. Usa el entrenador o configúralo a mano con Claude.",
     })
 
     # 6. Product trained
     product_trained = (PROJECT_ROOT / "skills" / "product_knowledge.md").exists()
     checks.append({
-        "id": "product_trained", "label": "Product knowledge trained",
+        "id": "product_trained", "label": "Conocimiento del producto entrenado",
         "done": product_trained,
         "required": True,
-        "help": "Run: harvey train https://yourwebsite.com (or set up through Claude).",
+        "help": "Ejecuta: harvey train https://tusitioweb.com (o configúralo con Claude).",
     })
 
     # 7. LinkedIn (optional)
     linkedin_email = env_vars.get("LINKEDIN_EMAIL", "") or os.getenv("LINKEDIN_EMAIL", "")
     linkedin_pass = env_vars.get("LINKEDIN_PASSWORD", "") or os.getenv("LINKEDIN_PASSWORD", "")
     checks.append({
-        "id": "linkedin", "label": "LinkedIn credentials",
+        "id": "linkedin", "label": "Credenciales de LinkedIn",
         "done": bool(linkedin_email) and bool(linkedin_pass),
         "required": False,
-        "help": "Optional. Enter your LinkedIn credentials in Settings to enable LinkedIn prospecting.",
+        "help": "Opcional. Introduce tus credenciales de LinkedIn en Ajustes para activar la prospección en LinkedIn.",
     })
 
     # 8. Cloudflare (optional)
     cf_id = env_vars.get("CLOUDFLARE_ACCOUNT_ID", "") or os.getenv("CLOUDFLARE_ACCOUNT_ID", "")
     cf_token = env_vars.get("CLOUDFLARE_API_TOKEN", "") or os.getenv("CLOUDFLARE_API_TOKEN", "")
     checks.append({
-        "id": "cloudflare", "label": "Cloudflare deep crawling",
+        "id": "cloudflare", "label": "Rastreo profundo con Cloudflare",
         "done": bool(cf_id) and bool(cf_token),
         "required": False,
-        "help": "Optional. For JavaScript-rendered website crawling during training.",
+        "help": "Opcional. Para rastrear webs renderizadas con JavaScript durante el entrenamiento.",
     })
 
     # 9. Warmup service: TrulyInbox connected, or another service the user named
@@ -305,14 +306,14 @@ async def get_setup_status():
         choice = "connected"
     checks.append({
         "id": "warmup_service",
-        "label": {"connected": "Warmup: TrulyInbox connected",
-                  "other": "Warmup: your own warmup service"}.get(choice, "Warm up your mailbox"),
+        "label": {"connected": "Calentamiento: TrulyInbox conectado",
+                  "other": "Warmup: your own warmup service"}.get(choice, "Calienta tu buzón"),
         "done": bool(choice),
         # Instantly warms its own accounts, so there it's a suggestion, not a step.
         "required": provider != "instantly",
-        "help": ("A new mailbox needs 2-4 weeks of warmup before cold email, and warmup "
-                 "keeps it out of spam after that. We recommend TrulyInbox: connect it and "
-                 "Harvey shows whether your mailbox is warmed."),
+        "help": ("Un buzón nuevo necesita de 2 a 4 semanas de calentamiento antes del email en frío, y "
+                 "después el calentamiento evita que acabe en spam. Recomendamos TrulyInbox: conéctalo y "
+                 "Harvey te mostrará si tu buzón está calentado."),
         "link": ti.AFFILIATE_URL,
     })
 
@@ -399,9 +400,9 @@ async def save_env_settings(request: Request):
     try:
         data = await request.json()
     except Exception:
-        return JSONResponse({"success": False, "message": "Invalid request body."}, status_code=400)
+        return JSONResponse({"success": False, "message": "Cuerpo de la solicitud no válido."}, status_code=400)
     if not isinstance(data, dict):
-        return JSONResponse({"success": False, "message": "Invalid request body."}, status_code=400)
+        return JSONResponse({"success": False, "message": "Cuerpo de la solicitud no válido."}, status_code=400)
     async with _env_lock:
         updates = {}
         for key in ["INSTANTLY_API_KEY", "LINKEDIN_EMAIL", "LINKEDIN_PASSWORD",
@@ -414,15 +415,15 @@ async def save_env_settings(request: Request):
             if key in data and data[key] is not None:
                 value = data[key]
                 if isinstance(value, bool) or not isinstance(value, (str, int, float)):
-                    return JSONResponse({"success": False, "message": f"{key} must be text."},
+                    return JSONResponse({"success": False, "message": f"{key} debe ser texto."},
                                         status_code=400)
                 value = str(value)
                 # A port Harvey can't parse would stop it starting at all.
                 if key.endswith("_PORT") and value.strip() and not value.strip().isdigit():
-                    return JSONResponse({"success": False, "message": f"{key} must be a number."},
+                    return JSONResponse({"success": False, "message": f"{key} debe ser un número."},
                                         status_code=400)
                 if len(value) > 4096 or "\x00" in value:
-                    return JSONResponse({"success": False, "message": f"{key} is invalid."},
+                    return JSONResponse({"success": False, "message": f"{key} no es válido."},
                                         status_code=400)
                 # Strip newlines so a crafted value can't inject extra .env entries
                 updates[key] = value.replace("\n", " ").replace("\r", " ").strip()
@@ -431,7 +432,7 @@ async def save_env_settings(request: Request):
                 _write_env_file(updates)
             except Exception as e:
                 logger.warning("Failed to write .env: %s", e)
-                return {"success": False, "message": "Could not write .env file."}
+                return {"success": False, "message": "No se pudo escribir el archivo .env."}
     return {"success": True}
 
 
@@ -446,7 +447,7 @@ async def trulyinbox_connect(request: Request):
         data = None
     key = data.get("key") if isinstance(data, dict) else None
     if not isinstance(key, str) or not key.strip() or len(key) > 512:
-        return JSONResponse({"success": False, "message": "Paste your TrulyInbox API key."},
+        return JSONResponse({"success": False, "message": "Pega tu clave de API de TrulyInbox."},
                             status_code=400)
     key = key.strip()
     try:
@@ -473,7 +474,7 @@ async def trulyinbox_connect(request: Request):
             _write_env_file(updates)
         except Exception as e:
             logger.warning("Failed to write .env: %s", e)
-            return {"success": False, "message": "Could not write .env file."}
+            return {"success": False, "message": "No se pudo escribir el archivo .env."}
     state = _state()
     await state.init_db()
     await ti.set_choice(state, "connected")
@@ -499,7 +500,7 @@ async def test_instantly(request: Request):
         data = {}
     api_key = str(data.get("api_key", "") or "")
     if not api_key:
-        return {"success": False, "message": "No API key provided."}
+        return {"success": False, "message": "No se ha indicado ninguna clave de API."}
     try:
         import httpx
         async with httpx.AsyncClient(timeout=10) as client:
@@ -508,11 +509,11 @@ async def test_instantly(request: Request):
                 headers={"Authorization": f"Bearer {api_key}"},
             )
             if resp.status_code == 200:
-                return {"success": True, "message": "Connected to Instantly."}
+                return {"success": True, "message": "Conectado a Instantly."}
             else:
-                return {"success": False, "message": f"API returned {resp.status_code}. Check your key."}
+                return {"success": False, "message": f"La API devolvió {resp.status_code}. Revisa tu clave."}
     except Exception as e:
-        return {"success": False, "message": f"Connection failed: {str(e)}"}
+        return {"success": False, "message": f"Error de conexión: {str(e)}"}
 
 
 # ── Companies ──
@@ -555,7 +556,7 @@ async def add_feedback(request: Request):
     entity_id = str(data.get("entity_id", "") or "")[:100]
     comment = str(data.get("comment", "") or "").strip()[:4000]
     if not comment:
-        return {"success": False, "message": "Comment is required."}
+        return {"success": False, "message": "El comentario es obligatorio."}
     feedback_id = uuid.uuid4().hex[:12]
     try:
         DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -577,7 +578,7 @@ async def add_feedback(request: Request):
             await db.commit()
     except Exception as e:
         logger.warning("Failed to save feedback: %s", e)
-        return {"success": False, "message": "Could not save feedback."}
+        return {"success": False, "message": "No se pudo guardar el comentario."}
     return {"success": True, "id": feedback_id}
 
 
@@ -608,11 +609,11 @@ async def start_harvey():
     global _harvey_process, _harvey_started_at
 
     if _check_harvey_pid():
-        return {"success": False, "message": "Harvey is already running."}
+        return {"success": False, "message": "Harvey ya está en marcha."}
     from harvey.main import _needs_setup
     if _needs_setup():
         return {"success": False,
-                "message": "Harvey isn't set up yet. Run `harvey setup` in a terminal first."}
+                "message": "Harvey aún no está configurado. Ejecuta antes `harvey setup` en una terminal."}
 
     # Ensure data dir exists
     (PROJECT_ROOT / "data").mkdir(parents=True, exist_ok=True)
@@ -641,7 +642,7 @@ async def start_harvey():
             log_handle.close()
     except Exception as e:
         logger.warning("Failed to start Harvey: %s", e)
-        return {"success": False, "message": f"Failed to start Harvey: {e}"}
+        return {"success": False, "message": f"No se pudo iniciar Harvey: {e}"}
     _harvey_started_at = datetime.now()
     # The loop writes its own PID file once it holds the loop lock. Writing
     # the child's PID here would overwrite a running loop's record if this
@@ -656,7 +657,7 @@ async def stop_harvey():
 
     pid = _check_harvey_pid()
     if not pid:
-        return {"success": False, "message": "Harvey is not running."}
+        return {"success": False, "message": "Harvey no está en marcha."}
 
     own = _harvey_process if _harvey_process and _harvey_process.pid == pid else None
 
@@ -688,7 +689,7 @@ async def stop_harvey():
     if alive():
         # Started by another user, or from an elevated terminal on Windows.
         return {"success": False,
-                "message": f"Couldn't stop Harvey (pid {pid}). Stop it where it was started."}
+                "message": f"No se pudo detener Harvey (pid {pid}). Páralo donde lo iniciaste."}
 
     _harvey_process = None
     _harvey_started_at = None
@@ -1041,7 +1042,7 @@ async def get_sending_mode():
     try:
         config = load_config(str(path))
     except Exception as e:
-        return JSONResponse({"error": f"Couldn't read {path.name}: {e}"}, status_code=500)
+        return JSONResponse({"error": f"No se pudo leer {path.name}: {e}"}, status_code=500)
     state = _state()
     await state.init_db()
     return {
@@ -1125,7 +1126,7 @@ async def outbox_edit(item_id: str, request: Request):
         item = await state.get_outbox_item(item_id)
         if not item or item.get("status") != "pending_review":
             return JSONResponse({"success": False,
-                                 "message": "Only drafts awaiting review can be edited."},
+                                 "message": "Solo se pueden editar los borradores pendientes de revisión."},
                                 status_code=409)
         if item.get("kind") == "reply":
             # Gmail threads a reply by its subject: a new one would land as a
@@ -1134,7 +1135,7 @@ async def outbox_edit(item_id: str, request: Request):
             subject = item.get("subject") or ""
         if not subject.strip() or not text:
             return JSONResponse({"success": False,
-                                 "message": "Subject and body are both required."},
+                                 "message": "El asunto y el cuerpo son obligatorios."},
                                 status_code=400)
         # The sender re-checks every email before it goes out; an edit it
         # would block is refused now, while the reviewer can still fix it,
@@ -1148,12 +1149,12 @@ async def outbox_edit(item_id: str, request: Request):
         gate = pre_send_check("reviewer@example.com", subject, checked)
         if not gate:
             return JSONResponse({"success": False,
-                                 "message": "The sender would have blocked this: "
+                                 "message": "El remitente lo habría bloqueado: "
                                             + "; ".join(gate.reasons)},
                                 status_code=400)
         if not await state.edit_outbox_draft(item_id, subject, text):
             return JSONResponse({"success": False,
-                                 "message": "Only drafts awaiting review can be edited."},
+                                 "message": "Solo se pueden editar los borradores pendientes de revisión."},
                                 status_code=409)
         await state.log_action("outbox_edited", "dashboard", {
             "outbox_id": item_id, "to_email": item.get("to_email", ""),
@@ -1308,8 +1309,8 @@ async def mark_prospect_sent(prospect_id: str, request: Request):
             await state.set_setting(key, current)
             if prospect_id in await _harvey_committed_ids():
                 await state.delete_setting(key)
-                return _refuse("Harvey has already approved or sent an email to this person. "
-                               "Check the Outbox.")
+                return _refuse("Harvey ya ha aprobado o enviado un email a esta persona. "
+                               "Revisa la Bandeja de salida.")
             await state.update_prospect_status(prospect_id, "contacted")
             # Anything Harvey had queued for them must not go out as well.
             changed = await state.cancel_pending_outbox_for_prospect(
@@ -1320,7 +1321,7 @@ async def mark_prospect_sent(prospect_id: str, request: Request):
                     return {"success": True, "sent": False}
                 if current == "contacted":
                     # Setting them back would make Harvey write and send again.
-                    return _refuse("This wasn't marked as sent by hand here, so it stays sent.")
+                    return _refuse("Aquí no se marcó como enviado a mano, así que sigue como enviado.")
                 return {"success": True, "sent": True, "status": current}
             if current != "contacted":
                 # They replied, opted out or bounced since: that stands.
@@ -1352,7 +1353,7 @@ async def outbox_reject(item_id: str):
         state = _state()
         await state.init_db()
         if not await state.reject_outbox_item(item_id):
-            return _refuse("That email is already sending or sent, so it can't be rejected.")
+            return _refuse("Ese email ya se está enviando o se envió, así que no se puede rechazar.")
         return {"success": True}
     except Exception as e:
         return JSONResponse({"success": False, "message": str(e)}, status_code=500)
@@ -1361,7 +1362,7 @@ async def outbox_reject(item_id: str):
 @app.post("/api/sending/{action}")
 async def sending_toggle(action: str):
     if action not in ("pause", "resume"):
-        return JSONResponse({"success": False, "message": "unknown action"}, status_code=400)
+        return JSONResponse({"success": False, "message": "acción desconocida"}, status_code=400)
     try:
         state = _state()
         await state.init_db()
@@ -1498,7 +1499,7 @@ async def undo_opt_out(prospect_id: str, request: Request):
     if not await state.undo_opt_out(prospect_id, details={
             "prospect_email": rows[0].get("email") or "",
             "previous_why": last.get("why", ""), "previous_at": last.get("at", "")}):
-        return _refuse("This person isn't opted out.")
+        return _refuse("Esta persona no se ha dado de baja.")
     return {"success": True, "status": "replied"}
 
 
@@ -1553,11 +1554,11 @@ async def set_conversation_status(convo_id: str, request: Request):
         data = {}
     status = data.get("status") if isinstance(data, dict) else None
     if status not in ("open", "closed"):
-        return JSONResponse({"success": False, "message": "status must be open or closed"},
+        return JSONResponse({"success": False, "message": "el estado debe ser open o closed"},
                             status_code=400)
     rows = await query_db("SELECT status FROM conversations WHERE id = ?", (convo_id,))
     if not rows:
-        return JSONResponse({"success": False, "message": "No such conversation."},
+        return JSONResponse({"success": False, "message": "La conversación no existe."},
                             status_code=404)
     state = _state()
     await state.update_conversation(convo_id, status=status)
@@ -1667,7 +1668,7 @@ async def estimate_discovery(request: Request):
         body = await request.json()
         provider = body.get("provider") or ""
         if provider not in PROVIDERS:
-            return JSONResponse({"error": f"unknown provider {provider!r}"},
+            return JSONResponse({"error": f"proveedor desconocido {provider!r}"},
                                 status_code=400)
 
         try:
@@ -1695,7 +1696,7 @@ async def start_discovery(request: Request):
     global _discovery_task, _discovery_report
 
     if _discovery_task and not _discovery_task.done():
-        return JSONResponse({"success": False, "message": "a run is already going"},
+        return JSONResponse({"success": False, "message": "ya hay una ejecución en curso"},
                             status_code=409)
     try:
         from harvey.collectors.discover import PROVIDERS
@@ -1706,7 +1707,7 @@ async def start_discovery(request: Request):
         provider = body.get("provider") or ""
         if provider not in PROVIDERS:
             return JSONResponse({"success": False,
-                                 "message": f"unknown provider {provider!r}"},
+                                 "message": f"proveedor desconocido {provider!r}"},
                                 status_code=400)
 
         config = load_config()
@@ -1757,7 +1758,7 @@ async def start_profile():
     global _discovery_task, _discovery_report
 
     if _discovery_task and not _discovery_task.done():
-        return JSONResponse({"success": False, "message": "a run is already going"},
+        return JSONResponse({"success": False, "message": "ya hay una ejecución en curso"},
                             status_code=409)
     try:
         from harvey.pipeline import run_profile_stage
@@ -2061,14 +2062,14 @@ async def get_today():
         # Ordered by how much it blocks Harvey from doing anything at all.
         brain = await _brain_status()
         if brain.get("status") == "paused":
-            who = "Codex" if brain.get("provider") == "codex" else "Harvey's model"
+            who = "Codex" if brain.get("provider") == "codex" else "el modelo de Harvey"
             items.append({
                 "key": "brain-paused", "tone": "bad",
-                "title": f"{who} is paused, so Harvey is waiting",
-                "detail": (str(brain.get("reason") or "It can't be used right now.")[:300] +
-                           " Replies and queued emails are untouched; Harvey resumes "
-                           "once it's fixed. harvey status --check says what's wrong."),
-                "action": "Open the log", "tab": "controls",
+                "title": f"{who} está en pausa, así que Harvey espera",
+                "detail": (str(brain.get("reason") or "No se puede usar ahora mismo.")[:300] +
+                           " Las respuestas y los emails en cola no se tocan; Harvey se reanuda "
+                           "cuando se arregle. harvey status --check indica qué falla."),
+                "action": "Abrir el registro", "tab": "controls",
             })
 
         hold = await state.current_sends_held()
@@ -2077,15 +2078,15 @@ async def get_today():
             title, detail = held_message(hold, waiting=len(approved))
             items.append({
                 "key": "sends-held", "tone": "bad", "title": title, "detail": detail,
-                "action": "Open the log", "tab": "controls",
+                "action": "Abrir el registro", "tab": "controls",
             })
 
         if paused:
             items.append({
                 "key": "paused", "tone": "bad",
-                "title": "Sending is paused",
-                "detail": str(paused) + ". Nothing will go out until you resume it.",
-                "action": "Review and resume", "tab": "outbox",
+                "title": "El envío está en pausa",
+                "detail": str(paused) + ". No saldrá nada hasta que lo reanudes.",
+                "action": "Revisar y reanudar", "tab": "outbox",
             })
 
         # Cold email waiting on the optional Precleared check: its free
@@ -2102,7 +2103,7 @@ async def get_today():
             items.append({
                 "key": "precleared-hold", "tone": message["tone"],
                 "title": message["title"], "detail": message["detail"],
-                "action": "Open the log", "tab": "controls",
+                "action": "Abrir el registro", "tab": "controls",
                 "url": message["url"], "url_label": message["url_label"],
             })
 
@@ -2112,79 +2113,79 @@ async def get_today():
                        if c.get("required") and not c.get("done")]
             items.append({
                 "key": "setup", "tone": "warn",
-                "title": "Finish setting Harvey up",
-                "detail": ", ".join(missing[:3]) or "Some required steps are incomplete.",
-                "action": "Open setup", "tab": "settings",
+                "title": "Termina de configurar Harvey",
+                "detail": ", ".join(missing[:3]) or "Faltan algunos pasos obligatorios.",
+                "action": "Abrir configuración", "tab": "settings",
             })
 
         if proposed:
             items.append({
                 "key": "signals", "tone": "warn",
-                "title": (f"{len(proposed)} signal waiting for your confirmation"
+                "title": (f"{len(proposed)} señal pendiente de tu confirmación"
                           if len(proposed) == 1
-                          else f"{len(proposed)} signals waiting for your confirmation"),
-                "detail": ("Harvey won't collect anything you haven't approved. "
-                           "Confirm which signals define a good prospect for you."),
-                "action": "Review signals", "tab": "signals",
+                          else f"{len(proposed)} señales pendientes de tu confirmación"),
+                "detail": ("Harvey no recopilará nada que no hayas aprobado. "
+                           "Confirma qué señales definen un buen prospecto para ti."),
+                "action": "Revisar señales", "tab": "signals",
             })
         elif not confirmed:
             items.append({
                 "key": "signals-none", "tone": "warn",
-                "title": "No signals confirmed",
-                "detail": "Every signal is rejected, so prospecting has nothing to collect.",
-                "action": "Review signals", "tab": "signals",
+                "title": "Ninguna señal confirmada",
+                "detail": "Todas las señales están rechazadas, así que la prospección no tiene nada que recopilar.",
+                "action": "Revisar señales", "tab": "signals",
             })
 
         if not n_companies and confirmed:
             items.append({
                 "key": "discover", "tone": "good",
-                "title": "No companies yet",
-                "detail": ("Signals are confirmed but nothing has been collected. "
-                           "Discovery is free to try — no account needed."),
-                "action": "Find businesses", "tab": "discover",
+                "title": "Aún no hay empresas",
+                "detail": ("Hay señales confirmadas pero no se ha recopilado nada. "
+                           "Probar Descubrir es gratis y no necesitas cuenta."),
+                "action": "Encontrar negocios", "tab": "discover",
             })
 
         unprofiled = unprofiled_count
         if unprofiled:
             items.append({
                 "key": "profile", "tone": "good",
-                "title": f"{unprofiled} companies not looked at yet",
-                "detail": ("Reading their websites is free and it is what makes "
-                           "an email specific — who their agency is, what they "
-                           "are missing, whether they are spending on ads."),
-                "action": "Read their sites", "tab": "discover",
+                "title": f"{unprofiled} empresas sin revisar todavía",
+                "detail": ("Leer sus webs es gratis y es lo que hace que un email sea "
+                           "específico: quién es su agencia, qué les falta, "
+                           "si invierten en anuncios."),
+                "action": "Leer sus webs", "tab": "discover",
             })
 
         if needs_human:
             items.append({
                 "key": "needs-human", "tone": "bad",
-                "title": (f"{needs_human} conversation needs you" if needs_human == 1
-                          else f"{needs_human} conversations need you"),
-                "detail": ("Harvey stopped and handed these over: an escalation, or a "
-                           "reply it had no safe answer for. Reply yourself, then close "
-                           "it or hand it back."),
-                "action": "Read them", "tab": "conversations",
+                "title": (f"{needs_human} conversación te necesita" if needs_human == 1
+                          else f"{needs_human} conversaciones te necesitan"),
+                "detail": ("Harvey se detuvo y te las pasó: una escalada, o una "
+                           "respuesta para la que no tenía una contestación segura. Responde tú y luego "
+                           "ciérrala o devuélvesela."),
+                "action": "Leerlas", "tab": "conversations",
             })
 
         if pending:
             items.append({
                 "key": "outbox", "tone": "warn",
-                "title": (f"{len(pending)} email waiting for approval" if len(pending) == 1
-                          else f"{len(pending)} emails waiting for approval"),
-                "detail": ("Nothing sends until you approve it. Read them one at a time."
+                "title": (f"{len(pending)} email pendiente de aprobación" if len(pending) == 1
+                          else f"{len(pending)} emails pendientes de aprobación"),
+                "detail": ("No se envía nada hasta que lo apruebes. Léelos uno a uno."
                            if _require_approval_now() else
-                           "Autopilot sends the rest on its own; these wait for you. "
-                           "Read them one at a time."),
-                "action": "Open the decisions desk", "tab": "outbox",
+                           "El piloto automático envía el resto solo; estos esperan por ti. "
+                           "Léelos uno a uno."),
+                "action": "Abrir la mesa de decisiones", "tab": "outbox",
             })
 
         if open_convos:
             items.append({
                 "key": "replies", "tone": "good",
-                "title": (f"{open_convos} live conversation" if open_convos == 1
-                          else f"{open_convos} live conversations"),
-                "detail": "People replied. Check how Harvey is handling them.",
-                "action": "Read conversations", "tab": "conversations",
+                "title": (f"{open_convos} conversación activa" if open_convos == 1
+                          else f"{open_convos} conversaciones activas"),
+                "detail": "Hay gente que ha respondido. Revisa cómo las gestiona Harvey.",
+                "action": "Leer conversaciones", "tab": "conversations",
             })
 
         return {"items": items, "stats": stats}
@@ -2201,24 +2202,24 @@ async def get_today():
 
 CATEGORY_META = {
     "discovery": {
-        "label": "Discovery — who exists",
-        "blurb": "How Harvey finds businesses at all, and how visible they are. "
-                 "This is the only stage that costs money.",
+        "label": "Descubrimiento: quién existe",
+        "blurb": "Cómo encuentra Harvey los negocios y lo visibles que son. "
+                 "Es la única fase que cuesta dinero.",
     },
     "profile": {
-        "label": "Profile — what they are",
-        "blurb": "Read from the pages a business already publishes. Free, no AI "
-                 "tokens, three HTTP requests per company. These are the signals "
-                 "that make an email specific.",
+        "label": "Perfil: qué son",
+        "blurb": "Se lee de las páginas que el negocio ya publica. Gratis, sin tokens "
+                 "de IA, tres peticiones HTTP por empresa. Son las señales "
+                 "que hacen específico un email.",
     },
     "people": {
-        "label": "People — who decides",
-        "blurb": "Named humans and whether they're the one who can say yes.",
+        "label": "Personas: quién decide",
+        "blurb": "Personas con nombre y si son quienes pueden decir que sí.",
     },
     "verification": {
-        "label": "Contactability — can you reach them",
-        "blurb": "Whether the address will actually deliver, and what to do when "
-                 "it won't.",
+        "label": "Contactabilidad: se puede llegar a ellos",
+        "blurb": "Si la dirección realmente entregará el mensaje y qué hacer cuando "
+                 "no lo haga.",
     },
 }
 CATEGORY_ORDER = ["discovery", "profile", "people", "verification"]
@@ -2280,12 +2281,12 @@ async def set_signals_status(request: Request):
         codes = body.get("codes") or ([body["code"]] if body.get("code") else [])
         if status not in ("proposed", "confirmed", "rejected"):
             return JSONResponse(
-                {"success": False, "message": f"invalid status: {status!r}"},
+                {"success": False, "message": f"estado no válido: {status!r}"},
                 status_code=400,
             )
         if not codes:
             return JSONResponse(
-                {"success": False, "message": "no signal codes given"}, status_code=400
+                {"success": False, "message": "no se indicó ningún código de señal"}, status_code=400
             )
 
         from harvey.signals import seed_signal_catalog
@@ -2458,7 +2459,7 @@ async def export_cohort(require: str = "", exclude: str = "", ranges: str = ""):
         return JSONResponse({"error": str(e)}, status_code=400)
     except Exception as e:
         logger.warning("Cohort export failed: %s", e)
-        return JSONResponse({"error": "Cohort export failed"}, status_code=500)
+        return JSONResponse({"error": "Error al exportar la cohorte"}, status_code=500)
     return PlainTextResponse(
         buf.getvalue(),
         media_type="text/csv",
@@ -2560,9 +2561,32 @@ def dashboard_url(host: str = "127.0.0.1", port: int = 5555) -> str:
     return f"http://{name}:{port}/#token={token_store.get()}"
 
 
+def _start_hosted(host: str, port: int):
+    """Hosted mode (Railway): any interface, reachable only through the
+    HARVEY_PUBLIC_HOSTS names, with a token the operator set in the
+    environment, so it never has to be printed to the platform's logs."""
+    import uvicorn
+
+    try:
+        if not auth.env_token():
+            raise DashboardSetupError(
+                "Set HARVEY_DASHBOARD_TOKEN (e.g. python -c \"import secrets; "
+                "print(secrets.token_urlsafe(32))\") to run the dashboard on a server.")
+    except auth.TokenError as e:
+        raise DashboardSetupError(str(e)) from e
+    names = ", ".join(sorted(auth.public_hosts()))
+    print(f"\n  Harvey Dashboard (hosted) on {host}:{port} for {names}.")
+    print("  Open https://<domain>/#token=<HARVEY_DASHBOARD_TOKEN> to unlock it.\n")
+    uvicorn.run(app, host=host, port=port, log_level="warning",
+                proxy_headers=False, server_header=False, date_header=False)
+
+
 def start_dashboard(host: str = "127.0.0.1", port: int = 5555):
     """Start the dashboard server (loopback only, token required)."""
     import uvicorn
+
+    if auth.public_hosts() and not auth.is_loopback(host.strip("[]").lower()):
+        return _start_hosted(host, port)
 
     try:
         bind = _check_loopback_bind(host)

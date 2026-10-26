@@ -1051,6 +1051,10 @@ def main():
                      help="Comma-separated codes to turn off")
     sub.set_defaults(func=cmd_signals)
 
+    # harvey accounts import|list|enrich|score|cohort
+    from harvey.cli_accounts import register as register_accounts
+    register_accounts(subparsers)
+
     sub = subparsers.add_parser(
         "retry-writes", help="Retry prospects the Writer couldn't write an email for")
     sub.set_defaults(func=cmd_retry_writes)

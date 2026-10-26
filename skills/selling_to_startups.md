@@ -1,100 +1,53 @@
-# Selling to Startup Founders
+# Vender a founders de startups
 
-Used when a prospect's company says on its own site that it is backed by
-Y Combinator (YC_BACKED) or another accelerator such as Techstars, Antler or
-Entrepreneur First (ACCELERATOR), or that it raised a round in the last 18
-months (FUNDING_ROUND), and for replies from those founders. Everything here sits
-under the strict email rules: those still win.
+Se usa cuando la propia web de la empresa de un prospecto dice que está respaldada por Y Combinator (YC_BACKED) o por otra aceleradora (accelerator) como Techstars, Antler o Entrepreneur First (ACCELERATOR), o que levantó una ronda en los últimos 18 months (FUNDING_ROUND), y para las respuestas de esos founders. Todo lo de aquí está sujeto a las reglas estrictas del email: esas siguen mandando.
 
-## Who is reading
+## Quién lee
 
-At a seed-stage startup the founder is the buyer, the user and the person
-who will set the tool up. They read email on their phone between other
-things, decide in seconds, and forward nothing to a procurement team because
-there isn't one. A good email to a founder is one they can say yes to
-without a meeting.
+En una startup en fase seed, el founder es el comprador, el usuario y la persona que va a configurar la herramienta. Lee el email en el móvil entre otras cosas, decide en segundos y no reenvía nada a un departamento de compras porque no existe. Un buen email a un founder es uno al que puede decir que sí sin necesidad de una reunión.
 
-What they care about, in roughly this order: shipping the product, getting
-customers, raising money, hiring, and not running out of runway. Anything
-that does not connect to one of those gets archived.
+Lo que le importa, más o menos por este orden: sacar el producto, conseguir clientes, levantar dinero, contratar y no quedarse sin runway. Todo lo que no conecte con una de esas cosas se archiva.
 
-## Timing around the batch
+## El calendario del batch
 
-A YC batch runs about three months and ends with Demo Day, when the
-companies pitch investors. Most accelerators work the same way: Techstars,
-a16z speedrun, AI Grant and Plug and Play run cohorts of a few months that
-end in a demo day; Antler and Entrepreneur First start earlier, with people
-who are still finding a co-founder; South Park Commons and Neo are closer to
-a community than a cohort. The timing below holds for all of them; only the
-batch code changes (YC W24, Techstars 2024, speedrun SR003).
+Un batch de YC dura unos tres meses y termina con el Demo Day, cuando las empresas presentan a los inversores. La mayoría de las aceleradoras funcionan igual: Techstars, a16z speedrun, AI Grant y Plug and Play hacen cohortes de pocos meses que terminan en un demo day; Antler y Entrepreneur First empiezan antes, con personas que aún están buscando cofundador; South Park Commons y Neo se parecen más a una comunidad que a una cohorte. El calendario de abajo vale para todas; solo cambia el código del batch (YC W24, Techstars 2024, speedrun SR003).
 
-- **During the batch** founders are heads-down and protective of their time.
-  Small asks only: a link to try, a one-line question.
-- **The weeks before Demo Day** are taken up by fundraising. Unless what you
-  sell helps them raise, expect silence.
-- **After Demo Day** many have just raised. That is the buying window: they
-  hire, buy tools, and replace the scrappy setup they launched with.
-- **A batch from a year or more ago** means a company that has found some
-  traction and now has real operational problems. Write to those problems,
-  not to "startup life".
+- **Durante el batch** los founders están con la cabeza metida en el producto y protegen su tiempo. Solo peticiones pequeñas: un enlace para probar, una pregunta de una línea.
+- **Las semanas previas al Demo Day** las ocupa la captación de fondos. Salvo que lo que vendes les ayude a levantar capital, espera silencio.
+- **Después del Demo Day** muchos acaban de levantar una ronda. Esa es la ventana de compra: contratan, compran herramientas y sustituyen el apaño con el que lanzaron.
+- **Un batch de hace un año o más** significa una empresa que ha encontrado algo de tracción y ahora tiene problemas operativos de verdad. Escribe sobre esos problemas, no sobre "la vida de startup".
 
-The batch code (W24, S23, F24, X25) or cohort is a fact you may use, but
-only when it explains why you are writing now. Never open with
-congratulations on getting into YC or any accelerator: every vendor does
-that, and it reads as a template.
+El código del batch (W24, S23, F24, X25) o la cohorte es un dato que puedes usar, pero solo cuando explique por qué escribes ahora. Nunca abras felicitándoles por haber entrado en YC o en cualquier aceleradora: todos los proveedores lo hacen y suena a plantilla.
 
-## Recently funded
+## Recently funded (recién financiadas)
 
-A company that announced a raise on its own site has just been told by
-investors to grow, and has the money to do it. What they buy in the months
-after a raise, roughly in order: hiring (recruiting tools, payroll, HR),
-the tools the scrappy launch setup can't carry any more (security and
-compliance for bigger customers, analytics, billing), sales and marketing
-to hit the targets in the deck, and infrastructure that scales.
+Una empresa que anunció una ronda en su propia web acaba de recibir de sus inversores la orden de crecer, y tiene el dinero para hacerlo. Lo que compran en los meses posteriores a una ronda, más o menos por orden: contratación (herramientas de selección, nóminas, RR. HH.), las herramientas que el apaño del lanzamiento ya no soporta (seguridad y cumplimiento para clientes más grandes, analítica, facturación), ventas y marketing para alcanzar los objetivos del deck, e infraestructura que escale.
 
-- **Check the date in the facts.** A raise in the last few months is a
-  reason to write now. One over 18 months old is history: the facts say
-  "not recent", and then the raise isn't the angle at all. No date means
-  don't call it recent.
-- Write to what the raise is for (the plan they announced, the roles they
-  are hiring), not to the money. "Congrats on the round" is the email
-  every vendor sends that week.
-- **Never assume the amount, the investors or the round** beyond what the
-  facts say. If the facts say "Series A" and no amount, don't guess one;
-  don't name investors the facts don't list.
-- Don't imply they're flush or should spend freely. Founders who just
-  raised are protective of runway; show how it saves time or helps them
-  hit the next milestone.
+- **Comprueba la fecha en los datos.** Una ronda de los últimos meses es un motivo para escribir ahora. Una de hace más de 18 months es historia: los datos dirán "not recent" y entonces la ronda no es el ángulo en absoluto. Sin fecha, no la presentes como reciente.
+- Escribe sobre para qué es la ronda (el plan que anunciaron, los puestos que están contratando), no sobre el dinero. "Enhorabuena por la ronda" es el email que manda todo proveedor esa semana.
+- **Nunca supongas el importe (amount), los inversores ni la ronda** más allá de lo que digan los datos. Si los datos dicen "Series A" y no dan importe, no te inventes uno; no nombres inversores que los datos no listen.
+- No insinúes que van sobrados ni que deberían gastar sin freno. Los founders que acaban de levantar protegen su runway; muestra cómo ahorra tiempo o les ayuda a llegar al siguiente hito.
 
-## How to write it
+## Cómo escribirlo
 
-- Founder to founder. Plain words, no corporate polish, no superlatives.
-- One concrete observation from the facts: something they shipped, a role
-  they are hiring for, a tool on their site. Not their YC status alone.
-- One question or one small offer. A first email asks for a reply or a
-  click, never a 30-minute call.
-- Make trying it free and quick: a trial, a startup plan, credits, or a
-  sandbox. Say plainly if there is no sales call needed.
-- Pricing in the first reply if they ask. Founders hate being made to book a
-  call to learn what something costs.
-- Under the word limits in the email rules. Shorter is better here.
+- De founder a founder. Palabras sencillas, sin pulido corporativo, sin superlativos.
+- Una observación concreta sacada de los datos: algo que han lanzado, un puesto que están contratando, una herramienta en su web. No solo su condición de YC.
+- Una pregunta o una pequeña oferta. Un primer email pide una respuesta o un clic, nunca una llamada de 30 minutos.
+- Haz que probarlo sea gratis y rápido: una prueba, un plan para startups, créditos o un sandbox. Di con claridad si no hace falta llamada comercial.
+- El precio, en la primera respuesta si lo preguntan. Los founders odian que les obliguen a reservar una llamada para saber cuánto cuesta algo.
+- Por debajo de los límites de palabras de las reglas del email. Aquí, más corto es mejor.
 
-## What not to do
+## Qué no hacer
 
-- Don't claim or imply a connection to YC or the accelerator, its partners,
-  or other companies in the batch. Don't name-drop. Don't invent mutual friends or investors.
-- Don't mention Hacker News, Paul Graham's essays or YC lore to sound like
-  an insider.
-- Don't assume they raised, how much, or from whom. Only what the facts say.
-- Don't send attachments or decks. A link, at most.
-- Don't follow up more than the sequence allows. Founders talk to each
-  other, and a pushy vendor becomes a story.
+- No afirmes ni insinúes una conexión con YC o con la aceleradora, sus partners u otras empresas del batch. No presumas de contactos. No inventes amigos ni inversores en común.
+- No menciones Hacker News, los ensayos de Paul Graham ni el folclore de YC para parecer del gremio.
+- No supongas que han levantado, cuánto ni de quién. Solo lo que digan los datos.
+- No mandes adjuntos ni decks. Un enlace, como mucho.
+- No hagas más seguimientos de los que permite la secuencia. Los founders hablan entre ellos, y un proveedor pesado se convierte en una anécdota.
 
-## Handling their replies
+## Gestionar sus respuestas
 
-- Answer exactly what they asked, first, in a sentence or two.
-- Offer the self-serve path before a meeting. If they want a call, give a
-  booking link and keep it short (15 minutes).
-- "Not now" from a founder usually means "after we raise" or "after launch".
-  Thank them and don't argue. Harvey records it; the next touch is theirs.
-- An opt-out is final, as with everyone else.
+- Responde exactamente a lo que preguntaron, primero, en una o dos frases.
+- Ofrece el camino de autoservicio antes que una reunión. Si quieren una llamada, da un enlace de reserva y sé breve (15 minutos).
+- Un "ahora no" de un founder suele significar "después de levantar ronda" o "después del lanzamiento". Da las gracias y no discutas. Harvey lo registra; el siguiente contacto lo decide el founder.
+- Una baja es definitiva, como con todos los demás.

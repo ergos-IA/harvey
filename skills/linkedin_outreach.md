@@ -1,141 +1,141 @@
-# LinkedIn Outreach Skills
+# Habilidades de prospección en LinkedIn
 
-Harvey's LinkedIn playbook for building relationships and generating conversations.
-
----
-
-## Read First: Risk & Ethics
-
-- **Automating LinkedIn violates LinkedIn's Terms of Service.** The operator has been warned during setup; the account can be restricted or banned. Stay far under the rate limits in this file — they are ceilings, not targets.
-- **Never use a fake profile or fake identity.** Harvey acts only as the configured persona on the operator's real account.
-- **If someone asks whether messages are automated, answer truthfully.** Immediately.
-- **A "not interested" or ignored message thread is final.** No repeated connection requests, no pestering across email after a LinkedIn decline — the opt-out follows the person, not the channel.
-- **Never scrape or store data from private profiles** beyond what's needed to qualify and personalize (name, title, company, public posts).
+El playbook de LinkedIn de Harvey para construir relaciones y generar conversaciones.
 
 ---
 
-## Connection Request Strategy
+## Léelo primero: riesgos y ética
 
-### To Note or Not to Note
-- **No note**: 34.3% acceptance rate (slightly higher than with notes)
-- **Personalized note**: 32.3% acceptance rate (but allows pre-framing)
-- **Rule**: Use notes only when you have something genuinely relevant to say. A generic note hurts more than no note at all.
-
-### Good Connection Notes (under 300 chars)
-```
-"Hi {{first_name}} — saw your post about {{topic}}. Thought-provoking stuff.
-Would love to connect."
-
-"Hi {{first_name}} — we're both in the {{industry}} space. Always good to
-connect with fellow {{title}}s."
-
-"{{first_name}} — {{mutual_connection}} mentioned you're doing great work
-at {{company}}. Would love to connect."
-```
-
-### Bad Connection Notes (never do these)
-- "I'd love to tell you about our product..." (sales pitch on connect)
-- "We help companies like yours..." (too salesy)
-- Generic "Let's connect!" with no context
+- **Automatizar LinkedIn incumple las condiciones de servicio de LinkedIn.** Se ha avisado al operador durante la configuración; la cuenta puede ser restringida o bloqueada. Mantente muy por debajo de los límites de frecuencia de este archivo: son techos, no objetivos.
+- **Nunca uses un perfil falso ni una identidad falsa.** Harvey actúa solo como la persona configurada, desde la cuenta real del operador.
+- **Si alguien pregunta si los mensajes están automatizados, responde con la verdad.** De inmediato.
+- **Un "no me interesa" o un hilo ignorado es definitivo.** Nada de solicitudes de conexión repetidas ni de insistir por email tras un rechazo en LinkedIn: la baja sigue a la persona, no al canal.
+- **Nunca extraigas ni guardes datos de perfiles privados** más allá de lo necesario para cualificar y personalizar (nombre, cargo, empresa, publicaciones públicas).
 
 ---
 
-## Messaging Sequence (Post-Connection)
+## Estrategia de solicitudes de conexión
 
-### Day 0: Connection Accepted
-- Do NOT pitch immediately
-- Optional: Like or comment on their recent post (build familiarity)
+### Con nota o sin nota
+- **Sin nota**: 34,3 % de aceptación (algo más que con nota)
+- **Nota personalizada**: 32,3 % de aceptación (pero permite enmarcar el contacto)
+- **Regla**: usa nota solo cuando tengas algo realmente relevante que decir. Una nota genérica perjudica más que no poner ninguna.
 
-### Day 1-2: First Message
-- Thank them for connecting
-- Ask a genuine question or share a relevant insight
-- NO pitch, NO links, NO asks
-
+### Buenas notas de conexión (menos de 300 caracteres)
 ```
-"Thanks for connecting, {{first_name}}! Been following what {{company}}
-is doing with {{initiative}} — really impressive growth.
+"Hola {{first_name}}, vi tu publicación sobre {{topic}}. Da que pensar.
+Me gustaría conectar."
 
-Quick question: how are you all currently handling {{relevant_process}}?"
-```
+"Hola {{first_name}}, los dos estamos en el sector de {{industry}}. Siempre
+viene bien conectar con otros {{title}}."
 
-### Day 4-5: Second Message (if they replied)
-- Continue the conversation naturally
-- Introduce your product ONLY if there's a natural opening
-- Frame as "we do something similar" not "buy our thing"
-
-```
-"That's interesting — we actually built something that tackles exactly that.
-A few {{industry}} companies are using it to {{benefit}}.
-
-Would you be open to a quick look? No pressure at all."
+"{{first_name}}, {{mutual_connection}} me comentó que estás haciendo un gran
+trabajo en {{company}}. Me gustaría conectar."
 ```
 
-### Day 4-5: Second Message (if NO reply)
-- One gentle follow-up only
-- Add value (share an article, insight, or observation)
-
-```
-"Hey {{first_name}} — came across this {{article/stat}} about {{topic}}
-and thought of {{company}}. Figured it might be useful.
-
-[Link or brief summary]"
-```
-
-### After 2 Messages with No Reply
-- Stop. Do not send more LinkedIn messages.
-- Move them to email outreach if you have their address.
+### Malas notas de conexión (nunca las uses)
+- "Me encantaría contarte nuestro producto..." (discurso comercial al conectar)
+- "Ayudamos a empresas como la tuya..." (demasiado comercial)
+- Un "¡Conectemos!" genérico sin contexto
 
 ---
 
-## Profile Engagement Strategy (Warm-Up)
+## Secuencia de mensajes (tras la conexión)
 
-Before reaching out to high-value prospects, warm them up:
+### Día 0: conexión aceptada
+- NO vendas de inmediato
+- Opcional: dale like o comenta una publicación reciente suya (genera familiaridad)
 
-1. **Week 1**: View their profile (they see the notification)
-2. **Week 1-2**: Like 2-3 of their posts
-3. **Week 2**: Leave a thoughtful comment on a post
-4. **Week 2-3**: Send connection request (they now recognize your name)
+### Día 1-2: primer mensaje
+- Dale las gracias por conectar
+- Haz una pregunta genuina o comparte un dato relevante
+- SIN pitch, SIN enlaces, SIN peticiones
 
-This sequence increases acceptance rates by up to 25%.
+```
+"Gracias por conectar, {{first_name}}. Llevo un tiempo siguiendo lo que hace
+{{company}} con {{initiative}} y el crecimiento se nota.
+
+Una pregunta: ¿cómo gestionáis ahora mismo {{relevant_process}}?"
+```
+
+### Día 4-5: segundo mensaje (si respondió)
+- Continúa la conversación con naturalidad
+- Presenta tu producto SOLO si hay una entrada natural
+- Plantéalo como "hacemos algo parecido", no como "compra lo nuestro"
+
+```
+"Qué interesante, justo hemos construido algo que resuelve eso. Varias
+empresas de {{industry}} lo usan para {{benefit}}.
+
+¿Te encaja que te lo enseñe?"
+```
+
+### Día 4-5: segundo mensaje (si NO respondió)
+- Un solo seguimiento amable
+- Aporta valor (comparte un artículo, un dato o una observación)
+
+```
+"Hola {{first_name}}, me encontré con este {{article/stat}} sobre {{topic}}
+y pensé en {{company}}. Igual te sirve.
+
+[Enlace o breve resumen]"
+```
+
+### Tras 2 mensajes sin respuesta
+- Para. No envíes más mensajes por LinkedIn.
+- Pásalos a prospección por email si tienes su dirección.
 
 ---
 
-## Content for Engagement
+## Estrategia de interacción con el perfil (calentamiento)
 
-When commenting on prospects' posts:
-- Add substance, not just "Great post!"
-- Share a relevant experience or data point
-- Ask a follow-up question
-- Keep it under 3 sentences
+Antes de contactar con prospectos de alto valor, caliéntalos:
 
-Good: "This resonates. We saw the same pattern with {{related insight}}.
-Curious — did you find that {{follow-up question}}?"
+1. **Semana 1**: visita su perfil (les llega la notificación)
+2. **Semana 1-2**: dale like a 2-3 de sus publicaciones
+3. **Semana 2**: deja un comentario meditado en una publicación
+4. **Semana 2-3**: envía la solicitud de conexión (ya reconocen tu nombre)
 
-Bad: "Great insight! 🔥 Totally agree!"
+Esta secuencia aumenta las tasas de aceptación hasta un 25 %.
 
 ---
 
-## Rate Limits & Safety
+## Contenido para interactuar
 
-To avoid LinkedIn restrictions:
-- **Connection requests**: Max 20/day, spread throughout the day
-- **Messages**: Max 10/day to new connections
-- **Profile views**: Max 50/day
-- **Random delays**: 3-8 seconds between actions
-- **Session length**: Max 2 hours, then break for 1+ hours
-- **Weekly limits**: Max 100 connection requests/week
-- **Cookie persistence**: Reuse sessions, don't re-login each time
-- **Human patterns**: Don't operate during obviously off-hours for your timezone
+Al comentar las publicaciones de los prospectos:
+- Aporta sustancia, no solo un "¡Gran publicación!"
+- Comparte una experiencia o un dato relevante
+- Haz una pregunta de seguimiento
+- Máximo 3 frases
+
+Bien: "Esto me resuena. Vimos el mismo patrón con {{related insight}}.
+Me pregunto si en vuestro caso {{follow-up question}}."
+
+Mal: "¡Gran aportación! 🔥 ¡Totalmente de acuerdo!"
 
 ---
 
-## LinkedIn-Specific Personalization Sources
+## Límites de frecuencia y seguridad
 
-When crafting messages, look for:
-1. Recent posts or articles they've shared
-2. Job changes (new role = high receptivity window)
-3. Company milestones (funding, product launches, hiring)
-4. Mutual connections
-5. Shared groups or interests
-6. Their "About" section
-7. Featured content on their profile
+Para evitar restricciones de LinkedIn:
+- **Solicitudes de conexión**: máximo 20/día, repartidas a lo largo del día
+- **Mensajes**: máximo 10/día a conexiones nuevas
+- **Visitas a perfiles**: máximo 50/día
+- **Retrasos aleatorios**: 3-8 segundos entre acciones
+- **Duración de la sesión**: máximo 2 horas, luego descansa 1 hora o más
+- **Límites semanales**: máximo 100 solicitudes de conexión/semana
+- **Persistencia de cookies**: reutiliza las sesiones, no vuelvas a iniciar sesión cada vez
+- **Patrones humanos**: no operes en horas claramente intempestivas para tu zona horaria
+
+---
+
+## Fuentes de personalización específicas de LinkedIn
+
+Al redactar mensajes, busca:
+1. Publicaciones o artículos recientes que hayan compartido
+2. Cambios de puesto (rol nuevo = ventana de alta receptividad)
+3. Hitos de la empresa (financiación, lanzamientos de producto, contrataciones)
+4. Conexiones en común
+5. Grupos o intereses compartidos
+6. Su sección "Acerca de"
+7. Contenido destacado de su perfil

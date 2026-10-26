@@ -23,6 +23,8 @@ from urllib.parse import quote, unquote
 
 import httpx
 
+from harvey.collectors.spain import ats_es
+
 logger = logging.getLogger("harvey.collectors.ats")
 
 # A board bigger than this is a large enterprise's, not a prospect worth one
@@ -30,7 +32,10 @@ logger = logging.getLogger("harvey.collectors.ats")
 MAX_FEED_BYTES = 8 * 1024 * 1024
 
 ATS_LABELS = {"greenhouse": "Greenhouse", "lever": "Lever", "lever_eu": "Lever",
-              "ashby": "Ashby", "workable": "Workable"}
+              "ashby": "Ashby", "workable": "Workable",
+              # Boards common in Spain (Personio, Teamtailor, Factorial, JOIN,
+              # SmartRecruiters): harvey.collectors.spain.ats_es.
+              **ats_es.LABELS}
 
 # Escaped slashes ("jobs.ashbyhq.com\/acme") show up in inline JSON.
 _S = r"\\?/"
@@ -51,12 +56,12 @@ _BOARD_RES = (
     ("workable", re.compile(rf"apply\.workable\.com{_S}api{_S}v1{_S}widget{_S}accounts{_S}([A-Za-z0-9_-]+)", re.I)),
     ("workable", re.compile(rf"(?<![\w.@-])apply\.workable\.com{_S}([A-Za-z0-9_-]+)", re.I)),
     ("workable", re.compile(r"(?<![\w.@-])([a-z0-9][a-z0-9-]*)\.workable\.com(?![\w-])", re.I)),
-)
+) + ats_es.BOARD_RES
 # Path segments and subdomains that are the ATS's own pages, not a company.
 _NOT_TOKENS = frozenset("""
 embed api j v0 v1 jobs job job_board posting-api www apply app help resources
 careers static assets cdn widget accounts blog login signin
-""".split())
+""".split()) | ats_es.NOT_TOKENS
 # Script and asset names on the ATS hosts ("boards.greenhouse.io/embed.js").
 _ASSET = re.compile(r"\.(js|mjs|css|json|png|jpe?g|svg|gif|ico|webp|woff2?|map)$", re.I)
 # A page linking this many boards, none of them named like the site, is a
@@ -79,6 +84,8 @@ class Board:
     def page_url(self) -> str:
         """The public board a person would open."""
         t = quote(self.token, safe="")
+        if self.ats in ats_es.LABELS:
+            return ats_es.page_url(self.ats, t)
         return {
             "greenhouse": f"https://boards.greenhouse.io/{t}",
             "lever": f"https://jobs.lever.co/{t}",
@@ -146,6 +153,8 @@ def detect_board(html: str, domain: str = "") -> Board | None:
 def feed_url(board: Board) -> str:
     """The documented public JSON feed for a board."""
     t = quote(board.token, safe="")
+    if board.ats in ats_es.LABELS:
+        return ats_es.feed_url(board.ats, t)
     return {
         # /departments rather than /jobs: the same roles, with the department
         # each sits in, in one request.
@@ -260,6 +269,9 @@ def parse_feed(ats: str, payload) -> list[Posting]:
 async def read_board(client: httpx.AsyncClient, board: Board) -> list[Posting] | None:
     """Read one board's feed: one request, size-capped. None when the board
     doesn't answer with JSON (gone, renamed, or never existed)."""
+    if board.ats in ats_es.LABELS:
+        # Spanish boards publish XML, RSS or HTML as well as JSON.
+        return await ats_es.read(client, board.ats, quote(board.token, safe=""))
     url = feed_url(board)
     body = bytearray()
     try:
