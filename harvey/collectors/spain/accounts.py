@@ -145,11 +145,11 @@ def read_rows(text: str) -> tuple[list[AccountRow], list[str]]:
     try:
         header = next(reader)
     except StopIteration:
-        return [], ["the file is empty"]
+        return [], ["el archivo está vacío"]
     columns = [_HEADER.get(fold(h).replace("_", " ").strip()) for h in header]
     if "name" not in columns or "domain" not in columns:
-        return [], ["the header needs at least 'name' and 'domain' columns "
-                    f"(found: {', '.join(h.strip() for h in header)})"]
+        return [], ["la cabecera necesita al menos las columnas 'name' (o nombre) y 'domain' (o web) "
+                    f"(encontradas: {', '.join(h.strip() for h in header)})"]
     rows, problems, seen = [], [], set()
     for line, values in enumerate(reader, start=2):
         if not any(v.strip() for v in values):
@@ -161,10 +161,10 @@ def read_rows(text: str) -> tuple[list[AccountRow], list[str]]:
         name = clean_snippet(record.get("name", ""), 160)
         domain = normalize_domain(record.get("domain", ""))
         if not domain:
-            problems.append(f"line {line}: no usable domain ({record.get('domain', '')!r}), skipped")
+            problems.append(f"línea {line}: sin un dominio válido ({record.get('domain', '')!r}), omitida")
             continue
         if domain in seen:
-            problems.append(f"line {line}: {domain} appears twice; the first row wins")
+            problems.append(f"línea {line}: {domain} está repetido; vale la primera fila")
             continue
         seen.add(domain)
         employees, employees_raw = parse_number(record.get("employees", ""))
@@ -172,7 +172,7 @@ def read_rows(text: str) -> tuple[list[AccountRow], list[str]]:
         raw_cif = record.get("cif", "")
         cif = normalize_cif(raw_cif)
         if raw_cif and not cif:
-            problems.append(f"line {line}: {raw_cif!r} doesn't look like a CIF, not stored")
+            problems.append(f"línea {line}: {raw_cif!r} no parece un CIF, no se guarda")
         rows.append(AccountRow(
             line=line, name=name or domain, domain=domain, cif=cif,
             segment=clean_snippet(record.get("segment", ""), 60).lower(),

@@ -36,8 +36,8 @@ class EnrichReport:
     notes: list[str] = field(default_factory=list)
 
     def summary_lines(self) -> list[str]:
-        lines = [f"{kind}: {n} observation(s)" for kind, n in self.written.items()]
-        lines += [f"{kind}: skipped ({why})" for kind, why in self.skipped.items()]
+        lines = [f"{kind}: {n} dato(s) nuevo(s)" for kind, n in self.written.items()]
+        lines += [f"{kind}: omitido ({why})" for kind, why in self.skipped.items()]
         return lines + self.notes
 
 
@@ -142,7 +142,7 @@ async def enrich_accounts(state, config=None, only: str | list[str] | None = Non
     accounts = await tracked_accounts(state, segment=segment, batch=batch)
     report.accounts = len(accounts)
     if not accounts:
-        report.notes.append("no tracked accounts: import some with `harvey accounts import <file.csv>`")
+        report.notes.append("no hay cuentas: impórtalas en la pestaña Cuentas o con `harvey accounts import <file.csv>`")
         return report
 
     own_http = http_client is None
@@ -152,7 +152,7 @@ async def enrich_accounts(state, config=None, only: str | list[str] | None = Non
         if "web" in kinds:
             due = await _due(state, "web", accounts, stale_days, limit)
             if not confirmed:
-                report.skipped["web"] = "no signals confirmed"
+                report.skipped["web"] = "no hay señales confirmadas"
             elif due:
                 run_id = await state.start_run("profile", provider="http", params={"accounts": len(due)})
                 collector = profile_collector or _open_profile_collector(state, confirmed, config)
@@ -171,12 +171,12 @@ async def enrich_accounts(state, config=None, only: str | list[str] | None = Non
         # ── jobs: watched functions on their board and on InfoJobs ──
         if "jobs" in kinds:
             if not (JOBS_CODES & confirmed):
-                report.skipped["jobs"] = "HIRING_FUNCTION not confirmed"
+                report.skipped["jobs"] = "HIRING_FUNCTION sin confirmar"
             else:
                 creds = infojobs.credentials()
                 if not creds:
-                    report.notes.append("jobs: InfoJobs skipped (set INFOJOBS_CLIENT_ID and "
-                                        "INFOJOBS_CLIENT_SECRET to use it)")
+                    report.notes.append("empleo: InfoJobs omitido (añade INFOJOBS_CLIENT_ID e "
+                                        "INFOJOBS_CLIENT_SECRET para usarlo)")
                 functions = jobs.compile_functions(cfg.watched_functions or None)
                 due = await _due(state, "jobs", accounts, stale_days, limit)
                 run_id = await state.start_run("jobs", provider="ats+infojobs" if creds else "ats")
@@ -202,10 +202,10 @@ async def enrich_accounts(state, config=None, only: str | list[str] | None = Non
         if "borme" in kinds:
             wanted = BORME_CODES & confirmed
             if not wanted:
-                report.skipped["borme"] = "no BORME_* signal confirmed"
+                report.skipped["borme"] = "ninguna señal BORME_* confirmada"
             elif stale_days is not None and (stamp := await _stamped_at(state, "borme")) and \
                     stamp > datetime.now(timezone.utc) - timedelta(days=stale_days):
-                report.skipped["borme"] = "read recently"
+                report.skipped["borme"] = "leído hace poco"
             else:
                 run_id = await state.start_run("borme", provider="boe")
                 days = borme_days or max(cfg.borme_days, int(stale_days or 0))
@@ -217,17 +217,17 @@ async def enrich_accounts(state, config=None, only: str | list[str] | None = Non
                                           if result.errors and not result.days else {}))
                 await _stamp(state, "borme")
                 report.written["borme"] = n
-                report.notes.append(f"borme: {result.days} day(s), {result.documents} province "
-                                    f"document(s), {result.entries} entries, {result.matched} matched")
+                report.notes.append(f"borme: {result.days} día(s), {result.documents} boletín(es) "
+                                    f"provinciales, {result.entries} anuncios, {result.matched} de tus cuentas")
                 if result.no_province:
-                    report.notes.append(f"borme: {result.no_province} account(s) have no province, "
-                                        "so their province isn't read (add one, or --all-provinces)")
+                    report.notes.append(f"borme: {result.no_province} cuenta(s) sin provincia, "
+                                        "así que su provincia no se lee (añádela en el CSV)")
 
         # ── press: Google News headlines ──
         if "news" in kinds:
             wanted = NEWS_CODES & confirmed
             if not wanted:
-                report.skipped["news"] = "no NEWS_* signal confirmed"
+                report.skipped["news"] = "ninguna señal NEWS_* confirmada"
             else:
                 due = await _due(state, "news", accounts, stale_days, limit)
                 run_id = await state.start_run("news", provider="google_news_rss")

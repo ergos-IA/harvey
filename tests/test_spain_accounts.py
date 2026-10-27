@@ -91,7 +91,7 @@ def test_rows_parse_spanish_headers_and_report_problems():
     first = rows[0]
     assert (first.cif, first.segment, first.province, first.employees, first.revenue_eur) == (
         "B12345678", "industrial", "Zaragoza", 1200, 12_500_000)
-    assert any("line 4" in p and "domain" in p for p in problems)
+    assert any("línea 4" in p and "dominio" in p for p in problems)
 
 
 def test_a_file_without_name_and_domain_is_refused():

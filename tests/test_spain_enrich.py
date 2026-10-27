@@ -170,4 +170,4 @@ async def test_heartbeat_cadence_skips_borme_read_recently(state):
         await enrich_accounts(state, only="borme", stale_days=7, http_client=http)
         n = len(seen)
         report = await enrich_accounts(state, only="borme", stale_days=7, http_client=http)
-    assert len(seen) == n and report.skipped == {"borme": "read recently"}
+    assert len(seen) == n and report.skipped == {"borme": "leído hace poco"}

@@ -106,6 +106,12 @@ async def run_account_signals_stage(state, config, limit: int = 10) -> dict:
                                    limit=limit)
     if any(report.written.values()):
         logger.info("account signals: " + ", ".join(report.summary_lines()))
+        # New readings can move a score: keep ICP_SCORE current.
+        scoring = getattr(config, "scoring", None)
+        if scoring is not None and scoring.configured():
+            from harvey.collectors.spain.accounts import tracked_accounts
+            from harvey.scoring import score_accounts
+            await score_accounts(state, scoring, await tracked_accounts(state))
     return report.written
 
 

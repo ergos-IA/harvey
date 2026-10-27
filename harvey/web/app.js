@@ -407,6 +407,7 @@ function showTab(id, btn) {
 function loadCurrentTab() {
   switch (currentTab) {
     case 'today': loadLiveStatus(); loadToday(); loadTrend(); loadFunnel(); loadSetupStatus(); loadRuns(); loadTodayActivity(); break;
+    case 'accounts': loadAccounts(); break;
     case 'signals': loadSignals(); break;
     case 'discover': loadDiscoverProviders(); break;
     case 'companies': if (!companyDrill) loadCompanies(); break;
@@ -1992,6 +1993,122 @@ async function sendingToggle(action) {
   if (data && data.success) showToast(action === 'pause' ? 'Envíos en pausa.' : 'Envíos reanudados.', 'success');
   else showToast(failMsg(data, action === 'pause' ? 'No se pudo pausar el envío.' : 'No se pudo reanudar el envío.'), 'error');
   loadOutbox();
+}
+
+// ── Cuentas (account-based selling) ──
+
+let _accountsPoll = null;
+
+async function loadAccounts() {
+  const el = document.getElementById('accounts-list');
+  const data = await api('/api/accounts');
+  if (!data) { el.innerHTML = offlineState(); return; }
+  renderAccountsEnrich(data.enrich);
+  const nav = document.getElementById('nav-accounts');
+  if (nav) nav.textContent = data.accounts.length || '';
+  if (!data.accounts.length) {
+    el.innerHTML = emptyState(icon('flag'), 'Aún no hay cuentas',
+      'Sube arriba el CSV con las empresas que quieres trabajar (nombre y web bastan).');
+    return;
+  }
+  const th = data.threshold;
+  let html = '<div class="table-card"><table class="nowrap"><thead><tr><th>Empresa</th><th>Segmento</th>' +
+    '<th>Lote</th><th>Provincia</th><th class="num">Empleados</th><th class="num">Puntuación</th>' +
+    '<th class="num">Contactos</th><th>Por qué</th></tr></thead><tbody>';
+  for (const a of data.accounts) {
+    const href = safeHref('https://' + a.domain);
+    const domain = href ? '<a href="' + href + '" target="_blank" rel="noopener noreferrer">' +
+      escHtml(a.domain) + '</a>' : escHtml(a.domain);
+    const score = a.score === null || a.score === undefined ? '<span class="muted">—</span>'
+      : (a.score >= th ? '<b>' + escHtml(String(a.score)) + '</b> ' + icon('check')
+                       : escHtml(String(a.score)));
+    html += '<tr><td><div class="cell-stack"><span class="cell-main">' + escHtml(a.name) + '</span>' +
+      '<span class="cell-sub">' + domain + '</span></div></td>' +
+      '<td>' + (a.segment ? '<span class="tag">' + escHtml(a.segment) + '</span>' : '') + '</td>' +
+      '<td class="muted">' + escHtml(a.batch) + '</td>' +
+      '<td>' + escHtml(a.province) + '</td>' +
+      '<td class="num">' + (a.employees ? escHtml(String(Math.round(a.employees))) : '') + '</td>' +
+      '<td class="num">' + score + '</td>' +
+      '<td class="num">' + (a.contacts || 0) + '</td>' +
+      '<td class="muted" style="white-space:normal;max-width:420px">' + escHtml(a.why) + '</td></tr>';
+  }
+  const above = data.accounts.filter(a => a.score !== null && a.score >= th).length;
+  el.innerHTML = html + '</tbody></table></div>' +
+    '<div class="table-foot">' + data.accounts.length + ' cuentas · ' + above +
+    ' con ' + th + ' puntos o más' +
+    (data.scoring_configured ? '' : ' · sin reglas de puntuación configuradas') + '</div>';
+}
+
+function renderAccountsEnrich(enrich) {
+  const box = document.getElementById('accounts-enrich');
+  const btn = document.getElementById('acc-enrich');
+  if (!box) return;
+  if (enrich && enrich.running) {
+    btn.disabled = true;
+    box.innerHTML = '<div class="banner wait">' + icon('refresh') +
+      '<div><b>Investigando tus cuentas…</b><p>Puede tardar unos minutos. Puedes seguir usando el panel.</p></div></div>';
+    if (!_accountsPoll) _accountsPoll = setInterval(() => {
+      if (currentTab === 'accounts') loadAccounts();
+    }, 5000);
+    return;
+  }
+  btn.disabled = false;
+  if (_accountsPoll) { clearInterval(_accountsPoll); _accountsPoll = null; }
+  const r = enrich && enrich.report;
+  box.innerHTML = r ? '<div class="banner' + (r.ok ? '' : ' bad') + '">' + icon(r.ok ? 'check' : 'alert') +
+    '<div><b>' + (r.ok ? 'Investigación terminada' : 'La investigación falló') + '</b><p>' +
+    (r.lines || []).map(escHtml).join('<br>') + '</p></div></div>' : '';
+}
+
+async function importAccounts(dryRun) {
+  const input = document.getElementById('acc-file');
+  const out = document.getElementById('accounts-import-result');
+  const file = input.files && input.files[0];
+  if (!file) { showToast('Elige primero un archivo CSV', 'error'); return; }
+  if (file.size > 2 * 1024 * 1024) { showToast('El archivo supera 2 MB', 'error'); return; }
+  const buf = await file.arrayBuffer();
+  let text;
+  try { text = new TextDecoder('utf-8', {fatal: true}).decode(buf); }
+  catch { text = new TextDecoder('windows-1252').decode(buf); }   // Excel en Windows
+  const data = await api('/api/accounts/import', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      filename: file.name, csv: text, dry_run: dryRun,
+      batch: document.getElementById('acc-batch').value,
+      segment: document.getElementById('acc-segment').value,
+    }),
+  });
+  if (!data || !data.success) {
+    out.innerHTML = '<div class="banner bad" style="margin-top:12px">' + icon('alert') + '<div><b>No se pudo importar</b><p>' +
+      escHtml((data && data.message) || 'error de conexión') + '</p></div></div>';
+    return;
+  }
+  const problems = (data.skipped || []).map(escHtml).join('<br>') +
+    (data.skipped_total > (data.skipped || []).length ? '<br>… y ' + (data.skipped_total - data.skipped.length) + ' más' : '');
+  const head = dryRun
+    ? data.created + ' cuenta(s) válidas para el lote «' + escHtml(data.batch) + '». No se ha importado nada todavía.'
+    : 'Lote «' + escHtml(data.batch) + '»: ' + data.created + ' nuevas, ' + data.updated + ' actualizadas' +
+      (data.scored ? ', ' + data.scored + ' puntuadas' : '') + '.';
+  out.innerHTML = '<div class="banner' + (problems ? ' wait' : '') + '" style="margin-top:12px">' +
+    icon(problems ? 'alert' : 'check') + '<div><b>' + head + '</b>' +
+    (problems ? '<p>' + problems + '</p>' : '') +
+    (!dryRun ? '<p>Siguiente paso: pulsa <b>Investigar ahora</b>. Después Harvey buscará a la persona que decide en cada empresa.</p>' : '') +
+    '</div></div>';
+  if (!dryRun) loadAccounts();
+}
+
+async function enrichAccounts() {
+  const data = await api('/api/accounts/enrich', {method: 'POST'});
+  if (!data || !data.success) { showToast((data && data.message) || 'No se pudo iniciar', 'error'); return; }
+  loadAccounts();
+}
+
+async function scoreAccounts() {
+  const data = await api('/api/accounts/score', {method: 'POST'});
+  if (!data || !data.success) { showToast((data && data.message) || 'No se pudo puntuar', 'error'); return; }
+  showToast(data.scored + ' cuentas puntuadas', 'success');
+  loadAccounts();
 }
 
 async function loadCompanies() {

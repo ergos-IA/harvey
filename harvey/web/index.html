@@ -80,6 +80,7 @@
     </div>
     <div class="nav-group">
       <div class="nav-label">Embudo</div>
+      <button onclick="showTab('accounts', this)"><svg class="icon" aria-hidden="true"><use href="#i-flag"/></svg><span class="label">Cuentas</span><span class="nav-count" id="nav-accounts"></span></button>
       <button onclick="showTab('signals', this)"><svg class="icon" aria-hidden="true"><use href="#i-signals"/></svg><span class="label">Señales</span><span class="nav-count" id="nav-signals"></span></button>
       <button onclick="showTab('discover', this)"><svg class="icon" aria-hidden="true"><use href="#i-discover"/></svg><span class="label">Descubrir</span></button>
       <button onclick="showTab('companies', this)"><svg class="icon" aria-hidden="true"><use href="#i-companies"/></svg><span class="label">Empresas</span></button>
@@ -92,7 +93,7 @@
       <button onclick="showTab('usage', this)"><svg class="icon" aria-hidden="true"><use href="#i-usage"/></svg><span class="label">Uso</span></button>
       <button onclick="showTab('controls', this)"><svg class="icon" aria-hidden="true"><use href="#i-controls"/></svg><span class="label">Control</span></button>
       <button onclick="showTab('settings', this)"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg><span class="label">Ajustes</span></button>
-      <button onclick="showTab('help', this)"><svg class="icon" aria-hidden="true"><use href="#i-help"/></svg><span class="label">Ayuda</span></button>
+      <button onclick="showTab('help', this)"><svg class="icon" aria-hidden="true"><use href="#i-help"/></svg><span class="label">Manual</span></button>
     </div>
   </nav>
 
@@ -151,6 +152,56 @@
 </div>
 
 <!-- Signals: the confirmation gate -->
+<div id="accounts" class="section">
+  <div class="section-head">
+    <div>
+      <h2>Cuentas</h2>
+      <p>Las empresas que eliges tú. Sube un CSV y Harvey las investiga (web, empleo, BORME),
+         las puntúa con tus reglas y busca a la persona que decide en cada una.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Importar un lote</h3>
+      <span class="meta">CSV con al menos <code>name</code> y <code>domain</code></span></div>
+    <div class="form-row" style="margin-bottom:4px">
+      <div class="form-group" style="flex:2">
+        <label class="form-label" for="acc-file">Archivo CSV</label>
+        <input class="form-input" id="acc-file" type="file" accept=".csv,text/csv">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="acc-batch">Lote</label>
+        <input class="form-input" id="acc-batch" placeholder="lote-01 (por defecto, el nombre del archivo)">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="acc-segment">Segmento (si el CSV no lo trae)</label>
+        <select class="form-input" id="acc-segment">
+          <option value="">— el del CSV —</option>
+          <option value="industrial">Industrial (fabricantes a medida)</option>
+          <option value="distribucion">Distribución técnica B2B</option>
+          <option value="retail">Retail B2C</option>
+        </select>
+      </div>
+    </div>
+    <p class="muted" style="margin:4px 0 12px">Columnas opcionales: <code>segment</code>, <code>batch</code>,
+      <code>employees</code>, <code>revenue_eur</code>, <code>province</code>, <code>cif</code>,
+      <code>legal_name</code> (razón social, mejora el BORME), <code>notes</code>. Separador coma o punto y coma.</p>
+    <div class="btn-group">
+      <button class="btn btn-secondary" onclick="importAccounts(true)">Comprobar sin importar</button>
+      <button class="btn btn-primary" onclick="importAccounts(false)">Importar</button>
+    </div>
+    <div id="accounts-import-result"></div>
+  </div>
+
+  <div class="subhead">Tus cuentas</div>
+  <div class="btn-group" style="margin-bottom:12px">
+    <button class="btn btn-secondary" id="acc-enrich" onclick="enrichAccounts()">Investigar ahora (web, empleo, BORME)</button>
+    <button class="btn btn-secondary" onclick="scoreAccounts()">Recalcular puntuación</button>
+  </div>
+  <div id="accounts-enrich"></div>
+  <div id="accounts-list"></div>
+</div>
+
 <div id="signals" class="section">
   <div class="section-head">
     <div>
@@ -181,6 +232,11 @@
          y ejecútala &mdash; no se llama a nada hasta que pulses el botón.</p>
     </div>
   </div>
+  <div class="banner wait"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg>
+    <div><b>¿Trabajas por cuentas? No necesitas esta pestaña.</b>
+    <p>Descubrir busca negocios locales en mapas y buscadores (pensado para EE. UU.). Si eliges
+       tus empresas, impórtalas en <b>Cuentas</b>: las fuentes españolas (BORME, empleo, la web de
+       cada empresa) ya vienen incluidas y no hay que configurar nada más aquí.</p></div></div>
   <div id="discover-profile"></div>
 
   <div class="subhead">Fuente</div>
@@ -460,102 +516,115 @@
   </div>
 </div>
 
-<!-- Help -->
+<!-- Help: manual de uso -->
 <div id="help" class="section">
-  <div class="section-head"><div><h2>Ayuda</h2><p>Qué es Harvey, cómo funciona y cómo resolver los problemas habituales.</p></div></div>
+  <div class="section-head"><div><h2>Manual de uso</h2><p>Cómo trabajar con Harvey por cuentas: qué hace cada pestaña, de dónde saca los datos y qué te toca a ti.</p></div></div>
 
   <div class="help-section">
-    <h2>¿Qué es Harvey?</h2>
-    <p>Harvey es un agente de ventas autónomo con IA. Una vez configurado, funciona solo: encuentra personas que encajan con tu cliente ideal, escribe correos en frío personalizados, los envía desde tu plataforma de correo, lee cada respuesta, gestiona objeciones y trabaja para cerrar una reunión. Lo revisas todo desde este panel.</p>
-    <p>Harvey funciona con tu suscripción de Claude Max (o, si lo activas, con tu plan de ChatGPT a través de Codex), así que no hay costes de IA adicionales. Todo se queda en tu equipo, en una sola carpeta.</p>
+    <h2>La idea en un minuto</h2>
+    <p>Tú eliges las empresas (unas 60, un lote cada vez). Harvey las investiga, las puntúa, busca a la persona que decide, le escribe y gestiona las respuestas. <b>No envía nada sin tu aprobación.</b></p>
+    <pre>1. Cuentas             → subes el CSV con tus empresas
+2. Investigar ahora    → Harvey lee su web, sus ofertas de empleo y el BORME
+3. Puntuación          → tus reglas ordenan las cuentas (60+ = prioridad)
+4. Contactos           → Harvey encuentra al Gerente / Director y verifica su email
+5. Bandeja de salida   → tú lees cada email y lo apruebas, editas o descartas
+6. Conversaciones      → las respuestas, clasificadas, y lo que necesita tu mano</pre>
+    <p>Del paso 4 en adelante lo hace el bucle solo, cada 15 minutos. No hay que pulsar nada más.</p>
   </div>
 
   <div class="help-section">
-    <h2>Primeros pasos</h2>
-    <p>Hay tres cosas que hacer:</p>
-    <pre>1. Ve a la pestaña Ajustes y conecta un proveedor de correo (Gmail recomendado)
-2. Entrena a Harvey con tu producto (con Claude o desde la línea de comandos)
-3. Ve a la pestaña Control y pulsa Iniciar</pre>
-    <p>Hoy te muestra exactamente qué está hecho y qué falta por hacer.</p>
-  </div>
-
-  <div class="help-section">
-    <h2>Dónde está cada cosa</h2>
-    <p>Todo lo que Harvey necesita está dentro de esta carpeta de proyecto. No se guarda nada en otro sitio.</p>
+    <h2>¿Tengo que configurar fuentes españolas?</h2>
+    <p><b>No.</b> Las fuentes españolas ya vienen dentro y no necesitan cuenta ni clave:</p>
     <div class="table-card">
     <table class="file-table">
-      <tr><td>.env</td><td>Tus claves de API y credenciales (nunca se comparten ni se suben al repositorio)</td></tr>
-      <tr><td>harvey.yaml</td><td>La información de tu producto, tus clientes objetivo y los ajustes de comportamiento</td></tr>
-      <tr><td>skills/</td><td>Archivos de conocimiento de ventas. Edítalos para cambiar cómo escribe y vende Harvey.</td></tr>
-      <tr><td>skills/product_knowledge.md</td><td>Todo lo que Harvey sabe de tu producto (se genera solo con el entrenamiento)</td></tr>
-      <tr><td>prompts/</td><td>Plantillas de prompts de cada agente. Personalización avanzada.</td></tr>
-      <tr><td>data/harvey.db</td><td>Base de datos con todos los prospectos, campañas y conversaciones</td></tr>
-      <tr><td>data/harvey.log</td><td>Archivo de registro con lo que hace Harvey</td></tr>
+      <tr><td>La web de cada empresa</td><td>Si es multidioma, si exporta, tienda online, portal B2B, ERP, herramienta de soporte, tecnología, y las páginas Equipo / Quiénes somos para encontrar a las personas.</td></tr>
+      <tr><td>Sus ofertas de empleo</td><td>El portal de empleo que enlaza su propia web (Greenhouse, Lever, Workable…): si buscan oficina técnica, ventas internas, atención al cliente… Es la señal de compra más fuerte.</td></tr>
+      <tr><td>BORME (BOE)</td><td>Nombramientos de cargos, ampliaciones de capital, fusiones. Usa la provincia y la razón social del CSV para casar los anuncios.</td></tr>
+      <tr><td>Tu CSV</td><td>Empleados, facturación, provincia, CIF, segmento. Lo que tú sabes de la cuenta.</td></tr>
+    </table>
+    </div>
+    <p>Opcionales: <b>InfoJobs</b> (añade <code>INFOJOBS_CLIENT_ID</code> e <code>INFOJOBS_CLIENT_SECRET</code> en las variables de Railway) y <b>prensa</b> (Google News; está apagada porque sus condiciones hablan de uso no comercial; actívala en Señales si aceptas ese riesgo).</p>
+    <p>La pestaña <b>Descubrir</b> es para buscar negocios locales en mapas (pensada para EE. UU.). <b>Trabajando por cuentas no la necesitas.</b></p>
+  </div>
+
+  <div class="help-section">
+    <h2>Pestaña por pestaña</h2>
+    <div class="table-card">
+    <table class="file-table">
+      <tr><td>Hoy</td><td>Lo que espera una decisión tuya y cómo va el embudo. Empieza aquí cada día.</td></tr>
+      <tr><td>Bandeja de salida</td><td>Los emails que Harvey quiere enviar. Apruébalos, edítalos o recházalos. Mira al lado los datos en que se basa cada email.</td></tr>
+      <tr><td>Conversaciones</td><td>Las respuestas. Harvey contesta solo las fáciles (siempre pasando por la bandeja) y te marca las que necesitan una persona.</td></tr>
+      <tr><td>Cuentas</td><td>Tus empresas: importar lotes, investigar, puntuación y cuántos contactos tiene cada una.</td></tr>
+      <tr><td>Señales</td><td>Qué datos se recogen. Ya están elegidas para tu caso; solo tócalas si quieres añadir o quitar alguna.</td></tr>
+      <tr><td>Descubrir</td><td>No la necesitas (ver arriba).</td></tr>
+      <tr><td>Empresas / Contactos</td><td>Todo lo encontrado. En Contactos se ve el estado del email: <i>verified</i> se envía, <i>guess</i> nunca.</td></tr>
+      <tr><td>Campañas</td><td>Las secuencias de 3 emails que ha escrito Harvey. Solo consulta.</td></tr>
+      <tr><td>Actividad / Uso</td><td>Qué ha hecho Harvey y cuánto de tu cuota de Claude consume.</td></tr>
+      <tr><td>Control</td><td>Arrancar y parar el bucle, y el registro.</td></tr>
+      <tr><td>Ajustes</td><td>Correo, remitente, límites y el modo de envío (aprobación o piloto automático).</td></tr>
     </table>
     </div>
   </div>
 
   <div class="help-section">
-    <h2>Cómo obtener tus claves de API</h2>
-
-    <details>
-      <summary>Clave de API de Instantly (heredado)</summary>
-      <div class="faq-body">
-        <p>Instantly es la opción de envío heredada; se recomienda Gmail o SMTP.</p>
-        <p>1. Regístrate en <a href="https://instantly.ai" target="_blank" rel="noopener">instantly.ai</a> (necesitas el plan Growth para acceder a la API)</p>
-        <p>2. Go to Settings &gt; Integrations</p>
-        <p>3. Copia tu clave de API</p>
-        <p>4. Pégala en la pestaña Ajustes de aquí</p>
-      </div>
-    </details>
-
-    <details>
-      <summary>Credenciales de LinkedIn (opcional)</summary>
-      <div class="faq-body">
-        <p>Si quieres que Harvey encuentre prospectos en LinkedIn, introduce tu correo y contraseña de LinkedIn. Harvey usa un navegador real para buscar en LinkedIn como lo haría una persona, con esperas aleatorias y límites de ritmo para evitar la detección.</p>
-        <p>Si lo omites, Harvey encontrará prospectos con búsquedas en Google y extrayendo datos de las webs de las empresas.</p>
-      </div>
-    </details>
-
-    <details>
-      <summary>Cloudflare Browser Rendering (opcional)</summary>
-      <div class="faq-body">
-        <p>Solo se usa durante el entrenamiento del producto (cuando Harvey rastrea tu web para aprender sobre él). Se encarga de las webs con mucho JavaScript que un rastreador básico no puede leer.</p>
-        <p>1. Regístrate en <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">Cloudflare</a> (plan Workers de pago, ~5 $/mes)</p>
-        <p>2. Go to Workers &amp; Pages &gt; Browser Rendering</p>
-        <p>3. Crea un token de API con permisos de edición de Browser Rendering</p>
-        <p>4. Introduce tu ID de cuenta y tu token de API en la pestaña Ajustes</p>
-        <p>Sin esto, Harvey usa un rastreador integrado que funciona bien con la mayoría de las webs, pero no puede renderizar JavaScript.</p>
-      </div>
-    </details>
+    <h2>El CSV de cuentas</h2>
+    <p>Basta con el nombre y la web. Cuanto más añadas, mejor funcionan la puntuación y el BORME. Valen cabeceras en español o en inglés y separador coma o punto y coma (lo que exporta Excel):</p>
+    <pre>nombre;web;segmento;empleados;facturacion;provincia;razon social
+Ejemplo Industrial;ejemplo-industrial.example;industrial;120;18M;Barcelona;Ejemplo Industrial SL
+Distribuciones Demo;distribuciones-demo.example;distribucion;60;9,5M;Valencia;Distribuciones Demo SA</pre>
+    <p>Segmentos: <code>industrial</code> (fabricantes que cotizan a medida), <code>distribucion</code> (distribuidores técnicos B2B), <code>retail</code> (B2C). Usa <b>Comprobar sin importar</b> para ver los errores antes de cargar nada. Reimportar el mismo archivo no duplica nada.</p>
   </div>
 
   <div class="help-section">
-    <h2>Problemas habituales</h2>
+    <h2>La puntuación</h2>
+    <p>Cada segmento tiene sus reglas: tamaño, si contrata para ciertas funciones, nombramientos recientes en el BORME, si exporta, qué tecnología usa… Cada regla suma puntos y la columna <b>Por qué</b> muestra cuáles han sumado. Con 60 o más, la cuenta es prioritaria. Se recalcula sola cuando llegan datos nuevos.</p>
+    <p>Las reglas están en la configuración privada (<code>harvey.local.yaml</code>, sección <code>scoring:</code>). Si quieres cambiarlas, pídeselo a Claude.</p>
+  </div>
 
+  <div class="help-section">
+    <h2>Lo que falta para que envíe</h2>
+    <p>La pestaña Hoy muestra qué está hecho. Para el primer envío hacen falta:</p>
+    <pre>1. CLAUDE_CODE_OAUTH_TOKEN   → sin él Harvey no puede escribir (claude setup-token)
+2. Buzón SMTP + IMAP         → un dominio secundario, nunca el principal
+3. REOON_API_KEY             → verifica emails; sin verificar no se envía nada
+4. Remitente y dirección     → nombre, email y dirección postal (obligatoria en el pie)
+5. Calentamiento del buzón   → 2-4 semanas antes del primer envío en frío</pre>
+    <p>Las claves van en Railway → servicio harvey → Variables. Al guardarlas, Railway reinicia Harvey solo.</p>
+  </div>
+
+  <div class="help-section">
+    <h2>Rutina diaria (10 minutos)</h2>
+    <pre>1. Hoy                → ¿hay algo esperando?
+2. Bandeja de salida  → lee y aprueba los emails del día (máx. 25/día)
+3. Conversaciones     → atiende las marcadas para ti
+4. Cuentas            → cuando un lote se agote, sube el siguiente</pre>
+  </div>
+
+  <div class="help-section">
+    <h2>Preguntas habituales</h2>
     <details>
-      <summary>"command not found: harvey"</summary>
-      <div class="faq-body">Primero debes activar el entorno virtual: <code>source .venv/bin/activate</code></div>
+      <summary>He importado las cuentas y no aparecen contactos</summary>
+      <div class="faq-body">El bucle busca personas en unas 10 empresas cada ciclo (cada 15 minutos), así que tarda un poco. Si una empresa no publica su equipo en la web, puede quedarse sin contacto; Harvey vuelve a intentarlo a las dos semanas. Con <code>HUNTER_API_KEY</code> encuentra más personas (su plan gratuito da para unas 25 empresas al mes).</div>
     </details>
-
     <details>
-      <summary>La API de Instantly devuelve 401</summary>
-      <div class="faq-body">Tu clave de API es incorrecta o necesitas el plan Growth (el plan gratuito no incluye acceso a la API). Revisa la clave en Settings &gt; Integrations de tu panel de Instantly.</div>
+      <summary>Hay contactos pero no se escribe ningún email</summary>
+      <div class="faq-body">Solo se escribe a direcciones verificadas o <i>catch-all</i>. Sin <code>REOON_API_KEY</code> todas quedan como <i>guess</i> y no se usan. Falta también el token de Claude si el registro (Control) lo avisa.</div>
     </details>
-
     <details>
-      <summary>Falla el modo headless de Claude</summary>
-      <div class="faq-body">Asegúrate de haber ejecutado <code>claude login</code> en tu terminal y de tener una suscripción activa de Claude Max. Harvey usa tu suscripción actual, no una clave de API aparte.</div>
+      <summary>¿Se envía algo sin que yo lo vea?</summary>
+      <div class="faq-body">No. Está en modo aprobación: todo espera en la Bandeja de salida. El piloto automático solo se activa en Ajustes escribiendo <code>autopilot</code>.</div>
     </details>
-
     <details>
-      <summary>Fallan las llamadas a Codex</summary>
-      <div class="faq-body">Con <code>brain.provider: codex</code>, define <code>brain.model</code> con un ID de modelo disponible, incluidos Luna, Sol o Terra (por ejemplo <code>gpt-6.1-sol</code>), o déjalo en blanco para elegir un modelo de la lista. Harvey ejecuta estos modelos sin herramientas; <code>gpt-5.5</code> también sigue siendo compatible si está en el catálogo de tu cuenta. Ejecuta <code>codex login</code> y elige "Sign in with ChatGPT" (los inicios de sesión con clave de API se rechazan). Harvey nunca renueva tu sesión de Codex: si el registro dice que ha caducado o que toca renovarla, usa Codex una vez o ejecuta <code>codex login</code>. Harvey necesita Codex CLI 0.159.3 en macOS o Linux (Codex no es compatible con Windows; usa Claude allí) y rechaza otras versiones. Mientras no se pueda usar Codex, Harvey se pausa (Hoy muestra "Codex is paused" y el motivo), no toca las respuestas ni los correos en cola y se reanuda en cuanto se arregle; <code>harvey status --check</code> lo comprueba bajo demanda. Si el registro dice que no se pudo verificar el aislamiento, una capa de configuración de Codex está forzando de nuevo una herramienta, un hook, un servidor MCP o un endpoint personalizado: Harvey se niega a enviar prompts hasta que se elimine. Harvey nunca recurre a Claude por su cuenta.</div>
+      <summary>¿Cuánto cuesta?</summary>
+      <div class="faq-body">Las fuentes españolas son gratis. La IA sale de tu suscripción de Claude. Pagas Railway, el buzón de envío y, si lo usas, el calentamiento (TrulyInbox) y los verificadores por encima de su plan gratuito.</div>
     </details>
-
     <details>
-      <summary>Harvey no encuentra prospectos</summary>
-      <div class="faq-body">Comprueba que tu ICP (perfil de cliente ideal) en harvey.yaml tenga cargos, sectores y geografía realistas. Si has configurado LinkedIn, comprueba que las credenciales sean correctas. Mira la pestaña Actividad para ver qué ha estado intentando Harvey.</div>
+      <summary>Alguien responde "baja"</summary>
+      <div class="faq-body">Harvey lo detecta (también "no me escribáis más", "no gracias"…), no vuelve a escribir a esa persona y para los envíos a toda su empresa. Las amenazas legales (abogado, AEPD, RGPD, burofax) se te pasan a ti sin responder.</div>
+    </details>
+    <details>
+      <summary>Panel bloqueado al entrar</summary>
+      <div class="faq-body">Abre <code>https://&lt;tu-dominio&gt;/#token=</code> seguido del <b>valor</b> de la variable <code>HARVEY_DASHBOARD_TOKEN</code> (cópialo en Railway → Variables), no del nombre de la variable.</div>
     </details>
   </div>
 </div>

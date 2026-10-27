@@ -924,6 +924,13 @@ def _state():
     return StateManager(db_path=str(DB_PATH))
 
 
+# The Cuentas tab (account-based selling): CSV import, enrich, score.
+from harvey import dashboard_accounts  # noqa: E402
+
+dashboard_accounts.configure(lambda: _state(), lambda: DB_PATH)
+app.include_router(dashboard_accounts.router)
+
+
 # What a reviewer needs next to a draft to check its claims against the facts.
 OUTBOX_CONTEXT_SIGNALS = (
     "TECH_STACK", "INCUMBENT_AGENCY", "HIRING_ROLE", "RUNNING_GOOGLE_ADS", "NO_ONLINE_BOOKING",
