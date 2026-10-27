@@ -52,16 +52,27 @@ software sports medicine fitness salon spa dental medical clinic insurance finan
 properties inc llc pllc ltd corp co
 coach pastor father mother judge mayor senator governor captain sergeant sheriff officer
 uncle aunt grandpa grandma mom dad memory memoriam late former
+el la los las un una y o de del al en con por para nuestro nuestra nuestros nuestras
+equipo equipos nosotros conoce conócenos conocenos bienvenido bienvenida hola gracias
+contacto contáctanos contactanos inicio empresa empresas somos quienes quiénes sobre
+servicios servicio productos producto noticias historia misión mision visión vision
+valores dirección direccion gerencia fundador fundadora fundadores socio socia socios
+director directora directores gerente presidente presidenta responsable jefe jefa
+departamento área area comercial ventas atención atencion cliente clientes calidad
+producción produccion administración administracion consejo grupo familia familiar
+sl slu sa sau
 """.split())
 
 # Particles that sit lower-case inside a surname ("Van de Wal", "de la Cruz").
-_PARTICLES = frozenset("van von de der den del della di da la le du dos das st".split())
+_PARTICLES = frozenset("van von de der den del della di da la le du dos das st y i".split())
 _HONORIFIC = re.compile(r"^(?:dr|mr|mrs|ms|miss|prof|rev|hon)\.?\s+", re.I)
 # Credentials and suffixes that follow a name: "John Smith, DDS", "Calvin Marsh, Esq."
 _CREDENTIAL = (r"(?:dds|dmd|md|do|dvm|od|phd|jd|esq|cpa|pe|ra|rn|np|pa|mba|ms|ma|"
                r"facs|fagd|ccc-slp|jr|sr|ii|iii|iv)")
 _CREDENTIAL_TAIL = re.compile(rf"(?:\s*,?\s+{_CREDENTIAL}\.?)+\s*$", re.I)
-_NAME_TOKEN = re.compile(r"^[A-Z][a-z]+(?:[-'’][A-Z]?[a-z]+)*\.?$|^[A-Z]\.$|^[A-Z]$")
+_UP = "A-ZÁÉÍÓÚÑÜÇ"      # Spanish names: José, Ángela, Núñez, Peña
+_LO = "a-záéíóúñüçàèòï"
+_NAME_TOKEN = re.compile(rf"^[{_UP}][{_LO}]+(?:[-'’][{_UP}]?[{_LO}]+)*\.?$|^[{_UP}]\.$|^[{_UP}]$")
 
 
 def _word_ok(token: str) -> bool:
@@ -90,7 +101,7 @@ def split_person_name(text: str) -> tuple[str, str] | None:
     if any(ch.isdigit() for ch in text) or "@" in text:
         return None
     first = tokens[0]
-    if not re.match(r"^[A-Z][a-z]+(?:[-'’][A-Z]?[a-z]+)*$", first) or not _word_ok(first):
+    if not re.match(rf"^[{_UP}][{_LO}]+(?:[-'’][{_UP}]?[{_LO}]+)*$", first) or not _word_ok(first):
         return None
     rest = tokens[1:]
     # Surname: any particles that start it, then capitalised words.
@@ -103,7 +114,7 @@ def split_person_name(text: str) -> tuple[str, str] | None:
         if not (_NAME_TOKEN.match(t) and (len(t.strip(".")) == 1 or _word_ok(t))):
             return None
     last_word = surname[-1]
-    if not re.match(r"^[A-Z][a-zA-Z]*(?:[-'’][A-Z]?[a-zA-Z]+)*$", last_word) or len(last_word) < 2:
+    if not re.match(rf"^[{_UP}][{_UP}{_LO}]*(?:[-'’][{_UP}]?[{_UP}{_LO}]+)*$", last_word) or len(last_word) < 2:
         return None
     if last_word.isupper() and len(last_word) > 2:      # "RAY T", "HVAC"
         return None
@@ -130,11 +141,15 @@ _OWNER_FAMILY = ("owner", "co-owner", "founder", "co-founder", "cofounder", "pre
 _OWNER_TITLE = re.compile(
     r"\b(?:co-?owner|owner|co-?founder|founder|proprietor|ceo|chief executive(?: officer)?|"
     r"president|managing (?:partner|member)|founding (?:partner|attorney|dentist|doctor)|"
-    r"principal(?! (?:designer|engineer|consultant|architect|associate|scientist|developer)))\b", re.I)
+    r"principal(?! (?:designer|engineer|consultant|architect|associate|scientist|developer))|"
+    # Spanish: the owner or the top of the company.
+    r"propietari[oa]|dueñ[oa]|co-?fundador(?:a)?|fundador(?:a)?|president[ea]|"
+    r"consejer[oa] delegad[oa]|administrador(?:a)? únic[oa]|director(?:a)? general|gerente)\b", re.I)
 # Words that make an owner title about someone else ("Assistant to the CEO")
 # or a rank below it ("Vice President", "VP").
 _SUBORDINATE = re.compile(r"\b(?:vice[- ]president|vp|svp|evp|assistant(?: to)?|"
-                          r"executive assistant|to the|deputy|associate|aide)\b", re.I)
+                          r"executive assistant|to the|deputy|associate|aide|"
+                          r"vicepresident[ea]|adjunt[oa]|asistente|secretari[oa]|ayudante)\b", re.I)
 _PROFESSIONAL = re.compile(
     r"\b(?:dds|dmd|md|dvm|od|esq|cpa|attorney|lawyer|dentist|orthodontist|"
     r"periodontist|endodontist|doctor|dr|physician|veterinarian|optometrist|"
@@ -196,16 +211,17 @@ def owner_rank(title: str, owner: bool = False) -> int:
     """How surely this title is the decision maker (higher first)."""
     low = (title or "").lower()
     if is_owner_title(title):
-        if re.search(r"\b(?:co-?owner|owner|proprietor)\b", low):
+        if re.search(r"\b(?:co-?owner|owner|proprietor|propietari[oa]|dueñ[oa])\b", low):
             return 100
         return 95
     if owner:
         return 90
-    if re.search(r"\bpartner\b", low):
+    if re.search(r"\b(?:partner|soci[oa])\b", low):
         return 80
-    if re.search(r"\b(?:general manager|managing director)\b", low):
+    if re.search(r"\b(?:general manager|managing director|director(?:a)? general)\b", low):
         return 60
-    if re.search(r"\b(?:director|manager|head of|chief)\b", low) and not _SUBORDINATE.search(low):
+    if re.search(r"\b(?:director|manager|head of|chief|director(?:a)?|responsable|jef[ea])\b", low) \
+            and not _SUBORDINATE.search(low):
         return 40
     return 10
 
@@ -376,7 +392,9 @@ _SEPARATED = re.compile(r"^(?P<name>[^,|–—\-]{4,45}?)\s*(?:,|\||–|—|\s-\
 _STRONG_ROLE = re.compile(
     r"\b(?:owner|co-?owner|founder|co-?founder|president|ceo|cfo|coo|cto|cmo|cro|chief|principal|"
     r"partner|proprietor|director|manager|attorney|lawyer|dds|dmd|md|esq|cpa|dentist|"
-    r"orthodontist|officer|head of|vp|vice president|superintendent|estimator|administrator)\b", re.I)
+    r"orthodontist|officer|head of|vp|vice president|superintendent|estimator|administrator|"
+    r"gerente|consejer[oa] delegad[oa]|co-?fundador(?:a)?|fundador(?:a)?|president[ea]|"
+    r"director(?:a)?|propietari[oa]|administrador(?:a)?|soci[oa]|responsable|jef[ea])\b", re.I)
 
 
 def _person(first, last, title, *, source, evidence, url="", owner=False, full_name=""):
@@ -500,7 +518,7 @@ def people_from_schema(html: str, url: str = "") -> list[dict]:
 
 # ── owners named in prose ────────────────────────────────────────────────
 
-_CAP = r"[A-Z][a-z]+(?:[-'’][A-Z]?[a-z]+)*"
+_CAP = rf"[{_UP}][{_LO}]+(?:[-'’][{_UP}]?[{_LO}]+)*"
 _NAME_RE = (rf"(?:Dr\.?\s+)?(?P<name>{_CAP}(?:\s+[A-Z]\.)?(?:\s+(?:{'|'.join(sorted(_PARTICLES))}))*"
             rf"\s+{_CAP}(?:\s+{_CAP})?)")
 _OWNER_WORD = (r"(?P<title>(?i:co-?owner|owner|co-?founder|founder|proprietor|president|ceo|"
@@ -707,16 +725,21 @@ def find_people(pages: list[tuple[str, str]], domain: str, site_name: str = "") 
 
 _LINK_WEIGHTS = (
     (3, r"team|meet|leadership|staff|people|doctors?|dentists?|attorneys?|"
-        r"lawyers?|physicians?|providers?|owners?|founders?|principals?|partners|who-?we-?are|bios?"),
-    (2, r"about|story|history|company|firm|practice|family"),
-    (1, r"contact"),
+        r"lawyers?|physicians?|providers?|owners?|founders?|principals?|partners|who-?we-?are|bios?|"
+        # Spanish: equipo, nuestro equipo, quiénes somos, dirección, organigrama.
+        r"equipo|nuestro[- ]equipo|el[- ]equipo|qui[eé]n(?:es)?[- ]somos|direcci[oó]n|organigrama|"
+        r"socios|fundadores|consejo"),
+    (2, r"about|story|history|company|firm|practice|family|"
+        r"nosotros|sobre[- ]nosotros|con[oó]cenos|empresa|la[- ]empresa|compa[ñn][ií]a|historia"),
+    (1, r"contact|contacto|cont[aá]ctanos"),
 )
 # A keyword counts in a whole path segment ("/our-team/", "/attorneys/",
 # "/meet-the-dentists.html") or a short menu label ("Meet the Team") — not
 # inside a practice-area slug ("/child-custody-lawyer-riverton/").
 _SKIP_LINK = re.compile(
     r"(?i)\.(?:pdf|jpe?g|png|gif|webp|svg|zip|docx?|mp4|mp3)(?:$|\?)|/(?:blog|news|posts?|articles?|"
-    r"category|tag|author|feed|wp-json|cart|checkout|login|account|careers?|jobs?)/|/\d{4}/\d{2}/|"
+    r"category|tag|author|feed|wp-json|cart|checkout|login|account|careers?|jobs?|"
+    r"noticias|actualidad|categoria|etiqueta|carrito|empleo|trabaja-con-nosotros)/|/\d{4}/\d{2}/|"
     r"[?&](?:replytocom|share)=|/:param")
 
 

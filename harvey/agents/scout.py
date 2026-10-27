@@ -76,6 +76,8 @@ MAX_SITE_PAGES = 6
 # inbox pages, the check that a second domain is theirs — shares this cap.
 MAX_SITE_FETCHES = 10
 FALLBACK_SITE_PATHS = ("/about", "/about-us", "/team", "/our-team", "/contact", "/contact-us")
+# The same six-page budget for a site in Spanish.
+FALLBACK_SITE_PATHS_ES = ("/quienes-somos", "/equipo", "/nosotros", "/empresa", "/contacto", "/about")
 # Named decision makers taken from one company per visit, likeliest first.
 MAX_CONTACTS_PER_COMPANY = 2
 # With no evidence of a company's email format, guess first@ only when
@@ -175,18 +177,12 @@ class Scout:
         # the mercy of Serper/Bing flakiness — cheapest, most reliable win
         # available before spending any queries.
         strategies.append(("known_companies", self._prospect_via_known_companies))
-        if self.config.channels.linkedin.enabled and self.env.linkedin_email:
-            strategies.append(("linkedin", self._prospect_via_linkedin))
-        # Job boards first: hiring is the strongest intent signal, and the
-        # strategy self-skips when python-jobspy isn't installed.
-        strategies.append(("hiring_boards", self._prospect_via_hiring_boards))
-        # Web search for LinkedIn profiles yields names without a company or
-        # email, which Harvey can't verify; it rides the same switch as the
-        # LinkedIn channel (and its login) so it is off unless LinkedIn
-        # prospecting is wanted, and doesn't spend the cycle's query budget.
-        if self.config.channels.linkedin.enabled and self.env.linkedin_email:
-            strategies.append(("profile_search", self._prospect_via_profile_search))
-        strategies.append(("company_discovery", self._prospect_via_company_discovery))
+        accounts = getattr(self.config, "accounts", None)
+        if getattr(accounts, "abm_only", False):
+            # Account-based: people at the accounts on file, nothing new found.
+            logger.info("Scout: accounts.abm_only, skipping web discovery.")
+        else:
+            self._add_discovery_strategies(strategies)
 
         for name, strategy in strategies:
             try:
@@ -200,6 +196,21 @@ class Scout:
             details={"prospects_found": prospects_found},
         )
         logger.info(f"Scout: Found {prospects_found} new prospects this cycle.")
+
+    def _add_discovery_strategies(self, strategies: list):
+        """The strategies that find companies Harvey didn't know about."""
+        if self.config.channels.linkedin.enabled and self.env.linkedin_email:
+            strategies.append(("linkedin", self._prospect_via_linkedin))
+        # Job boards first: hiring is the strongest intent signal, and the
+        # strategy self-skips when python-jobspy isn't installed.
+        strategies.append(("hiring_boards", self._prospect_via_hiring_boards))
+        # Web search for LinkedIn profiles yields names without a company or
+        # email, which Harvey can't verify; it rides the same switch as the
+        # LinkedIn channel (and its login) so it is off unless LinkedIn
+        # prospecting is wanted, and doesn't spend the cycle's query budget.
+        if self.config.channels.linkedin.enabled and self.env.linkedin_email:
+            strategies.append(("profile_search", self._prospect_via_profile_search))
+        strategies.append(("company_discovery", self._prospect_via_company_discovery))
 
     # ── Prospect dedup helpers ──
 
@@ -1440,7 +1451,12 @@ Respond ONLY with the JSON array."""
 
         links = people_mod.menu_links(home_text, home_url, limit=MAX_SITE_PAGES - 1)
         if len(links) < 2:
-            links += [f"{base}{p}" for p in FALLBACK_SITE_PATHS]
+            paths = FALLBACK_SITE_PATHS
+            # A Spanish site: its own paths first, inside the fetch budget.
+            if re.search(r'(?i)<html[^>]*\blang=["\']?(?:es|ca|gl|eu)\b', home_text[:3000]) \
+                    or key.endswith(".es"):
+                paths = FALLBACK_SITE_PATHS_ES
+            links += [f"{base}{p}" for p in paths]
         for url in links:
             if len(site["pages"]) >= MAX_SITE_PAGES:
                 break

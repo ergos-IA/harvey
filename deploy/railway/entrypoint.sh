@@ -45,6 +45,22 @@ else
     echo "AVISO: falta CLAUDE_CODE_OAUTH_TOKEN (genéralo con 'claude setup-token')."
 fi
 
+# Señales confirmadas/rechazadas desde variables (HARVEY_SIGNALS_CONFIRM y
+# HARVEY_SIGNALS_REJECT, códigos separados por comas). Se aplican solo cuando
+# cambian, para no pisar lo que decidas después en el dashboard.
+SIGNALS_WANT="${HARVEY_SIGNALS_CONFIRM:-}|${HARVEY_SIGNALS_REJECT:-}"
+SIGNALS_MARK="data/.signals_applied"
+if [ "$SIGNALS_WANT" != "|" ] \
+    && [ "$(cat "$SIGNALS_MARK" 2>/dev/null)" != "$SIGNALS_WANT" ]; then
+    echo "Aplicando la selección de señales de las variables..."
+    ok=1
+    [ -z "${HARVEY_SIGNALS_REJECT:-}" ] \
+        || python -m harvey signals --reject "$HARVEY_SIGNALS_REJECT" || ok=0
+    [ -z "${HARVEY_SIGNALS_CONFIRM:-}" ] \
+        || python -m harvey signals --confirm "$HARVEY_SIGNALS_CONFIRM" || ok=0
+    [ "$ok" = "0" ] || printf '%s' "$SIGNALS_WANT" > "$SIGNALS_MARK"
+fi
+
 # El bucle arranca solo si Harvey ya está configurado; si no, configúralo
 # con 'railway ssh' (harvey setup / harvey train <url>) y arráncalo desde
 # el dashboard.

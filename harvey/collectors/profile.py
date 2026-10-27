@@ -123,7 +123,8 @@ AI_CRAWLERS = ("gptbot", "google-extended", "ccbot", "anthropic-ai", "claudebot"
                "perplexitybot", "bytespider")
 
 TEAM_PATHS = ("/team", "/about", "/about-us", "/our-team", "/staff",
-              "/leadership", "/meet-the-team", "/company/team")
+              "/leadership", "/meet-the-team", "/company/team",
+              "/equipo", "/nosotros", "/quienes-somos", "/sobre-nosotros", "/empresa")
 CAREERS_PATHS = ("/careers", "/jobs", "/join-us", "/employment", "/hiring",
                  "/about/careers", "/careers/")
 # A homepage link to the careers page beats guessing paths: careers.acme.com
@@ -181,7 +182,7 @@ def _is_name_token(token: str) -> bool:
 # Block-level tags separate a name, its title, and the bio that follows; the
 # first text chunk after the name heading is the title, nothing further.
 _BLOCK_BREAK = re.compile(r"(?i)<(?:/?(?:p|div|li|ul|ol|section|article|td|tr)\b[^>]*|br\s*/?)>")
-_CONNECTORS = frozenset("of and the for & to in at".split())
+_CONNECTORS = frozenset("of and the for & to in at de del la las los y e al".split())
 
 
 def _title_chunks(raw_after: str) -> list[str]:
@@ -213,6 +214,10 @@ DECISION_MAKER_TITLES = (
     "office manager", "marketing director", "marketing manager",
     "director of marketing", "vice president", "vp ", "managing director",
     "chief", "director",
+    # Spanish ("director" above already covers "directora").
+    "gerente", "consejero delegado", "consejera delegada", "fundador", "fundadora",
+    "presidente", "presidenta", "propietario", "propietaria", "administrador único",
+    "administradora única", "socio", "socia", "responsable", "jefe de", "jefa de",
 )
 
 
@@ -223,7 +228,13 @@ ROLE_HINT = re.compile(
     r"office|project|account|service|technician|installer|inspector|"
     r"vice president|vp|executive|lead|head of|chief|proprietor|attorney|lawyer|"
     r"dentist|orthodontist|periodontist|endodontist|hygienist|dds|dmd|esq|cpa|"
-    r"administrator|paralegal|associate|co-?owner|co-?founder)\b", re.I)
+    r"administrator|paralegal|associate|co-?owner|co-?founder|"
+    # Spanish titles: Gerente, Consejero Delegado, Responsable de..., Jefa de...
+    r"gerente|consejer[oa]|delegad[oa]|co-?fundador(?:a)?|fundador(?:a)?|president[ea]|"
+    r"director(?:a)?|directiv[oa]|propietari[oa]|administrador(?:a)?|soci[oa]|responsable|"
+    r"jef[ea]|coordinador(?:a)?|encargad[oa]|t[eé]cnic[oa]|comercial|ventas|compras|"
+    r"operaciones|log[ií]stica|producci[oó]n|calidad|ingenier[oa]|consultor(?:a)?|"
+    r"export(?:ación|acion)?|marketing)\b", re.I)
 
 
 def title_looks_like_role(text: str) -> bool:

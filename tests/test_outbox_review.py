@@ -75,7 +75,7 @@ def test_pending_drafts_carry_the_facts_behind_them(client):
     assert ctx["contact_source"] == "scraped_mailto"
     assert ctx["email_status"] == "risky"
     assert ctx["notes"] == "Lovable-built client portal."
-    assert ctx["signals"] == {"Website platform / tools": "Lovable, Stripe", "Running Google Ads": "yes"}
+    assert ctx["signals"] == {"Plataforma y herramientas de la web": "Lovable, Stripe", "Invierte en Google Ads": "yes"}
 
 
 def test_editing_a_draft_changes_it_but_does_not_approve_it(client):
@@ -193,7 +193,7 @@ def test_every_open_role_shows_and_unlabelled_signals_keep_their_code(client):
     signals = client.get("/api/outbox").json()["pending"][0]["context"]["signals"]
     assert signals["TECH_STACK"] == "Lovable, Stripe"
     assert "" not in signals
-    hiring = [v for k, v in signals.items() if "hiring" in k.lower() or k == "HIRING_ROLE"]
+    hiring = [v for k, v in signals.items() if "contrata" in k.lower() or k == "HIRING_ROLE"]
     assert len(hiring) == 1
     assert "Roofing estimator" in hiring[0] and "Crew foreman" in hiring[0]
 
@@ -232,5 +232,5 @@ def test_a_closed_role_shows_as_not_hiring_to_the_reviewer(client):
         ])
     asyncio.run(more())
     signals = client.get("/api/outbox").json()["pending"][0]["context"]["signals"]
-    hiring = [v for k, v in signals.items() if "hiring" in k.lower() or k == "HIRING_ROLE"]
+    hiring = [v for k, v in signals.items() if "contrata" in k.lower() or k == "HIRING_ROLE"]
     assert hiring == ["no"]

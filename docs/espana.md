@@ -16,6 +16,12 @@ harvey accounts cohort --min-score 60 --csv lote-01.csv
 
 El bucle de Harvey vuelve a enriquecer las cuentas cada `accounts.enrich_every_days` días.
 
+Con `accounts.abm_only: true`, el Scout solo busca personas en las empresas que ya tienes
+(las importadas) y no busca empresas nuevas en la web. Para encontrar a la persona lee la
+web de cada empresa (Equipo, Quiénes somos, Nosotros, Contacto). Reconoce nombres con tilde
+y cargos españoles: Gerente, Consejero Delegado, Fundador, Presidente, Director/a,
+Responsable de…, Jefe/a de… y Administrador Único.
+
 ## CSV de cuentas
 
 Cabeceras en español o inglés; separador `,`, `;` o tabulador; UTF-8 o Windows-1252.

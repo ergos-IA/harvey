@@ -11,11 +11,12 @@ STRATEGIES = (
 )
 
 
-def _scout(linkedin_enabled: bool, linkedin_email: str = "") -> Scout:
+def _scout(linkedin_enabled: bool, linkedin_email: str = "", abm_only: bool = False) -> Scout:
     brain = SimpleNamespace(load_skills_for_agent=lambda name: "")
     state = SimpleNamespace(log_action=AsyncMock())
     config = SimpleNamespace(
-        channels=SimpleNamespace(linkedin=SimpleNamespace(enabled=linkedin_enabled))
+        channels=SimpleNamespace(linkedin=SimpleNamespace(enabled=linkedin_enabled)),
+        accounts=SimpleNamespace(abm_only=abm_only),
     )
     env = SimpleNamespace(linkedin_email=linkedin_email)
     scout = Scout(brain, state, config, env)
@@ -46,3 +47,13 @@ async def test_profile_search_needs_a_linkedin_login_like_the_linkedin_strategy(
     await scout.run()
     scout._prospect_via_profile_search.assert_not_awaited()
     scout._prospect_via_linkedin.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_abm_only_works_the_accounts_on_file_and_discovers_nothing():
+    scout = _scout(linkedin_enabled=True, linkedin_email="me@example.com", abm_only=True)
+    await scout.run()
+    scout._prospect_via_hunter.assert_awaited_once()
+    scout._prospect_via_known_companies.assert_awaited_once()
+    for name in ("linkedin", "hiring_boards", "profile_search", "company_discovery"):
+        getattr(scout, f"_prospect_via_{name}").assert_not_awaited()

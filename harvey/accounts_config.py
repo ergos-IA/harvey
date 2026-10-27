@@ -5,6 +5,7 @@ unchanged. Kept out of harvey/config.py (which only references them) so the
 account work doesn't touch the sending and compliance settings there.
 
     accounts:
+      abm_only: false               # true: only the imported accounts, no web discovery
       borme_days: 7                 # BORME days read per enrichment run
       news_months: 18               # how far back headlines count
       heartbeat: true               # enrich tracked accounts on the heartbeat
@@ -97,6 +98,9 @@ class ScoringConfig(BaseModel):
 
 
 class AccountsConfig(BaseModel):
+    # Account-based only: the Scout looks for people at the companies already
+    # on file (the imported accounts) and never searches the web for new ones.
+    abm_only: bool = False
     borme_days: int = 7
     news_months: int = 18
     news_use_domain_brand: bool = False
