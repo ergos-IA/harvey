@@ -930,6 +930,23 @@ from harvey import dashboard_accounts  # noqa: E402
 dashboard_accounts.configure(lambda: _state(), lambda: DB_PATH)
 app.include_router(dashboard_accounts.router)
 
+# The Productos tab: each product with its ICP, scoring and accounts.
+from harvey import dashboard_products  # noqa: E402
+
+dashboard_products.configure(lambda: _state())
+app.include_router(dashboard_products.router)
+
+
+async def _product_names() -> dict[str, str]:
+    """campaign id → the name of the product it sells (campaigns with one)."""
+    try:
+        rows = await query_db(
+            "SELECT c.id, p.name FROM campaigns c JOIN products p ON p.id = c.product_id "
+            "WHERE c.product_id != ''")
+    except Exception:
+        return {}
+    return {r["id"]: r["name"] for r in rows}
+
 
 # What a reviewer needs next to a draft to check its claims against the facts.
 OUTBOX_CONTEXT_SIGNALS = (
@@ -1021,7 +1038,8 @@ async def get_outbox_api():
         # A send cut off mid-way shows up under Didn't send even when Harvey
         # isn't running.
         await state.fail_stale_sending_outbox()
-        return {
+        products = await _product_names()
+        view = {
             **_compliance_view(),
             "paused": await state.get_setting("sending_paused"),
             "pending": await _with_context(
@@ -1036,6 +1054,10 @@ async def get_outbox_api():
                 "SELECT * FROM outbox WHERE status IN ('failed','rejected','cancelled') "
                 "ORDER BY updated_at DESC LIMIT 25")),
         }
+        for key in ("pending", "approved", "sent", "failed"):
+            for item in view[key]:
+                item["product"] = products.get(item.get("campaign_id") or "", "")
+        return view
     except Exception as e:
         return {"error": str(e)}
 
@@ -1409,6 +1431,7 @@ async def export_prospects(all: bool = False, min_score: int = 0, email_status: 
 @app.get("/api/campaigns")
 async def get_campaigns():
     rows = await query_db("SELECT * FROM campaigns ORDER BY created_at DESC LIMIT 100")
+    products = await _product_names()
     harvey_sends = _harvey_can_send()
     send_as = "" if harvey_sends else _send_as()
     footer = _compliance_view()["footer"]
@@ -1432,6 +1455,7 @@ async def get_campaigns():
             tuple(ids),
         ) if ids else []
         row["send_as"] = send_as
+        row["product"] = products.get(row["id"], "")
         # A cold email sent by hand needs the same footer Harvey adds.
         row["footer"] = footer
         for r in row["recipients"]:
@@ -1531,6 +1555,7 @@ async def get_conversations():
                 "ORDER BY sent_at", tuple(pids)):
             emails.setdefault(e.pop("prospect_id"), []).append(e)
     cids = [r["id"] for r in rows]
+    products = await _product_names()
     drafts = {d.pop("conversation_id"): d for d in (await query_db(
         "SELECT id, conversation_id, subject, body, send_at FROM outbox "
         f"WHERE kind = 'reply' AND status = 'pending_review' AND conversation_id IN ({_in(cids)}) "
@@ -1546,6 +1571,7 @@ async def get_conversations():
                          for e in emails.get(row.get("prospect_id"), [])
                          if not camp or e.get("campaign_id") == camp]
         row["draft"] = drafts.get(row["id"])
+        row["product"] = products.get(camp, "")
     return rows
 
 

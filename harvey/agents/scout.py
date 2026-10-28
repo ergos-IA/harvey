@@ -48,6 +48,7 @@ from harvey.integrations.email_finder import (
 from harvey.integrations.linkedin import LinkedInAutomation
 from harvey.models.company import Company
 from harvey.models.prospect import COMPANY_INBOX_SOURCE, Prospect
+from harvey.products import titles_for_company
 from harvey.public_http import public_http_client
 from harvey.state import StateManager
 from harvey.untrusted import UNTRUSTED_RULE, fence
@@ -693,13 +694,22 @@ class Scout:
             if not domain:
                 continue
 
-            contacts = await self._contacts_from_company(
-                company_id=company["id"],
-                domain=domain,
-                company_name=company.get("name") or self._domain_to_name(domain),
-                industry=company.get("industry") or default_industry,
-                source="known_company_backfill",
-            )
+            # The titles its products write to (each product has its own ICP).
+            try:
+                self._titles_override = await titles_for_company(self.state, company["id"])
+            except Exception as e:
+                logger.debug(f"titles_for_company failed for {domain}: {e}")
+                self._titles_override = []
+            try:
+                contacts = await self._contacts_from_company(
+                    company_id=company["id"],
+                    domain=domain,
+                    company_name=company.get("name") or self._domain_to_name(domain),
+                    industry=company.get("industry") or default_industry,
+                    source="known_company_backfill",
+                )
+            finally:
+                self._titles_override = []
 
             # Mark it checked regardless of outcome, so a company with no
             # scrapable team page rotates out instead of being retried
@@ -2108,6 +2118,11 @@ Respond ONLY with the JSON array."""
         name = domain.split(".")[0]
         return name.replace("-", " ").title()
 
+    def _icp_titles(self) -> list[str]:
+        """The titles to look for: the current company's products' (set
+        while backfilling an account), else harvey.yaml's."""
+        return getattr(self, "_titles_override", None) or self.config.icp.titles
+
     def _title_matches_icp(self, title: str) -> bool:
         """Check if a job title matches the ICP target titles.
 
@@ -2117,8 +2132,9 @@ Respond ONLY with the JSON array."""
         """
         if not title:
             return False
-        if self.config.icp.titles:
-            return people_mod.title_matches(title, self.config.icp.titles)
+        titles = self._icp_titles()
+        if titles:
+            return people_mod.title_matches(title, titles)
         # No explicit ICP titles → fall back to any senior title.
         title_lower = title.lower()
         return any(re.search(rf"(?<![\w-]){re.escape(kw)}\b", title_lower)
@@ -2126,7 +2142,7 @@ Respond ONLY with the JSON array."""
 
     def _icp_wants_owner(self) -> bool:
         """Does the ICP target owners (Owner, Founder, President, CEO...)?"""
-        titles = self.config.icp.titles
+        titles = self._icp_titles()
         return not titles or people_mod.title_matches("", titles, owner=True)
 
     def _infer_seniority(self, title: str) -> str:

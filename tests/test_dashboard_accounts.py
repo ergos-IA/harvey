@@ -10,7 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import harvey.dashboard as dash
-from harvey import dashboard_accounts
+from harvey import dashboard_accounts, dashboard_products
 from harvey.accounts_config import ScoringConfig
 
 CSV = (
@@ -33,6 +33,7 @@ def client(monkeypatch):
         })
         monkeypatch.setattr(dashboard_accounts, "_config",
                             lambda: type("C", (), {"scoring": scoring, "accounts": None})())
+        monkeypatch.setattr(dashboard_products, "_config", lambda: None)   # no product seeded
         dash.token_store.configure(Path(tmp) / "data" / "dashboard-token")
         token = dash.token_store.get()
         with TestClient(dash.app, base_url="http://127.0.0.1:5555",

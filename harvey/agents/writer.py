@@ -19,6 +19,7 @@ from harvey.config import HarveyConfig
 from harvey.humanize import humanize, humanizer_enabled
 from harvey.integrations.mail_provider import NATIVE_PROVIDERS
 from harvey.models.campaign import Campaign, EmailStep
+from harvey.products import choose_product, config_for, knowledge_for, mark_started
 from harvey.state import WRITABLE_EMAIL_STATUSES, StateManager
 from harvey.sending_mode import sync_sending_mode
 from harvey.startups import startup_facts
@@ -53,6 +54,16 @@ class Writer:
         self.state = state
         self.config = config
         self.env = env
+        self.product = None          # the product of the batch being written
+
+    @property
+    def offer_config(self):
+        """The config with the current batch's product (offer, ICP) in place."""
+        return getattr(self, "_offer_config", None) or self.config
+
+    @offer_config.setter
+    def offer_config(self, value):
+        self._offer_config = value
 
     @property
     def is_native(self) -> bool:
@@ -89,12 +100,32 @@ class Writer:
             )
             return
 
-        # Batch prospects into campaign groups (by industry/title for relevance)
-        batches = self._group_prospects(prospects_with_email)
+        # Each prospect's product: the one running at their company, else its
+        # best pending one. A company whose products are done or paused waits.
+        routes: dict = {}
+        cache: dict = {}
+        for p in list(prospects_with_email):
+            product, skip = await choose_product(self.state, p.company_id or "", cache)
+            if skip:
+                prospects_with_email.remove(p)
+            else:
+                routes[p.id] = product
+        if not prospects_with_email:
+            logger.info("Writer: every new prospect waits for its company's next product.")
+            return
+        foundation = self.skills
+
+        # Batch prospects into campaign groups (by product, then industry)
+        batches = self._group_prospects(prospects_with_email, routes)
 
         for batch_name, prospects in batches.items():
             if not prospects:
                 continue
+            self.product = routes.get(prospects[0].id)
+            self.offer_config = config_for(self.config, self.product)
+            knowledge = knowledge_for(self.product)
+            self.skills = (foundation if knowledge is None
+                           else self.brain.load_skills_for_agent("writer", product_knowledge=knowledge))
 
             logger.info(
                 f"Writer: Creating campaign '{batch_name}' for "
@@ -125,6 +156,7 @@ class Writer:
                 sequence=sequence,
                 prospect_ids=[p.id for p in prospects],
                 status="draft",
+                product_id=self.product.id if self.product else "",
             )
             campaign_id = await self.state.add_campaign(campaign)
 
@@ -132,6 +164,8 @@ class Writer:
             for p in prospects:
                 await self.state.queue_prospect_if_unsent(p.id)
                 await self.state.delete_setting(WRITE_ATTEMPTS_KEY + p.id)
+                if self.product:
+                    await mark_started(self.state, self.product.id, p.company_id or "")
 
             # Native providers: replace the shared template for email 1 with
             # a per-prospect draft grounded in that company's actual facts.
@@ -144,6 +178,7 @@ class Writer:
                 details={
                     "campaign_id": campaign_id,
                     "campaign_name": batch_name,
+                    "product": self.product.name if self.product else "",
                     "prospect_count": len(prospects),
                     "steps": len(sequence),
                 },
@@ -314,10 +349,10 @@ class Writer:
 
         prompt = self.brain.load_prompt(
             "writer",
-            product_name=self.config.product.name,
-            product_description=self.config.product.description,
-            product_benefits="\n".join(f"- {b}" for b in self.config.product.key_benefits),
-            product_pricing=self.config.product.pricing,
+            product_name=self.offer_config.product.name,
+            product_description=self.offer_config.product.description,
+            product_benefits="\n".join(f"- {b}" for b in self.offer_config.product.key_benefits),
+            product_pricing=self.offer_config.product.pricing,
             persona_name=self.config.persona.name,
             persona_company=self.config.persona.company,
             persona_role=self.config.persona.role,
@@ -387,10 +422,10 @@ Return ONLY JSON: {{"subject": "...", "body": "..."}}"""
 
         prompt = self.brain.load_prompt(
             "writer",
-            product_name=self.config.product.name,
-            product_description=self.config.product.description,
-            product_benefits="\n".join(f"- {b}" for b in self.config.product.key_benefits),
-            product_pricing=self.config.product.pricing,
+            product_name=self.offer_config.product.name,
+            product_description=self.offer_config.product.description,
+            product_benefits="\n".join(f"- {b}" for b in self.offer_config.product.key_benefits),
+            product_pricing=self.offer_config.product.pricing,
             persona_name=self.config.persona.name,
             persona_company=self.config.persona.company,
             persona_role=self.config.persona.role,
@@ -401,10 +436,10 @@ Return ONLY JSON: {{"subject": "...", "body": "..."}}"""
             prompt = f"""You are {self.config.persona.name}, {self.config.persona.role} at {self.config.persona.company}.
 Your tone is: {self.config.persona.tone}
 
-Product: {self.config.product.name}
-Description: {self.config.product.description}
-Key benefits: {', '.join(self.config.product.key_benefits)}
-Pricing: {self.config.product.pricing}"""
+Product: {self.offer_config.product.name}
+Description: {self.offer_config.product.description}
+Key benefits: {', '.join(self.offer_config.product.key_benefits)}
+Pricing: {self.offer_config.product.pricing}"""
 
         # Inject email framework skills
         if self.skills:
@@ -514,8 +549,8 @@ Return ONLY a JSON array (no markdown fences, no commentary):
             logger.warning(f"Writer: Expected 3 emails, got {len(steps)}.")
         return steps
 
-    def _group_prospects(self, prospects: list) -> dict[str, list]:
-        """Group prospects into campaign batches by industry/title combo."""
+    def _group_prospects(self, prospects: list, routes: dict | None = None) -> dict[str, list]:
+        """Group prospects into campaign batches by product, then industry/title combo."""
         batches: dict[str, list] = {}
 
         for prospect in prospects:
@@ -525,6 +560,10 @@ Return ONLY a JSON array (no markdown fences, no commentary):
             # greet anyone by name.
             kind = "inbox-outreach" if prospect.is_company_inbox else "outreach"
             key = f"{industry}-{kind}"
+            # One campaign sells one product.
+            product = (routes or {}).get(prospect.id)
+            if product is not None:
+                key = f"{product.name} · {key}"
 
             if key not in batches:
                 batches[key] = []

@@ -407,6 +407,7 @@ function showTab(id, btn) {
 function loadCurrentTab() {
   switch (currentTab) {
     case 'today': loadLiveStatus(); loadToday(); loadTrend(); loadFunnel(); loadSetupStatus(); loadRuns(); loadTodayActivity(); break;
+    case 'products': loadProducts(); break;
     case 'accounts': loadAccounts(); break;
     case 'signals': loadSignals(); break;
     case 'discover': loadDiscoverProviders(); break;
@@ -1843,7 +1844,8 @@ function renderDesk(items, i) {
       '<div class="di-text"><div class="to">' + escHtml(who) +
         (heldReason(it) ? ' <span class="tag t-bad" title="Harvey lo ha retenido en lugar de enviarlo">Retenido</span>' : '') +
         '</div>' +
-      '<div class="sub">' + escHtml(it.subject || '(sin asunto)') + '</div></div>' +
+      '<div class="sub">' + escHtml(it.subject || '(sin asunto)') + '</div>' +
+      (it.product ? '<div class="sub">' + productTag(it.product) + '</div>' : '') + '</div>' +
     '</div>';
   }).join('');
 
@@ -1995,15 +1997,330 @@ async function sendingToggle(action) {
   loadOutbox();
 }
 
+// ── Productos (each with its own offer, ICP, scoring and accounts) ──
+
+let _products = null;        // the last /api/products
+let _productBatches = [];    // lotes on file, for "Añadir cuentas"
+let _peRules = [];           // the scoring rules in the open editor
+let _peDelete = '';          // product id whose Borrar was pressed once
+
+const COND_OPTIONS = [
+  ['', 'está presente'], ['absent', 'no está'], ['min', 'valor mínimo'], ['max', 'valor máximo'],
+  ['between', 'entre (a-b)'], ['older_than_days', 'hace más de N días'],
+  ['within_days', 'en los últimos N días'], ['within_months', 'en los últimos N meses'],
+  ['contains_any', 'contiene alguno de'], ['contains_none', 'no contiene ninguno de'],
+  ['json', 'avanzado (JSON)'],
+];
+const OFFER_GOALS = [['book_call', 'Agendar una llamada'], ['start_trial', 'Empezar una prueba'], ['get_reply', 'Conseguir una respuesta']];
+const BOOKING = [['calendar_link', 'Enlace de calendario'], ['suggest_times', 'Proponer horarios'], ['ask_preference', 'Preguntar preferencia']];
+
+function productTag(name) {
+  return name ? '<span class="tag accent" title="Producto">' + escHtml(name) + '</span> ' : '';
+}
+
+function ruleToRow(rule, segment) {
+  const w = rule.when || {};
+  const keys = Object.keys(w);
+  let cond = '', value = '';
+  if (keys.length === 1 && w.exists === false) cond = 'absent';
+  else if (keys.length === 1 && keys[0] === 'between') { cond = 'between'; value = (w.between || []).join('-'); }
+  else if (keys.length === 1 && COND_OPTIONS.some(o => o[0] === keys[0])) {
+    cond = keys[0];
+    value = Array.isArray(w[cond]) ? w[cond].join(', ') : String(w[cond]);
+  } else if (keys.length) { cond = 'json'; value = JSON.stringify(w); }
+  return {segment: segment || '', signal: rule.signal || '', cond, value,
+          points: rule.points ?? 0, label: rule.label || ''};
+}
+
+function condToWhen(cond, value) {
+  const v = String(value || '').trim();
+  const num = x => { const n = Number(String(x).replace(',', '.')); if (isNaN(n)) throw new Error('«' + x + '» no es un número'); return n; };
+  switch (cond) {
+    case '': return null;
+    case 'absent': return {exists: false};
+    case 'between': {
+      const parts = v.split(/\s*[-–]\s*|\s+y\s+/).filter(Boolean);
+      if (parts.length !== 2) throw new Error('«entre» necesita dos números, como 50-1000');
+      return {between: [num(parts[0]), num(parts[1])]};
+    }
+    case 'contains_any': case 'contains_none': {
+      const words = v.split(',').map(x => x.trim()).filter(Boolean);
+      if (!words.length) throw new Error('escribe al menos una palabra');
+      return {[cond]: words};
+    }
+    case 'json':
+      try { return JSON.parse(v || '{}'); } catch { throw new Error('el JSON de una regla no es válido'); }
+    default:
+      if (!v) throw new Error('falta el valor de una regla');
+      return {[cond]: num(v)};
+  }
+}
+
+async function loadProducts() {
+  const el = document.getElementById('products-list');
+  const [data, acc] = await Promise.all([api('/api/products'), api('/api/accounts')]);
+  if (!data || data.success === false) { el.innerHTML = offlineState(); return; }
+  _products = data;
+  _productBatches = acc && acc.accounts
+    ? [...new Set(acc.accounts.map(a => a.batch).filter(Boolean))].sort() : [];
+  const nav = document.getElementById('nav-products');
+  if (nav) nav.textContent = data.products.length || '';
+  if (!data.products.length) {
+    el.innerHTML = emptyState(icon('box'), 'Aún no hay productos',
+      'Da de alta lo que vendes con <b>Nuevo producto</b>: su oferta, a quién va dirigido y cómo puntuar las cuentas.');
+    return;
+  }
+  const lotes = '<option value="__all">Todas las cuentas</option>' +
+    _productBatches.map(b => '<option value="' + escHtml(b) + '">Lote ' + escHtml(b) + '</option>').join('');
+  el.innerHTML = data.products.map(p => {
+    const a = p.accounts || {};
+    const paused = p.status === 'paused';
+    const facts = [
+      p.pricing && ['Precio', p.pricing],
+      p.icp.segments.length && ['Segmentos', p.icp.segments.join(', ')],
+      p.icp.titles.length && ['Cargos', p.icp.titles.join(', ')],
+      p.icp.geography.length && ['Zona', p.icp.geography.join(', ')],
+      ['Puntuación', countRules(p.scoring) ? countRules(p.scoring) + ' reglas, corte ' + p.scoring.threshold : 'sin reglas'],
+    ].filter(Boolean).map(f => '<span class="chip">' + escHtml(f[0]) + ': <b>' + escHtml(f[1]) + '</b></span>').join(' · ');
+    const del = _peDelete === p.id ? '¿Seguro? Pulsa otra vez' : 'Borrar';
+    return '<div class="card"><div class="card-head"><h3>' + escHtml(p.name) + '</h3>' +
+      '<span class="meta"><span class="tag' + (paused ? '' : ' accent') + '">' + (paused ? 'En pausa' : 'Activo') + '</span></span></div>' +
+      (p.description ? '<p class="muted" style="margin:0 0 8px">' + escHtml(p.description) + '</p>' : '') +
+      '<p style="margin:0 0 8px">' + facts + '</p>' +
+      '<p class="muted" style="margin:0 0 12px">' + a.total + ' cuentas · ' + a.pending + ' por escribir · ' +
+        a.active + ' en curso · ' + a.done + ' terminadas' +
+        (countRules(p.scoring) ? ' · <b>' + a.above_threshold + '</b> con ' + p.scoring.threshold + '+ puntos' : '') +
+        ' · ' + p.campaigns + (p.campaigns === 1 ? ' campaña' : ' campañas') + '</p>' +
+      '<div class="btn-group">' +
+        '<button class="btn btn-primary btn-sm" onclick="editProduct(' + jsq(p.id) + ')">' + icon('pen') + ' Editar</button>' +
+        '<button class="btn btn-secondary btn-sm" onclick="toggleProduct(' + jsq(p.id) + ')">' + (paused ? 'Reanudar' : 'Pausar') + '</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="deleteProduct(' + jsq(p.id) + ')">' + del + '</button>' +
+        '<select class="form-input" style="width:auto;height:30px" id="pa-' + escHtml(p.id) + '" aria-label="Qué cuentas añadir">' + lotes + '</select>' +
+        '<button class="btn btn-secondary btn-sm" onclick="assignToProduct(' + jsq(p.id) + ')">Añadir cuentas</button>' +
+      '</div></div>';
+  }).join('') +
+  '<p class="muted">Una empresa en varios productos recibe uno cada vez: primero el que mejor puntúa. ' +
+  'Cuando su secuencia termina sin respuesta, espera ' + data.cooldown_days + ' días y pasa al siguiente. ' +
+  'Si alguien de la empresa responde, se para todo.</p>';
+}
+
+function countRules(scoring) {
+  return (scoring.rules || []).length +
+    Object.values(scoring.segments || {}).reduce((n, s) => n + (s.rules || []).length, 0);
+}
+
+function editProduct(id) {
+  const box = document.getElementById('product-editor');
+  const p = id ? (_products.products || []).find(x => x.id === id) : null;
+  const v = p || {name: '', status: 'active', description: '', pricing: '', key_benefits: [],
+    objection_responses: {}, offer: {goal: 'book_call', booking_method: 'calendar_link', meeting_duration: '15 minutos'},
+    knowledge: '', icp: {segments: [], company_size: '', geography: [], titles: [], hiring_signals: []},
+    scoring: {threshold: 60, rules: [], segments: {}}};
+  _peRules = (v.scoring.rules || []).map(r => ruleToRow(r, ''));
+  for (const [seg, block] of Object.entries(v.scoring.segments || {}))
+    for (const r of block.rules || []) _peRules.push(ruleToRow(r, seg));
+  const o = v.offer || {};
+  const field = (label, idn, value, ph, wide) =>
+    '<div class="form-group"' + (wide ? ' style="flex:2"' : '') + '><label class="form-label" for="' + idn + '">' + label + '</label>' +
+    '<input class="form-input" id="' + idn + '" value="' + escHtml(value || '') + '" placeholder="' + escHtml(ph || '') + '"></div>';
+  const area = (label, idn, value, ph, rows) =>
+    '<div class="form-group"><label class="form-label" for="' + idn + '">' + label + '</label>' +
+    '<textarea class="form-input" id="' + idn + '" rows="' + (rows || 3) + '" placeholder="' + escHtml(ph || '') + '">' + escHtml(value || '') + '</textarea></div>';
+  const select = (label, idn, opts, cur) =>
+    '<div class="form-group"><label class="form-label" for="' + idn + '">' + label + '</label><select class="form-input" id="' + idn + '">' +
+    opts.map(x => '<option value="' + x[0] + '"' + (x[0] === cur ? ' selected' : '') + '>' + escHtml(x[1]) + '</option>').join('') + '</select></div>';
+  const segs = (_products.segments || []).map(s =>
+    '<label style="display:inline-flex;gap:6px;align-items:center;margin-right:14px"><input type="checkbox" class="pe-seg" value="' + escHtml(s) + '"' +
+    (v.icp.segments.includes(s) ? ' checked' : '') + '> ' + escHtml(s) + '</label>').join('');
+  box.innerHTML = '<div class="card" style="border-color:var(--accent-line)">' +
+    '<div class="card-head"><h3>' + (p ? 'Editar «' + escHtml(p.name) + '»' : 'Nuevo producto') + '</h3></div>' +
+    '<div class="subhead">El producto</div>' +
+    '<div class="form-row">' + field('Nombre', 'pe-name', v.name, 'Plataforma de presupuestos', true) +
+      select('Estado', 'pe-status', [['active', 'Activo'], ['paused', 'En pausa']], v.status) + '</div>' +
+    area('Descripción (una o dos frases)', 'pe-description', v.description, 'Qué es y qué problema resuelve') +
+    '<div class="form-row">' + field('Precio', 'pe-pricing', v.pricing, '15.000 €/año', true) + '</div>' +
+    area('Beneficios (uno por línea)', 'pe-benefits', (v.key_benefits || []).join('\n'), 'Presupuestos en minutos, no en días', 4) +
+    area('Objeciones (una por línea: objeción => respuesta)', 'pe-objections',
+      Object.entries(v.objection_responses || {}).map(e => e[0] + ' => ' + e[1]).join('\n'),
+      'es caro => Se paga con dos presupuestos ganados al mes', 4) +
+    '<div class="subhead">La oferta</div>' +
+    '<div class="form-row">' + field('Oferta principal', 'pe-offer-primary', o.primary, 'Licencia anual', true) +
+      field('Entrada de bajo compromiso', 'pe-offer-entry', o.entry, 'Diagnóstico gratuito de 30 min', true) + '</div>' +
+    '<div class="form-row">' + select('Objetivo', 'pe-offer-goal', OFFER_GOALS, o.goal || 'book_call') +
+      select('Cómo se agenda', 'pe-offer-booking', BOOKING, o.booking_method || 'calendar_link') +
+      field('Enlace de calendario', 'pe-offer-url', o.booking_url, 'https://…') + '</div>' +
+    '<div class="form-row">' + field('Duración de la reunión', 'pe-offer-duration', o.meeting_duration, '15 minutos') +
+      field('Quién atiende la reunión', 'pe-offer-owner', o.meeting_owner, 'Nombre y cargo') + '</div>' +
+    area('Conocimiento del producto (opcional)', 'pe-knowledge', v.knowledge,
+      'Todo lo que Harvey debe saber para escribir y responder: casos de uso, diferencias con la competencia, ejemplos de clientes, lo que NO hace… ' +
+      'Si lo dejas vacío, usa el conocimiento entrenado de la configuración.', 8) +
+    '<div class="subhead">Cliente ideal</div>' +
+    '<div class="form-group"><span class="form-label">Segmentos de cuenta</span><div>' + (segs || '<span class="muted">—</span>') + '</div></div>' +
+    '<div class="form-row">' + field('Tamaño', 'pe-size', v.icp.company_size, '50-500 empleados') +
+      field('Zona (separada por comas)', 'pe-geo', (v.icp.geography || []).join(', '), 'España', true) + '</div>' +
+    area('Cargos a los que escribir (uno por línea)', 'pe-titles', (v.icp.titles || []).join('\n'),
+      'Gerente\nDirector General\nDirector de Operaciones', 4) +
+    field('Puestos que indican interés si los contratan (separados por comas)', 'pe-hiring',
+      (v.icp.hiring_signals || []).join(', '), 'oficina técnica, ventas internas', true) +
+    '<div class="subhead">Puntuación</div>' +
+    '<div class="form-row">' + field('Corte (puntos para ser prioritaria)', 'pe-threshold', String(v.scoring.threshold ?? 60), '60') + '</div>' +
+    '<div id="pe-rules"></div>' +
+    '<div class="btn-group" style="margin-top:16px">' +
+      '<button class="btn btn-primary" onclick="saveProduct(' + jsq(id) + ')">Guardar</button>' +
+      '<button class="btn btn-ghost" onclick="closeProductEditor()">Cancelar</button></div>' +
+    '<div id="pe-result"></div></div>';
+  renderRules();
+  box.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+function closeProductEditor() {
+  document.getElementById('product-editor').innerHTML = '';
+  _peRules = [];
+}
+
+function readRules() {
+  document.querySelectorAll('#pe-rules tr[data-i]').forEach(tr => {
+    const r = _peRules[+tr.dataset.i];
+    if (!r) return;
+    for (const k of ['segment', 'signal', 'cond', 'value', 'points', 'label'])
+      r[k] = tr.querySelector('[data-k="' + k + '"]').value;
+  });
+}
+
+function renderRules() {
+  const el = document.getElementById('pe-rules');
+  if (!el) return;
+  const signals = (_products.signals || []);
+  const opt = (list, cur) => list.map(x => '<option value="' + escHtml(x[0]) + '"' + (x[0] === cur ? ' selected' : '') + '>' + escHtml(x[1]) + '</option>').join('');
+  const segOpts = [['', 'Todas']].concat((_products.segments || []).map(s => [s, s]));
+  const sigOpts = r => {
+    const list = signals.map(s => [s.code, s.label + (s.status === 'confirmed' ? '' : ' (no se recoge)')]);
+    if (r.signal && !list.some(x => x[0] === r.signal)) list.unshift([r.signal, r.signal]);
+    return [['', '— elige una señal —']].concat(list);
+  };
+  el.innerHTML = '<div class="table-card"><table><thead><tr><th>Segmento</th><th>Señal</th><th>Condición</th>' +
+    '<th>Valor</th><th class="num">Puntos</th><th>Etiqueta (opcional)</th><th></th></tr></thead><tbody>' +
+    (_peRules.length ? _peRules.map((r, i) => '<tr data-i="' + i + '">' +
+      '<td><select class="form-input" data-k="segment" style="min-width:120px">' + opt(segOpts, r.segment) + '</select></td>' +
+      '<td><select class="form-input" data-k="signal" style="min-width:200px">' + opt(sigOpts(r), r.signal) + '</select></td>' +
+      '<td><select class="form-input" data-k="cond" style="min-width:180px">' + opt(COND_OPTIONS, r.cond) + '</select></td>' +
+      '<td><input class="form-input" data-k="value" value="' + escHtml(r.value) + '" placeholder="60 · 50-1000 · Shopify, Magento"></td>' +
+      '<td class="num"><input class="form-input" data-k="points" type="number" step="1" style="width:80px" value="' + escHtml(String(r.points)) + '"></td>' +
+      '<td><input class="form-input" data-k="label" value="' + escHtml(r.label) + '"></td>' +
+      '<td><button class="btn btn-ghost btn-sm" onclick="removeRule(' + i + ')" aria-label="Quitar regla">✕</button></td></tr>').join('')
+      : '<tr><td colspan="7" class="muted">Sin reglas: las cuentas de este producto no se puntúan.</td></tr>') +
+    '</tbody></table></div>' +
+    '<div class="btn-group" style="margin-top:8px"><button class="btn btn-secondary btn-sm" onclick="addRule()">+ Añadir regla</button></div>' +
+    '<p class="muted" style="margin-top:6px">Cada regla que se cumple suma sus puntos (pueden ser negativos). ' +
+    'Las de un segmento solo cuentan para las cuentas de ese segmento.</p>';
+}
+
+function addRule() {
+  readRules();
+  _peRules.push({segment: '', signal: '', cond: '', value: '', points: 10, label: ''});
+  renderRules();
+}
+
+function removeRule(i) {
+  readRules();
+  _peRules.splice(i, 1);
+  renderRules();
+}
+
+async function saveProduct(id) {
+  readRules();
+  const val = k => (document.getElementById(k).value || '').trim();
+  const lines = t => t.split('\n').map(x => x.trim()).filter(Boolean);
+  const csv = t => t.split(',').map(x => x.trim()).filter(Boolean);
+  const out = document.getElementById('pe-result');
+  const objections = {};
+  for (const l of lines(val('pe-objections'))) {
+    const at = l.indexOf('=>');
+    if (at > 0) objections[l.slice(0, at).trim()] = l.slice(at + 2).trim();
+  }
+  const scoring = {threshold: Number(val('pe-threshold').replace(',', '.')) || 60, rules: [], segments: {}};
+  try {
+    for (const r of _peRules) {
+      if (!r.signal) continue;
+      const rule = {signal: r.signal, when: condToWhen(r.cond, r.value), points: Number(r.points) || 0};
+      if (r.label.trim()) rule.label = r.label.trim();
+      if (r.segment) (scoring.segments[r.segment] = scoring.segments[r.segment] || {rules: []}).rules.push(rule);
+      else scoring.rules.push(rule);
+    }
+  } catch (e) {
+    out.innerHTML = '<div class="banner bad" style="margin-top:12px">' + icon('alert') + '<div><b>Revisa las reglas</b><p>' + escHtml(e.message) + '</p></div></div>';
+    return;
+  }
+  const body = {
+    name: val('pe-name'), status: val('pe-status'), description: val('pe-description'), pricing: val('pe-pricing'),
+    key_benefits: lines(val('pe-benefits')), objection_responses: objections,
+    offer: {primary: val('pe-offer-primary'), entry: val('pe-offer-entry'), goal: val('pe-offer-goal'),
+            booking_method: val('pe-offer-booking'), booking_url: val('pe-offer-url'),
+            meeting_duration: val('pe-offer-duration'), meeting_owner: val('pe-offer-owner')},
+    knowledge: document.getElementById('pe-knowledge').value.trim(),
+    icp: {segments: [...document.querySelectorAll('.pe-seg:checked')].map(x => x.value),
+          company_size: val('pe-size'), geography: csv(val('pe-geo')), titles: lines(val('pe-titles')),
+          hiring_signals: csv(val('pe-hiring'))},
+    scoring,
+  };
+  if (!body.name) { showToast('El producto necesita un nombre', 'error'); return; }
+  const data = await api(id ? '/api/products/' + encodeURIComponent(id) : '/api/products', {
+    method: id ? 'PUT' : 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  if (!data || !data.success) {
+    out.innerHTML = '<div class="banner bad" style="margin-top:12px">' + icon('alert') + '<div><b>No se pudo guardar</b><p>' +
+      escHtml(failMsg(data, 'error de conexión')) + '</p></div></div>';
+    return;
+  }
+  showToast(id ? 'Producto guardado' + (data.scored ? ', ' + data.scored + ' cuentas puntuadas' : '') : 'Producto creado. Ahora añádele cuentas.', 'success');
+  closeProductEditor();
+  loadProducts();
+}
+
+async function toggleProduct(id) {
+  const p = (_products.products || []).find(x => x.id === id);
+  if (!p) return;
+  const body = {...p, status: p.status === 'paused' ? 'active' : 'paused'};
+  const data = await api('/api/products/' + encodeURIComponent(id), {
+    method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  if (!data || !data.success) { showToast(failMsg(data, 'No se pudo cambiar'), 'error'); return; }
+  showToast(body.status === 'paused' ? 'En pausa: no se escriben emails nuevos de este producto.' : 'Producto reanudado.', 'success');
+  loadProducts();
+}
+
+async function deleteProduct(id) {
+  if (_peDelete !== id) { _peDelete = id; loadProducts(); return; }
+  _peDelete = '';
+  const data = await api('/api/products/' + encodeURIComponent(id), {method: 'DELETE'});
+  if (!data || !data.success) { showToast(failMsg(data, 'No se pudo borrar'), 'error'); return; }
+  showToast(data.deleted ? 'Producto borrado' : data.message, 'success');
+  loadProducts();
+}
+
+async function assignToProduct(id) {
+  const sel = document.getElementById('pa-' + id);
+  const choice = sel ? sel.value : '__all';
+  const body = choice === '__all' ? {all: true} : {batch: choice};
+  const data = await api('/api/products/' + encodeURIComponent(id) + '/accounts', {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  if (!data || !data.success) { showToast(failMsg(data, 'No se pudieron añadir'), 'error'); return; }
+  showToast(data.added + ' cuentas añadidas' + (data.already ? ' (' + data.already + ' ya estaban)' : '') +
+    (data.scored ? ', ' + data.scored + ' puntuadas' : ''), 'success');
+  loadProducts();
+}
+
 // ── Cuentas (account-based selling) ──
 
 let _accountsPoll = null;
+let _accountsProduct = '';   // whose score the list shows ('' = the general one)
+let _accountsData = null;
 
 async function loadAccounts() {
   const el = document.getElementById('accounts-list');
   const data = await api('/api/accounts');
   if (!data) { el.innerHTML = offlineState(); return; }
   renderAccountsEnrich(data.enrich);
+  _accountsData = data;
+  renderAccountsProducts(data.products || []);
   const nav = document.getElementById('nav-accounts');
   if (nav) nav.textContent = data.accounts.length || '';
   if (!data.accounts.length) {
@@ -2011,11 +2328,28 @@ async function loadAccounts() {
       'Sube arriba el CSV con las empresas que quieres trabajar (nombre y web bastan).');
     return;
   }
-  const th = data.threshold;
+  renderAccountsTable();
+}
+
+const ASSIGN_STATUS = {pending: 'por escribir', active: 'en curso', done: 'terminada'};
+
+function renderAccountsTable() {
+  const el = document.getElementById('accounts-list');
+  const data = _accountsData;
+  const prod = (data.products || []).find(p => p.id === _accountsProduct);
+  const th = prod ? prod.threshold : data.threshold;
+  // A product's view: its accounts, with its score.
+  const accounts = (prod ? data.accounts.filter(a => (a.products || []).some(x => x.id === prod.id)) : data.accounts)
+    .map(a => {
+      if (!prod) return a;
+      const x = a.products.find(y => y.id === prod.id);
+      return {...a, score: x.score, why: x.why};
+    })
+    .sort((a, b) => (a.score == null) - (b.score == null) || (b.score || 0) - (a.score || 0) || a.name.localeCompare(b.name));
   let html = '<div class="table-card"><table class="nowrap"><thead><tr><th>Empresa</th><th>Segmento</th>' +
-    '<th>Lote</th><th>Provincia</th><th class="num">Empleados</th><th class="num">Puntuación</th>' +
+    '<th>Lote</th><th>Productos</th><th>Provincia</th><th class="num">Empleados</th><th class="num">Puntuación</th>' +
     '<th class="num">Contactos</th><th>Por qué</th></tr></thead><tbody>';
-  for (const a of data.accounts) {
+  for (const a of accounts) {
     const href = safeHref('https://' + a.domain);
     const domain = href ? '<a href="' + href + '" target="_blank" rel="noopener noreferrer">' +
       escHtml(a.domain) + '</a>' : escHtml(a.domain);
@@ -2026,17 +2360,44 @@ async function loadAccounts() {
       '<span class="cell-sub">' + domain + '</span></div></td>' +
       '<td>' + (a.segment ? '<span class="tag">' + escHtml(a.segment) + '</span>' : '') + '</td>' +
       '<td class="muted">' + escHtml(a.batch) + '</td>' +
+      '<td>' + (a.products || []).map(x => '<span class="tag' + (x.status === 'active' ? ' accent' : '') + '" title="' +
+        escHtml(own(ASSIGN_STATUS, x.status) || x.status) + (x.score != null ? ' · ' + x.score + ' puntos' : '') + '">' +
+        escHtml(x.name) + '</span>').join(' ') + '</td>' +
       '<td>' + escHtml(a.province) + '</td>' +
       '<td class="num">' + (a.employees ? escHtml(String(Math.round(a.employees))) : '') + '</td>' +
       '<td class="num">' + score + '</td>' +
       '<td class="num">' + (a.contacts || 0) + '</td>' +
       '<td class="muted" style="white-space:normal;max-width:420px">' + escHtml(a.why) + '</td></tr>';
   }
-  const above = data.accounts.filter(a => a.score !== null && a.score >= th).length;
+  const above = accounts.filter(a => a.score !== null && a.score !== undefined && a.score >= th).length;
+  const configured = prod ? prod.scoring_configured : data.scoring_configured;
   el.innerHTML = html + '</tbody></table></div>' +
-    '<div class="table-foot">' + data.accounts.length + ' cuentas · ' + above +
+    '<div class="table-foot">' + accounts.length + ' cuentas' + (prod ? ' en ' + escHtml(prod.name) : '') + ' · ' + above +
     ' con ' + th + ' puntos o más' +
-    (data.scoring_configured ? '' : ' · sin reglas de puntuación configuradas') + '</div>';
+    (configured ? '' : ' · sin reglas de puntuación' + (prod ? ' en este producto' : ' configuradas')) + '</div>';
+}
+
+function renderAccountsProducts(products) {
+  // The import's product, and whose score the list shows.
+  const imp = document.getElementById('acc-product');
+  if (imp) {
+    const cur = imp.value;
+    imp.innerHTML = '<option value="">— ninguno (decídelo después) —</option>' + products.map(p =>
+      '<option value="' + escHtml(p.id) + '">' + escHtml(p.name) + (p.status === 'paused' ? ' (en pausa)' : '') + '</option>').join('');
+    imp.value = products.some(p => p.id === cur) ? cur : (products.length === 1 ? products[0].id : '');
+  }
+  const view = document.getElementById('acc-view');
+  if (view) {
+    if (!products.some(p => p.id === _accountsProduct)) _accountsProduct = '';
+    view.innerHTML = '<option value="">Todas · puntuación general</option>' + products.map(p =>
+      '<option value="' + escHtml(p.id) + '"' + (p.id === _accountsProduct ? ' selected' : '') + '>' +
+      escHtml(p.name) + '</option>').join('');
+  }
+}
+
+function setAccountsProduct(id) {
+  _accountsProduct = id;
+  if (_accountsData && _accountsData.accounts.length) renderAccountsTable();
 }
 
 function renderAccountsEnrich(enrich) {
@@ -2077,6 +2438,7 @@ async function importAccounts(dryRun) {
       filename: file.name, csv: text, dry_run: dryRun,
       batch: document.getElementById('acc-batch').value,
       segment: document.getElementById('acc-segment').value,
+      product_id: document.getElementById('acc-product').value,
     }),
   });
   if (!data || !data.success) {
@@ -2089,7 +2451,8 @@ async function importAccounts(dryRun) {
   const head = dryRun
     ? data.created + ' cuenta(s) válidas para el lote «' + escHtml(data.batch) + '». No se ha importado nada todavía.'
     : 'Lote «' + escHtml(data.batch) + '»: ' + data.created + ' nuevas, ' + data.updated + ' actualizadas' +
-      (data.scored ? ', ' + data.scored + ' puntuadas' : '') + '.';
+      (data.scored ? ', ' + data.scored + ' puntuadas' : '') +
+      (data.product ? ', para ' + escHtml(data.product) : '') + '.';
   out.innerHTML = '<div class="banner' + (problems ? ' wait' : '') + '" style="margin-top:12px">' +
     icon(problems ? 'alert' : 'check') + '<div><b>' + head + '</b>' +
     (problems ? '<p>' + problems + '</p>' : '') +
@@ -2530,7 +2893,7 @@ async function loadCampaigns() {
     html += '<div class="campaign-card"><div class="campaign-top">' +
       '<div class="campaign-title"><h3>' + escHtml(c.name || 'Campaña sin título') + '</h3>' +
         '<button class="btn btn-ghost btn-sm" onclick="fbCampaign(' + i + ')">Comentarios</button></div>' +
-      '<div class="meta">' + badge(c.status) + '<span>' + pc + (pc !== 1 ? ' prospectos' : ' prospecto') + '</span>' +
+      '<div class="meta">' + productTag(c.product) + badge(c.status) + '<span>' + pc + (pc !== 1 ? ' prospectos' : ' prospecto') + '</span>' +
         '<span>' + (c.sequence || []).length + ' correos</span><span>Creada ' + relTime(c.created_at) + '</span></div>' +
       campaignProgress(c) + '</div>' +
       '<div class="sequence">' +
@@ -2620,7 +2983,7 @@ function convoCard(c) {
     '<div><h3>' + escHtml(name) + '</h3><div class="sub">' +
       escHtml([c.company, c.prospect_email].filter(Boolean).join(' · ')) + ' · ' + relTime(c.updated_at) + '</div></div>' +
     // An escalation's intent badge says the same as its status: show one.
-    '<div class="tags">' + (c.intent && !(c.status === 'needs_human' && c.intent === 'escalate') ? badge(c.intent) : '') +
+    '<div class="tags">' + productTag(c.product) + (c.intent && !(c.status === 'needs_human' && c.intent === 'escalate') ? badge(c.intent) : '') +
       stage + badge(c.status) + '</div></div>' +
     '<div class="thread">' + (thread || '<p class="muted" style="font-size:13px">Aún no hay mensajes en este hilo.</p>') +
     draft + '</div>' + convoActions(c) + '</div>';

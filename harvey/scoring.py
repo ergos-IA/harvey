@@ -148,7 +148,7 @@ class Score:
     def explanation(self) -> str:
         parts = [f"{'+' if p >= 0 else ''}{p:g} {d}" for p, d in self.fired]
         head = f"[{self.segment}] " if self.segment else ""
-        return (head + "; ".join(parts))[:900] if parts else head + "no rule fired"
+        return (head + "; ".join(parts))[:900] if parts else head + "ninguna regla suma"
 
 
 def rules_for(config: ScoringConfig, segment: str) -> list[ScoringRule]:

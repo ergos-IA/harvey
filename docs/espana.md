@@ -61,6 +61,32 @@ scoring:
 Condiciones: `exists`, `min`, `max`, `between`, `older_than_days`, `within_days`,
 `within_months`, `contains_any`, `contains_none`, `min_confidence`.
 
+## Productos y campañas
+
+Para vender más de una cosa, da de alta cada producto en la pestaña **Productos** del panel
+(se guardan en la base de datos, no en un archivo). Cada producto tiene:
+
+- **Oferta**: nombre, descripción, precio, beneficios, objeciones con su respuesta, la
+  oferta (objetivo, cómo se agenda, quién atiende) y un texto de conocimiento propio que
+  sustituye a `skills/product_knowledge.md` en sus campañas. Si se deja vacío, se usa el
+  archivo entrenado.
+- **Cliente ideal**: segmentos, tamaño, zona y los cargos a los que escribir. El Scout busca
+  esos cargos en las empresas del producto.
+- **Puntuación**: sus propias reglas (con el mismo formato que `scoring:`) y su corte.
+- **Cuentas**: se asignan al importar el CSV (eligiendo el producto) o desde la ficha
+  (todas, o un lote).
+
+Cada campaña vende un solo producto: el Writer agrupa por producto y escribe con su oferta y
+su conocimiento, y el Handler contesta con el producto de la campaña que se respondió. Una
+empresa en varios productos recibe **una secuencia cada vez**: primero la del producto que
+mejor puntúa. Cuando termina sin respuesta y han pasado 21 días desde el último envío, el
+siguiente producto abre una secuencia nueva para sus contactos. Si alguien de la empresa
+responde o se da de baja, se para todo. Un producto en pausa no empieza campañas nuevas.
+
+La primera vez que arranca, Harvey convierte el producto de `harvey.yaml` en el primer
+producto, con todas las cuentas importadas asignadas, así que una instalación existente
+sigue igual.
+
 ## Idioma y cumplimiento
 
 - Los agentes escriben en español salvo que el prospecto use otro idioma.

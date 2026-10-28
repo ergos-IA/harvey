@@ -25,6 +25,7 @@ from harvey.integrations.mail_provider import (
     NATIVE_PROVIDERS, get_mail_provider, strip_quoted_reply,
 )
 from harvey.models.conversation import Conversation, Message
+from harvey.products import config_for, knowledge_for, product_of_campaign
 from harvey.state import COLLEAGUE_REPLIED, REVIEW_NEXT_REPLY_KEY, StateManager
 from harvey.sending_mode import sync_sending_mode
 from harvey.startups import startup_facts
@@ -1020,23 +1021,37 @@ Respond with ONLY the category label, nothing else."""
         """Generate an appropriate response based on intent."""
         history = conversation_history(convo.thread, prospect.full_name())
 
+        # The product the email they answered was selling (else the configured one).
+        try:
+            product = await product_of_campaign(self.state, convo.campaign_id)
+        except Exception as e:
+            logger.debug(f"Handler: product lookup failed: {e}")
+            product = None
+        cfg = config_for(self.config, product)
+        knowledge = knowledge_for(product)
+        skills = (self.skills if knowledge is None
+                  else self.brain.load_skills_for_agent("handler", product_knowledge=knowledge))
+
         objection_context = ""
         if intent == "objection":
             # Check if we have a pre-configured response
-            for trigger, response in self.config.product.objection_responses.items():
+            for trigger, response in cfg.product.objection_responses.items():
                 if trigger.lower() in reply_text.lower():
                     objection_context = f"\nSuggested approach for this objection: {response}"
                     break
 
         prompt = self.brain.load_prompt("handler", stage=convo.stage)
         if not prompt:
-            prompt = f"""You are {self.config.persona.name}, {self.config.persona.role} at {self.config.persona.company}.
-Your tone is: {self.config.persona.tone}
-Product: {self.config.product.name} — {self.config.product.description}"""
+            prompt = f"""You are {cfg.persona.name}, {cfg.persona.role} at {cfg.persona.company}.
+Your tone is: {cfg.persona.tone}
+Product: {cfg.product.name} — {cfg.product.description}"""
+        elif product is not None:
+            prompt += (f"\n\nThis conversation is about one product: {cfg.product.name} — "
+                       f"{cfg.product.description}. Talk about this product only.")
 
         # Inject objection handling + sales methodology skills
-        if self.skills:
-            prompt += "\n\n" + self.skills
+        if skills:
+            prompt += "\n\n" + skills
         # A startup's founder (YC, another accelerator, a raise they
         # announced) gets the founder playbook. An optional lookup never
         # stops a reply: startup_facts reads a failure as "not a startup".

@@ -100,6 +100,16 @@ def _company_answered(p: str) -> str:
     """SQL: someone at prospect ``p``'s company has replied."""
     return (f"EXISTS (SELECT 1 FROM prospects c, settings s "
             f"WHERE s.key = '{COMPANY_STOP_KEY}' || c.id AND {_colleagues(p, 'c')})")
+
+
+def _waits_for_product(p: str) -> str:
+    """SQL: prospect ``p``'s company is in products, none of which the Writer
+    can write for now (all done, or pending on a paused product). Mirrors
+    harvey.products.choose_product."""
+    return (f"(EXISTS (SELECT 1 FROM product_accounts pa WHERE pa.company_id = {p}.company_id) "
+            f"AND NOT EXISTS (SELECT 1 FROM product_accounts pa JOIN products pr ON pr.id = pa.product_id "
+            f"WHERE pa.company_id = {p}.company_id AND (pa.status = 'active' "
+            f"OR (pa.status = 'pending' AND pr.status = 'active'))))")
 # Outbox error on what autopilot had approved when it was turned off.
 AUTOPILOT_OFF_REASON = "waiting for you: autopilot was turned off before it went out"
 # Outbox errors starting with this: the send was cut off and the email may
@@ -515,6 +525,38 @@ MIGRATIONS: list[str] = [
     -- knows about the recipient. Empty until then.
     ALTER TABLE prospects ADD COLUMN timezone TEXT DEFAULT '';
     """,
+    # ── v15: products — several offers, each with its own ICP, scoring and campaigns ──
+    """
+    -- A product is what one campaign sells. Its fields (offer, ICP, scoring
+    -- rules, knowledge) live in data_json, so a new field needs no migration.
+    CREATE TABLE IF NOT EXISTS products (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        status TEXT DEFAULT 'active',
+        data_json TEXT DEFAULT '{}',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Which accounts each product targets. status: pending (not written
+    -- yet), active (its sequence is running), done. score/why: that
+    -- product's rules over the account's signals.
+    CREATE TABLE IF NOT EXISTS product_accounts (
+        product_id TEXT NOT NULL,
+        company_id TEXT NOT NULL,
+        batch TEXT DEFAULT '',
+        status TEXT DEFAULT 'pending',
+        score REAL,
+        why TEXT DEFAULT '',
+        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (product_id, company_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_product_accounts_company ON product_accounts(company_id);
+
+    ALTER TABLE campaigns ADD COLUMN product_id TEXT DEFAULT '';
+    CREATE INDEX IF NOT EXISTS idx_campaigns_product ON campaigns(product_id);
+    """,
 ]
 
 BRAIN_PROVIDERS = ("claude", "codex")
@@ -536,7 +578,7 @@ _LAST_PROFILED = (
 # Column whitelists for dynamic UPDATEs (prevents SQL injection via kwargs).
 _CAMPAIGN_COLUMNS = frozenset({
     "name", "channel", "instantly_campaign_id",
-    "sequence_json", "prospect_ids_json", "status",
+    "sequence_json", "prospect_ids_json", "status", "product_id",
 })
 _CONVERSATION_COLUMNS = frozenset({
     "prospect_id", "campaign_id", "channel",
@@ -2084,7 +2126,8 @@ class StateManager:
             async with db.execute(
                 f"""SELECT COUNT(*) FROM prospects p
                     WHERE status = 'new' AND email != ''
-                      AND email_status IN ({marks}) AND NOT {_company_answered('p')}""",
+                      AND email_status IN ({marks}) AND NOT {_company_answered('p')}
+                      AND NOT {_waits_for_product('p')}""",
                 WRITABLE_EMAIL_STATUSES,
             ) as cursor:
                 return (await cursor.fetchone())[0]
@@ -2222,13 +2265,13 @@ class StateManager:
             await db.execute(
                 """INSERT INTO campaigns
                    (id, name, channel, instantly_campaign_id, sequence_json,
-                    prospect_ids_json, status, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    prospect_ids_json, status, created_at, product_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     campaign.id, campaign.name, campaign.channel,
                     campaign.instantly_campaign_id, campaign.sequence_json(),
                     json.dumps(campaign.prospect_ids), campaign.status,
-                    campaign.created_at.isoformat(),
+                    campaign.created_at.isoformat(), campaign.product_id or "",
                 ),
             )
             await db.commit()

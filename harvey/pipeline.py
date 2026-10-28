@@ -107,12 +107,23 @@ async def run_account_signals_stage(state, config, limit: int = 10) -> dict:
     if any(report.written.values()):
         logger.info("account signals: " + ", ".join(report.summary_lines()))
         # New readings can move a score: keep ICP_SCORE current.
+        from harvey.collectors.spain.accounts import tracked_accounts
+        from harvey.products import score_products
+        accounts = await tracked_accounts(state)
         scoring = getattr(config, "scoring", None)
         if scoring is not None and scoring.configured():
-            from harvey.collectors.spain.accounts import tracked_accounts
             from harvey.scoring import score_accounts
-            await score_accounts(state, scoring, await tracked_accounts(state))
+            await score_accounts(state, scoring, accounts)
+        await score_products(state, accounts)
     return report.written
+
+
+async def run_products_stage(state) -> int:
+    """One sequence per company at a time: when a product's sequence has
+    ended there without a reply, open the company's next product. Returns
+    how many companies moved on. Free; no model call."""
+    from harvey.products import advance_products
+    return await advance_products(state)
 
 
 async def run_prospecting(

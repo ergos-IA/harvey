@@ -38,6 +38,7 @@
     <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
     <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></symbol>
   </defs>
 </svg>
 
@@ -80,6 +81,7 @@
     </div>
     <div class="nav-group">
       <div class="nav-label">Embudo</div>
+      <button onclick="showTab('products', this)"><svg class="icon" aria-hidden="true"><use href="#i-box"/></svg><span class="label">Productos</span><span class="nav-count" id="nav-products"></span></button>
       <button onclick="showTab('accounts', this)"><svg class="icon" aria-hidden="true"><use href="#i-flag"/></svg><span class="label">Cuentas</span><span class="nav-count" id="nav-accounts"></span></button>
       <button onclick="showTab('signals', this)"><svg class="icon" aria-hidden="true"><use href="#i-signals"/></svg><span class="label">Señales</span><span class="nav-count" id="nav-signals"></span></button>
       <button onclick="showTab('discover', this)"><svg class="icon" aria-hidden="true"><use href="#i-discover"/></svg><span class="label">Descubrir</span></button>
@@ -151,7 +153,21 @@
   </div>
 </div>
 
-<!-- Signals: the confirmation gate -->
+<!-- Productos: what you sell, each with its own ICP, scoring and accounts -->
+<div id="products" class="section">
+  <div class="section-head">
+    <div>
+      <h2>Productos</h2>
+      <p>Cada producto es una campaña con su oferta, su cliente ideal, sus reglas de puntuación y sus cuentas.
+         Harvey busca en cada empresa los cargos de su producto y escribe sobre ese producto.</p>
+    </div>
+    <div class="btn-group"><button class="btn btn-primary" onclick="editProduct('')">Nuevo producto</button></div>
+  </div>
+  <div id="product-editor"></div>
+  <div id="products-list"></div>
+</div>
+
+<!-- Cuentas: the accounts you picked -->
 <div id="accounts" class="section">
   <div class="section-head">
     <div>
@@ -168,6 +184,10 @@
       <div class="form-group" style="flex:2">
         <label class="form-label" for="acc-file">Archivo CSV</label>
         <input class="form-input" id="acc-file" type="file" accept=".csv,text/csv">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="acc-product">Producto (campaña)</label>
+        <select class="form-input" id="acc-product"><option value="">— ninguno (decídelo después) —</option></select>
       </div>
       <div class="form-group">
         <label class="form-label" for="acc-batch">Lote</label>
@@ -197,6 +217,8 @@
   <div class="btn-group" style="margin-bottom:12px">
     <button class="btn btn-secondary" id="acc-enrich" onclick="enrichAccounts()">Investigar ahora (web, empleo, BORME)</button>
     <button class="btn btn-secondary" onclick="scoreAccounts()">Recalcular puntuación</button>
+    <select class="form-input" id="acc-view" style="width:auto" aria-label="Ver cuentas de un producto"
+            onchange="setAccountsProduct(this.value)"><option value="">Todas · puntuación general</option></select>
   </div>
   <div id="accounts-enrich"></div>
   <div id="accounts-list"></div>
@@ -522,14 +544,31 @@
 
   <div class="help-section">
     <h2>La idea en un minuto</h2>
-    <p>Tú eliges las empresas (unas 60, un lote cada vez). Harvey las investiga, las puntúa, busca a la persona que decide, le escribe y gestiona las respuestas. <b>No envía nada sin tu aprobación.</b></p>
-    <pre>1. Cuentas             → subes el CSV con tus empresas
+    <p>Das de alta lo que vendes y eliges las empresas (unas 60, un lote cada vez). Harvey las investiga, las puntúa, busca a la persona que decide, le escribe y gestiona las respuestas. <b>No envía nada sin tu aprobación.</b></p>
+    <pre>0. Productos           → cada producto: oferta, cliente ideal y reglas de puntuación
+1. Cuentas             → subes el CSV con tus empresas y eliges su producto
 2. Investigar ahora    → Harvey lee su web, sus ofertas de empleo y el BORME
 3. Puntuación          → tus reglas ordenan las cuentas (60+ = prioridad)
 4. Contactos           → Harvey encuentra al Gerente / Director y verifica su email
 5. Bandeja de salida   → tú lees cada email y lo apruebas, editas o descartas
 6. Conversaciones      → las respuestas, clasificadas, y lo que necesita tu mano</pre>
     <p>Del paso 4 en adelante lo hace el bucle solo, cada 15 minutos. No hay que pulsar nada más.</p>
+  </div>
+
+  <div class="help-section">
+    <h2>Productos y campañas</h2>
+    <p>Cada producto es una campaña. En su ficha (pestaña <b>Productos</b>) pones:</p>
+    <div class="table-card">
+    <table class="file-table">
+      <tr><td>El producto</td><td>Nombre, descripción, precio, beneficios y las objeciones habituales con su respuesta. El Writer y el Handler solo hablan de ese producto.</td></tr>
+      <tr><td>La oferta</td><td>Qué propones (llamada, demo, prueba), cómo se agenda y quién atiende la reunión.</td></tr>
+      <tr><td>Conocimiento</td><td>Todo lo que Harvey debe saber para escribir bien: casos de uso, diferencias, lo que no hace. Vacío = usa el conocimiento entrenado.</td></tr>
+      <tr><td>Cliente ideal</td><td>Segmentos, tamaño, zona y <b>los cargos a los que escribir</b>: Harvey busca esos cargos en las empresas de este producto.</td></tr>
+      <tr><td>Puntuación</td><td>Sus propias reglas y su corte. La misma empresa puede puntuar 70 para un producto y 20 para otro.</td></tr>
+    </table>
+    </div>
+    <p>Las cuentas se asignan al importar el CSV (elige el producto) o desde la ficha con <b>Añadir cuentas</b> (todas o un lote). En <b>Cuentas</b>, el selector de arriba muestra la puntuación de un producto concreto.</p>
+    <p><b>Una empresa en dos productos recibe uno cada vez</b>: primero el que mejor puntúa. Cuando esa secuencia termina sin respuesta, espera tres semanas y pasa al siguiente. Si alguien de la empresa responde, se para todo. Un producto <b>en pausa</b> no empieza campañas nuevas; las que están en marcha terminan.</p>
   </div>
 
   <div class="help-section">
@@ -543,7 +582,7 @@
       <tr><td>Tu CSV</td><td>Empleados, facturación, provincia, CIF, segmento. Lo que tú sabes de la cuenta.</td></tr>
     </table>
     </div>
-    <p>Opcionales: <b>InfoJobs</b> (añade <code>INFOJOBS_CLIENT_ID</code> e <code>INFOJOBS_CLIENT_SECRET</code> en las variables de Railway) y <b>prensa</b> (Google News; está apagada porque sus condiciones hablan de uso no comercial; actívala en Señales si aceptas ese riesgo).</p>
+    <p>Opcionales: <b>InfoJobs</b> (añade <code>INFOJOBS_CLIENT_ID</code> e <code>INFOJOBS_CLIENT_SECRET</code> en las variables de Railway) y <b>prensa</b> (Google News; sus condiciones hablan de uso no comercial, así que actívala o apágala en Señales según el riesgo que aceptes).</p>
     <p>La pestaña <b>Descubrir</b> es para buscar negocios locales en mapas (pensada para EE. UU.). <b>Trabajando por cuentas no la necesitas.</b></p>
   </div>
 
@@ -554,7 +593,8 @@
       <tr><td>Hoy</td><td>Lo que espera una decisión tuya y cómo va el embudo. Empieza aquí cada día.</td></tr>
       <tr><td>Bandeja de salida</td><td>Los emails que Harvey quiere enviar. Apruébalos, edítalos o recházalos. Mira al lado los datos en que se basa cada email.</td></tr>
       <tr><td>Conversaciones</td><td>Las respuestas. Harvey contesta solo las fáciles (siempre pasando por la bandeja) y te marca las que necesitan una persona.</td></tr>
-      <tr><td>Cuentas</td><td>Tus empresas: importar lotes, investigar, puntuación y cuántos contactos tiene cada una.</td></tr>
+      <tr><td>Productos</td><td>Lo que vendes: cada producto con su oferta, su cliente ideal, sus reglas de puntuación y sus cuentas.</td></tr>
+      <tr><td>Cuentas</td><td>Tus empresas: importar lotes, investigar, puntuación (general o por producto) y cuántos contactos tiene cada una.</td></tr>
       <tr><td>Señales</td><td>Qué datos se recogen. Ya están elegidas para tu caso; solo tócalas si quieres añadir o quitar alguna.</td></tr>
       <tr><td>Descubrir</td><td>No la necesitas (ver arriba).</td></tr>
       <tr><td>Empresas / Contactos</td><td>Todo lo encontrado. En Contactos se ve el estado del email: <i>verified</i> se envía, <i>guess</i> nunca.</td></tr>
@@ -577,8 +617,8 @@ Distribuciones Demo;distribuciones-demo.example;distribucion;60;9,5M;Valencia;Di
 
   <div class="help-section">
     <h2>La puntuación</h2>
-    <p>Cada segmento tiene sus reglas: tamaño, si contrata para ciertas funciones, nombramientos recientes en el BORME, si exporta, qué tecnología usa… Cada regla suma puntos y la columna <b>Por qué</b> muestra cuáles han sumado. Con 60 o más, la cuenta es prioritaria. Se recalcula sola cuando llegan datos nuevos.</p>
-    <p>Las reglas están en la configuración privada (<code>harvey.local.yaml</code>, sección <code>scoring:</code>). Si quieres cambiarlas, pídeselo a Claude.</p>
+    <p>Cada producto, y dentro de él cada segmento, tiene sus reglas: tamaño, si contrata para ciertas funciones, nombramientos recientes en el BORME, si exporta, qué tecnología usa… Cada regla suma puntos y la columna <b>Por qué</b> muestra cuáles han sumado. Con 60 o más, la cuenta es prioritaria. Se recalcula sola cuando llegan datos nuevos.</p>
+    <p>Las reglas se editan en la ficha de cada producto: elige la señal, la condición (presente, mínimo, hace más de N días…) y los puntos. Al guardar, se recalculan sus cuentas. La puntuación general de la pestaña Cuentas sigue saliendo de la configuración privada (<code>scoring:</code>).</p>
   </div>
 
   <div class="help-section">

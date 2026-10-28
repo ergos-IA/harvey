@@ -48,9 +48,8 @@ def _scoring(config):
 
 
 async def _ready_state():
-    state = _state_factory()
-    await state.init_db()
-    return state
+    from harvey.dashboard_products import ready_state
+    return await ready_state()
 
 
 def _fail(message: str, status: int = 400):
@@ -71,6 +70,19 @@ async def list_accounts():
                 "SELECT company_id, COUNT(*) FROM prospects GROUP BY company_id"
             ) as cursor:
                 contacts = {row[0]: row[1] for row in await cursor.fetchall()}
+        from harvey.products import assignments, list_products
+        products = await list_products(state)
+        names = {p.id: p for p in products}
+        per_company: dict[str, list] = {}
+        for row in await assignments(state):
+            p = names.get(row["product_id"])
+            if p is None:
+                continue
+            per_company.setdefault(row["company_id"], []).append({
+                "id": p.id, "name": p.name, "status": row["status"], "score": row["score"],
+                "why": row["why"] or "", "above": (row["score"] is not None
+                                                   and p.scoring.configured()
+                                                   and row["score"] >= p.scoring.threshold)})
         rows = []
         for a in accounts:
             latest = await state.get_observations(company_id=a["id"], signal_code="ICP_SCORE",
@@ -82,6 +94,7 @@ async def list_accounts():
                 "province": a.get("province") or "", "employees": a.get("employees"),
                 "score": score, "why": (latest[0].get("value_text") or "") if latest else "",
                 "contacts": contacts.get(a["id"], 0),
+                "products": per_company.get(a["id"], []),
             })
         rows.sort(key=lambda r: (r["score"] is None, -(r["score"] or 0), r["name"].lower()))
         accounts_cfg = getattr(config, "accounts", None)
@@ -91,6 +104,9 @@ async def list_accounts():
             "scoring_configured": scoring.configured(),
             "abm_only": bool(getattr(accounts_cfg, "abm_only", False)),
             "segments": list(SEGMENTS),
+            "products": [{"id": p.id, "name": p.name, "status": p.status,
+                          "threshold": p.scoring.threshold,
+                          "scoring_configured": p.scoring.configured()} for p in products],
             "enrich": {"running": bool(_enrich_task and not _enrich_task.done()),
                        "report": _enrich_report},
         }
@@ -120,20 +136,31 @@ async def import_accounts_csv(request: Request):
     if segment and segment not in SEGMENTS:
         return _fail(f"segmento no válido: {segment}")
     dry_run = bool(body.get("dry_run"))
+    product_id = str(body.get("product_id") or "").strip()
     try:
         folder = Path(_db_path()).parent / "imports"
         folder.mkdir(parents=True, exist_ok=True)
         path = folder / f"{stem}.csv"
         path.write_bytes(data)
         state = await _ready_state()
+        product = None
+        if product_id:
+            from harvey.products import get_product
+            product = await get_product(state, product_id)
+            if product is None:
+                return _fail("ese producto no existe")
         report = await import_accounts(state, path, batch=batch, segment=segment, dry_run=dry_run)
         scored = 0
+        if not dry_run and product is not None and report.company_ids:
+            from harvey.products import assign_accounts
+            await assign_accounts(state, product.id, report.company_ids, report.batch)
         if not dry_run and report.company_ids:
             scored = await _score_all(state)
         return {"success": True, "dry_run": dry_run, "batch": report.batch,
                 "created": report.created, "updated": report.updated,
                 "observations": report.observations, "skipped": report.skipped[:50],
-                "skipped_total": len(report.skipped), "scored": scored}
+                "skipped_total": len(report.skipped), "scored": scored,
+                "product": product.name if product else ""}
     except Exception as e:
         logger.exception("accounts import failed")
         return _fail(str(e), 500)
@@ -143,21 +170,22 @@ async def _score_all(state) -> int:
     from harvey.collectors.spain.accounts import tracked_accounts
     from harvey.scoring import score_accounts
 
+    from harvey.products import score_products
+
     scoring = _scoring(_config())
-    if not scoring.configured():
-        return 0
     accounts = await tracked_accounts(state)
-    return len(await score_accounts(state, scoring, accounts))
+    scored = len(await score_accounts(state, scoring, accounts)) if scoring.configured() else 0
+    return max(scored, await score_products(state, accounts))
 
 
 @router.post("/api/accounts/score")
 async def score_accounts_now():
     try:
         state = await _ready_state()
-        scoring = _scoring(_config())
-        if not scoring.configured():
-            return _fail("no hay reglas de puntuación (sección scoring: de la configuración)")
-        return {"success": True, "scored": await _score_all(state)}
+        scored = await _score_all(state)
+        if not scored:
+            return _fail("no hay reglas de puntuación: añádelas en la ficha de cada producto")
+        return {"success": True, "scored": scored}
     except Exception as e:
         logger.exception("accounts score failed")
         return _fail(str(e), 500)

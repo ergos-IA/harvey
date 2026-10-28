@@ -18,7 +18,7 @@ from harvey.integrations.mail_provider import NATIVE_PROVIDERS
 from harvey.pidfile import (
     LOCK_FILE, hold_loop_lock, read_pid, release_loop_lock, remove_pid_file, write_pid_file,
 )
-from harvey.pipeline import run_account_signals_stage, run_profile_stage
+from harvey.pipeline import run_account_signals_stage, run_products_stage, run_profile_stage
 from harvey.state import StateManager
 
 logging.basicConfig(
@@ -277,6 +277,12 @@ async def heartbeat(stop_event: asyncio.Event | None = None):
 
     await state.init_db()
     logger.info("Database initialized.")
+    # Products (Productos tab): the configured product becomes the first one, once.
+    try:
+        from harvey.products import ensure_default_product
+        await ensure_default_product(state, config)
+    except Exception as e:
+        logger.warning(f"products: could not create the first product: {e}")
 
     # Import agents here to avoid circular imports
     from harvey.agents.scout import Scout
@@ -421,6 +427,7 @@ async def heartbeat(stop_event: asyncio.Event | None = None):
             # Tracked accounts (harvey accounts import): jobs, BORME and press,
             # confirmed signals only, on their own cadence. Free; no model call.
             tasks.append(("account_signals", run_account_signals_stage(state, config)))
+            tasks.append(("products", run_products_stage(state)))
 
             outcomes = await _run_agents(tasks)
 
