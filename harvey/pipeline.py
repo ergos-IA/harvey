@@ -122,8 +122,10 @@ async def run_products_stage(state) -> int:
     """One sequence per company at a time: when a product's sequence has
     ended there without a reply, open the company's next product. Returns
     how many companies moved on. Free; no model call."""
-    from harvey.products import advance_products
-    return await advance_products(state)
+    from harvey.products import advance_products, refresh_gates
+    moved = await advance_products(state)
+    await refresh_gates(state)
+    return moved
 
 
 async def run_prospecting(

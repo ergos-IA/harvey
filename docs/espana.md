@@ -87,6 +87,24 @@ La primera vez que arranca, Harvey convierte el producto de `harvey.yaml` en el 
 producto, con todas las cuentas importadas asignadas, así que una instalación existente
 sigue igual.
 
+## Proceso y puertas
+
+La pestaña **Proceso** muestra un producto fase a fase: Producto, Cuentas, Señales,
+Puntuación, Contactos, Redacción, Envío y Respuesta. Para cada cuenta indica su fase, su
+situación (en marcha, te espera, en cola, atascada, parada, terminada) y el motivo.
+
+Cada producto tiene dos puertas (se guardan en el producto, en `gates`):
+
+| Puerta | Modos | Por defecto |
+|---|---|---|
+| `contacts`: antes de buscar personas | `auto` (las que llegan al corte; todas si no hay reglas), `manual` (solo las aprobadas), `all` | `auto` |
+| `write`: antes de redactar | `auto` (en cuanto hay contacto enviable), `manual` | `auto` |
+
+Aprobar (`go`) o descartar (`stop`) una cuenta manda sobre el modo. El Scout solo busca
+contactos en empresas con la primera puerta abierta en algún producto activo (o que no están
+en ningún producto) y el Writer solo redacta con la segunda abierta. La tercera puerta es la
+de siempre: la Bandeja de salida.
+
 ## Idioma y cumplimiento
 
 - Los agentes escriben en español salvo que el prospecto use otro idioma.

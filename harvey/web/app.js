@@ -407,6 +407,7 @@ function showTab(id, btn) {
 function loadCurrentTab() {
   switch (currentTab) {
     case 'today': loadLiveStatus(); loadToday(); loadTrend(); loadFunnel(); loadSetupStatus(); loadRuns(); loadTodayActivity(); break;
+    case 'process': loadProcess(); break;
     case 'products': loadProducts(); break;
     case 'accounts': loadAccounts(); break;
     case 'signals': loadSignals(); break;
@@ -2306,6 +2307,300 @@ async function assignToProduct(id) {
   showToast(data.added + ' cuentas añadidas' + (data.already ? ' (' + data.already + ' ya estaban)' : '') +
     (data.scored ? ', ' + data.scored + ' puntuadas' : ''), 'success');
   loadProducts();
+}
+
+// ── Proceso: each product, phase by phase, with its gates ──
+
+let _process = null;          // the last /api/process
+let _procProduct = '';        // the product on screen ('' = the first)
+let _procPhase = null;        // phase filter (index) or null for all
+let _procState = 'all';       // state filter
+let _procQuery = '';
+let _procPicked = new Set();  // company ids ticked for a bulk decision
+
+const PROC_STATES = {
+  ok:      ['En marcha', 't-active', 'Harvey se encarga'],
+  you:     ['Te espera', 't-waiting', 'Necesita tu decisión'],
+  wait:    ['En cola', 't-idle', 'Va después de otro producto'],
+  blocked: ['Atascada', 't-bad', 'Algo tiene que cambiar'],
+  stopped: ['Parada', 't-idle', 'Fuera del proceso'],
+  done:    ['Terminada', 't-good', 'Ha llegado al final'],
+};
+const PROC_FILTERS = [['all', 'Todas'], ['you', 'Te esperan'], ['blocked', 'Atascadas'],
+  ['ok', 'En marcha'], ['wait', 'En cola'], ['stopped', 'Paradas'], ['done', 'Terminadas']];
+const GATE_CONTACTS = [['auto', 'Las que superan el corte'], ['manual', 'Solo las que yo apruebe'], ['all', 'Todas']];
+const GATE_WRITE = [['auto', 'En cuanto haya contacto'], ['manual', 'Solo las que yo apruebe']];
+
+async function loadProcess() {
+  const q = _procProduct ? '?product=' + encodeURIComponent(_procProduct) : '';
+  const data = await api('/api/process' + q);
+  const el = document.getElementById('process-steps');
+  const clear = () => ['process-products', 'process-gates', 'process-accounts'].forEach(id =>
+    document.getElementById(id).innerHTML = '');
+  if (!data || data.success === false) { clear(); el.innerHTML = offlineState(); return; }
+  _process = data;
+  const nav = document.getElementById('nav-process');
+  if (nav) nav.textContent = data.products.reduce((n, p) => n + p.you, 0) || '';
+  if (!data.product) {
+    clear();
+    el.innerHTML = emptyState(icon('route'), 'Aún no hay productos',
+      'Empieza por la fase 0: da de alta lo que vendes en <a href="#" onclick="goTab(\'products\');return false">Productos</a>.');
+    return;
+  }
+  if (_procProduct && _procProduct !== data.product.id) _procPicked.clear();
+  _procProduct = data.product.id;
+  renderProcessProducts();
+  renderProcessGates();
+  renderProcessSteps();
+  renderProcessAccounts();
+}
+
+function pickProcessProduct(id) {
+  if (id === _procProduct) return;
+  _procProduct = id; _procPhase = null; _procState = 'all'; _procPicked.clear();
+  loadProcess();
+}
+
+function renderProcessProducts() {
+  const el = document.getElementById('process-products');
+  const d = _process;
+  if (d.products.length < 2) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="proc-products">' + d.products.map(p => {
+    const top = Math.max(1, p.accounts);
+    const bar = d.phases.slice(1).map((ph, i) => {
+      const n = p.reached[i + 1] || 0;
+      return '<span title="' + escHtml(ph.label + ': ' + n) + '" style="height:' +
+        Math.max(2, Math.round(24 * n / top)) + 'px"></span>';
+    }).join('');
+    return '<button class="proc-product' + (p.id === _procProduct ? ' on' : '') + '" onclick="pickProcessProduct(' + jsq(p.id) + ')">' +
+      '<span class="name">' + escHtml(p.name) + (p.status === 'paused' ? ' <span class="tag">En pausa</span>' : '') + '</span>' +
+      '<span class="proc-spark" aria-hidden="true">' + bar + '</span>' +
+      '<span class="meta">' + p.accounts + ' cuentas' +
+        (p.you ? ' · <b class="t-wait">' + p.you + ' te esperan</b>' : '') +
+        (p.blocked ? ' · <b class="t-bad">' + p.blocked + ' atascadas</b>' : '') + '</span></button>';
+  }).join('') + '</div>';
+}
+
+function segmentedHtml(options, value, gate) {
+  return '<div class="segmented" role="group">' + options.map(o =>
+    '<button class="' + (o[0] === value ? 'on' : '') + '" aria-pressed="' + (o[0] === value) +
+      '" onclick="setProcessGate(' + jsq(gate) + ',' + jsq(o[0]) + ')">' + escHtml(o[1]) + '</button>').join('') + '</div>';
+}
+
+function renderProcessGates() {
+  const p = _process.product, s = _process.system;
+  const paused = p.status !== 'active';
+  document.getElementById('process-gates').innerHTML =
+    '<div class="card proc-gates"><div class="card-head"><h3>' + escHtml(p.name) + '</h3>' +
+      '<span class="meta"><span class="tag' + (paused ? '' : ' accent') + '">' + (paused ? 'En pausa' : 'Activo') + '</span> ' +
+      '<button class="btn btn-ghost btn-sm" onclick="toggleProcessProduct()">' + (paused ? 'Reanudar' : 'Pausar') + '</button> ' +
+      '<button class="btn btn-ghost btn-sm" onclick="goTab(\'products\')">' + icon('pen') + ' Ficha</button></span></div>' +
+    '<div class="proc-gate-row">' +
+      '<div><div class="form-label">Puerta 1 · Antes de buscar contactos</div>' +
+        segmentedHtml(GATE_CONTACTS, p.gates.contacts, 'contacts') +
+        '<div class="hint">' + (p.scoring_configured ? 'Corte: ' + p.threshold + ' puntos.'
+          : 'Sin reglas de puntuación: todas superan el corte.') + '</div></div>' +
+      '<div><div class="form-label">Puerta 2 · Antes de redactar</div>' +
+        segmentedHtml(GATE_WRITE, p.gates.write, 'write') +
+        '<div class="hint">Redactar gasta cuota de Claude; enviar no.</div></div>' +
+      '<div><div class="form-label">Puerta 3 · Antes de enviar</div>' +
+        '<div class="proc-fixed">' + (s.approval ? icon('check') + ' Cada email espera tu aprobación en la Bandeja'
+          : icon('alert') + ' Piloto automático: envía sin preguntar') + '</div>' +
+        '<div class="hint"><a href="#" onclick="goTab(\'settings\');return false">Se cambia en Ajustes</a></div></div>' +
+    '</div></div>';
+}
+
+async function setProcessGate(gate, mode) {
+  if (_process.product.gates[gate] === mode) return;
+  const data = await api('/api/process/' + encodeURIComponent(_procProduct) + '/gates', {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({[gate]: mode})});
+  if (!data || !data.success) { showToast(failMsg(data, 'No se pudo cambiar la puerta'), 'error'); return; }
+  showToast('Puerta actualizada', 'success');
+  loadProcess();
+}
+
+async function toggleProcessProduct() {
+  const data = await api('/api/products');
+  const p = data && (data.products || []).find(x => x.id === _procProduct);
+  if (!p) { showToast('No se pudo leer el producto', 'error'); return; }
+  const body = {...p, status: p.status === 'active' ? 'paused' : 'active'};
+  ['id', 'accounts', 'campaigns'].forEach(k => delete body[k]);
+  const r = await api('/api/products/' + encodeURIComponent(p.id), {
+    method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  if (!r || !r.success) { showToast(failMsg(r, 'No se pudo cambiar'), 'error'); return; }
+  loadProcess();
+}
+
+function renderProcessSteps() {
+  const d = _process;
+  const checkIcon = {ok: 'check', info: 'arrow', warn: 'alert', block: 'alert'};
+  document.getElementById('process-steps').innerHTML = '<div class="proc-steps">' + d.cards.map((c, i) => {
+    const states = Object.entries(c.here).filter(([, n]) => n).map(([st, n]) =>
+      '<span class="badge ' + PROC_STATES[st][1] + '">' + n + ' ' + PROC_STATES[st][0].toLowerCase() + '</span>').join('');
+    const here = Object.values(c.here).reduce((a, b) => a + b, 0);
+    const checks = c.checks.map(k => {
+      const text = escHtml(k.text);
+      const body = k.tab ? '<a href="#" onclick="event.stopPropagation();goTab(' + jsq(k.tab) + ');return false">' + text + '</a>' : text;
+      return '<li class="lv-' + k.level + '">' + icon(checkIcon[k.level] || 'arrow') + '<span>' + body + '</span></li>';
+    }).join('');
+    const clickable = i > 0;
+    return '<div class="proc-step lv-' + c.level + (_procPhase === i ? ' on' : '') + (clickable ? ' click' : '') + '"' +
+      (clickable ? ' role="button" tabindex="0" aria-pressed="' + (_procPhase === i) + '" onclick="setProcessPhase(' + i +
+        ')" onkeydown="if(event.key===\'Enter\')setProcessPhase(' + i + ')"' : '') + '>' +
+      '<div class="proc-step-head"><span class="num">' + i + '</span><span class="label">' + escHtml(c.label) + '</span></div>' +
+      (i === 1 ? '<div class="proc-step-n"><b>' + c.reached + '</b><span>asignadas</span></div>'
+        : i > 1 ? '<div class="proc-step-n"><b>' + here + '</b><span>aquí</span><span class="reached">' + c.reached + ' han llegado</span></div>' : '') +
+      (states ? '<div class="proc-step-states">' + states + '</div>' : '') +
+      '<ul class="proc-checks">' + checks + '</ul></div>';
+  }).join('') + '</div>';
+}
+
+function setProcessPhase(i) {
+  _procPhase = _procPhase === i ? null : i;
+  renderProcessSteps();
+  renderProcessAccounts();
+}
+
+function setProcessFilter(f) { _procState = f; renderProcessAccounts(); }
+
+function procMatches(a) {
+  if (_procPhase !== null && a.phase !== _procPhase) return false;
+  const q = _procQuery.trim().toLowerCase();
+  return !q || (a.name + ' ' + a.domain + ' ' + a.batch).toLowerCase().includes(q);
+}
+
+function procVisible() {
+  return _process.accounts.filter(procMatches).filter(a => _procState === 'all' || a.state === _procState);
+}
+
+function procTrack(a) {
+  let out = '';
+  for (let i = 1; i < _process.phases.length; i++) {
+    const cls = i < a.phase ? 'past' : i === a.phase ? 'now s-' + a.state : '';
+    out += '<span class="' + cls + '" title="' + escHtml(_process.phases[i].label) + '"></span>';
+  }
+  return '<span class="proc-track" role="img" aria-label="Fase ' + a.phase + ': ' +
+    escHtml(_process.phases[a.phase].label) + '">' + out + '</span>';
+}
+
+function procActions(a) {
+  const btn = (label, phase, decision, cls) => '<button class="btn ' + (cls || 'btn-secondary') +
+    ' btn-sm" onclick="processDecide([' + jsq(a.company_id) + '],' + jsq(phase) + ',' + jsq(decision) + ')">' + label + '</button>';
+  if (_process.product.status !== 'active' || a.status === 'done' || a.phase === 7) return '';
+  if (a.contacts_decision === 'stop') return btn('Recuperar', 'contacts', '');
+  if (a.write_decision === 'stop') return btn('Recuperar', 'write', '');
+  if (a.outbox.review) return '<button class="btn btn-primary btn-sm" onclick="goTab(\'outbox\')">Revisar</button>';
+  if (a.outbox.sent || a.outbox.queued) return '';
+  if (!a.can_contact) return btn('Aprobar', 'contacts', 'go', 'btn-primary') + ' ' + btn('Descartar', 'contacts', 'stop', 'btn-ghost');
+  if (!a.can_write && a.sendable) return btn('Redactar', 'write', 'go', 'btn-primary') + ' ' + btn('No redactar', 'write', 'stop', 'btn-ghost');
+  if (a.contacts_decision === 'go') return btn('Deshacer', 'contacts', '', 'btn-ghost');
+  if (a.write_decision === 'go') return btn('Deshacer', 'write', '', 'btn-ghost');
+  return btn('Descartar', 'contacts', 'stop', 'btn-ghost');
+}
+
+function renderProcessAccounts() {
+  const el = document.getElementById('process-accounts');
+  const d = _process;
+  if (!d.accounts.length) {
+    el.innerHTML = '<div class="subhead">Cuentas</div>' + emptyState(icon('flag'), 'Este producto no tiene cuentas',
+      'Asígnale un lote en <a href="#" onclick="goTab(\'products\');return false">Productos</a> (Añadir cuentas) o al importar en <a href="#" onclick="goTab(\'accounts\');return false">Cuentas</a>.');
+    return;
+  }
+  const inPhase = d.accounts.filter(procMatches);
+  const rows = procVisible();
+  const filters = PROC_FILTERS.map(f => {
+    const n = f[0] === 'all' ? inPhase.length : inPhase.filter(a => a.state === f[0]).length;
+    if (f[0] !== 'all' && !n && f[0] !== _procState) return '';
+    return '<button class="' + (f[0] === _procState ? 'on' : '') + '" aria-pressed="' + (f[0] === _procState) +
+      '" onclick="setProcessFilter(' + jsq(f[0]) + ')">' + f[1] + ' <span class="n">' + n + '</span></button>';
+  }).join('');
+  const phaseNote = _procPhase !== null
+    ? '<button class="tag accent" onclick="setProcessPhase(' + _procPhase + ')" title="Quitar el filtro de fase">Fase ' +
+      _procPhase + ' · ' + escHtml(d.phases[_procPhase].label) + ' ✕</button>' : '';
+  const picked = rows.filter(a => _procPicked.has(a.company_id)).length;
+  const bulk = picked
+    ? '<div class="proc-bulk"><b>' + picked + (picked === 1 ? ' seleccionada' : ' seleccionadas') + '</b>' +
+      '<button class="btn btn-primary btn-sm" onclick="processDecidePicked(\'contacts\',\'go\')">Aprobar búsqueda de contactos</button>' +
+      '<button class="btn btn-secondary btn-sm" onclick="processDecidePicked(\'write\',\'go\')">Aprobar redacción</button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="processDecidePicked(\'contacts\',\'stop\')">Descartar</button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="processResetPicked()">Devolver al modo de la puerta</button>' +
+      '</div>' : '';
+  const thr = d.product.scoring_configured ? d.product.threshold : null;
+  const body = rows.map(a => {
+    const st = PROC_STATES[a.state];
+    const score = a.score === null || a.score === undefined ? '<span class="muted">—</span>'
+      : '<span class="proc-score' + (a.above === false ? ' low' : '') + '" title="' + escHtml(a.why) + '"><b>' + a.score + '</b>' +
+        (thr !== null ? '<span class="muted">/' + thr + '</span>' : '') + '</span>';
+    const mine = [a.contacts_decision === 'go' && 'aprobada por ti', a.write_decision === 'go' && 'redacción aprobada'].filter(Boolean);
+    const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+    const facts = [plural(a.signals, 'señal', 'señales'), plural(a.contacts, 'contacto', 'contactos') +
+      (a.contacts ? ' (' + plural(a.sendable, 'enviable', 'enviables') + ')' : '')];
+    return '<tr>' +
+      '<td><input type="checkbox" aria-label="Seleccionar ' + escHtml(a.name) + '" ' + (_procPicked.has(a.company_id) ? 'checked' : '') +
+        ' onchange="toggleProcessPick(' + jsq(a.company_id) + ',this.checked)"></td>' +
+      '<td><b>' + escHtml(a.name) + '</b><div class="muted">' + escHtml(a.domain) + (a.batch ? ' · ' + escHtml(a.batch) : '') + '</div></td>' +
+      '<td>' + score + '</td>' +
+      '<td>' + procTrack(a) + '<div class="muted">' + a.phase + ' · ' + escHtml(d.phases[a.phase].label) + '</div></td>' +
+      '<td><span class="badge ' + st[1] + '" title="' + escHtml(st[2]) + '">' + st[0] + '</span> ' + escHtml(a.label) +
+        '<div class="muted">' + escHtml(facts.join(' · ')) + (mine.length ? ' · <b>' + mine.join(', ') + '</b>' : '') + '</div></td>' +
+      '<td class="proc-actions">' + procActions(a) + '</td></tr>';
+  }).join('');
+  const allPicked = rows.length > 0 && rows.every(a => _procPicked.has(a.company_id));
+  const hadFocus = document.activeElement && document.activeElement.id === 'proc-search';
+  el.innerHTML = '<div class="subhead">Cuentas de ' + escHtml(d.product.name) + '</div>' +
+    '<div class="toolbar"><label class="search">' + icon('discover') +
+      '<input class="form-input" id="proc-search" type="search" placeholder="Buscar empresa, web o lote" aria-label="Buscar cuentas" ' +
+      'oninput="_procQuery=this.value;renderProcessAccounts()"></label>' +
+      '<div class="segmented" role="group" aria-label="Filtrar por situación">' + filters + '</div>' + phaseNote + '</div>' +
+    bulk +
+    '<div class="table-card"><table><thead><tr>' +
+      '<th><input type="checkbox" aria-label="Seleccionar todas" ' + (allPicked ? 'checked' : '') + ' onchange="toggleProcessPickAll(this.checked)"></th>' +
+      '<th>Empresa</th><th>Puntos</th><th>Fase</th><th>Situación</th><th></th></tr></thead><tbody>' +
+      (body || '<tr><td colspan="6" class="muted">Ninguna cuenta con este filtro.</td></tr>') +
+    '</tbody></table></div>' +
+    '<p class="table-foot">Aprobar abre la puerta a esa cuenta aunque no supere el corte; Descartar la saca del proceso de este producto. ' +
+      'Tus decisiones mandan sobre el modo de la puerta.</p>';
+  const search = document.getElementById('proc-search');
+  search.value = _procQuery;
+  if (hadFocus) { search.focus(); search.setSelectionRange(_procQuery.length, _procQuery.length); }
+}
+
+function toggleProcessPick(id, on) {
+  if (on) _procPicked.add(id); else _procPicked.delete(id);
+  renderProcessAccounts();
+}
+
+function toggleProcessPickAll(on) {
+  procVisible().forEach(a => on ? _procPicked.add(a.company_id) : _procPicked.delete(a.company_id));
+  renderProcessAccounts();
+}
+
+async function processDecide(ids, phase, decision, quiet) {
+  const data = await api('/api/process/' + encodeURIComponent(_procProduct) + '/decision', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({company_ids: ids, phase: phase, decision: decision})});
+  if (!data || !data.success) { showToast(failMsg(data, 'No se pudo guardar'), 'error'); return false; }
+  if (!quiet) {
+    showToast({go: 'Aprobada', stop: 'Descartada', '': 'Vuelve al modo de la puerta'}[decision] +
+      (ids.length > 1 ? ' (' + data.updated + ' cuentas)' : ''), 'success');
+    loadProcess();
+  }
+  return true;
+}
+
+function pickedVisible() {
+  return procVisible().filter(a => _procPicked.has(a.company_id)).map(a => a.company_id);
+}
+
+async function processDecidePicked(phase, decision) {
+  const ids = pickedVisible();
+  if (ids.length && await processDecide(ids, phase, decision)) _procPicked.clear();
+}
+
+async function processResetPicked() {
+  const ids = pickedVisible();
+  if (!ids.length) return;
+  if (await processDecide(ids, 'contacts', '', true) && await processDecide(ids, 'write', '')) _procPicked.clear();
 }
 
 // ── Cuentas (account-based selling) ──

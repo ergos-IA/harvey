@@ -36,6 +36,7 @@ async def ready_state():
     await state.init_db()
     try:
         await prod.ensure_default_product(state, _config())
+        await prod.refresh_gates(state)
     except Exception as e:
         logger.warning(f"products: could not create the first product: {e}")
     return state
@@ -138,6 +139,10 @@ async def update_product(product_id: str, request: Request):
         return _fail(_validation_message(e))
     try:
         state = await ready_state()
+        if "gates" not in body:          # the Proceso tab sets them; the editor leaves them be
+            old = await prod.get_product(state, product_id)
+            if old is not None:
+                product.gates = old.gates
         await prod.save_product(state, product)
         scored = 0
         if product.scoring.configured():

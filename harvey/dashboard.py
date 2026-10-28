@@ -936,6 +936,11 @@ from harvey import dashboard_products  # noqa: E402
 dashboard_products.configure(lambda: _state())
 app.include_router(dashboard_products.router)
 
+# The Proceso tab: each product's accounts, phase by phase, and its gates.
+from harvey import dashboard_process  # noqa: E402
+
+app.include_router(dashboard_process.router)
+
 
 async def _product_names() -> dict[str, str]:
     """campaign id → the name of the product it sells (campaigns with one)."""

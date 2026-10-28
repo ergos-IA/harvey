@@ -279,8 +279,9 @@ async def heartbeat(stop_event: asyncio.Event | None = None):
     logger.info("Database initialized.")
     # Products (Productos tab): the configured product becomes the first one, once.
     try:
-        from harvey.products import ensure_default_product
+        from harvey.products import ensure_default_product, refresh_gates
         await ensure_default_product(state, config)
+        await refresh_gates(state)      # the gates the Scout and the Writer read
     except Exception as e:
         logger.warning(f"products: could not create the first product: {e}")
 

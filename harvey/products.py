@@ -83,6 +83,34 @@ class ProductICP(BaseModel):
         return " ".join(str(v or "").split())[:80]
 
 
+GATE_CONTACTS = ("auto", "manual", "all")
+GATE_WRITE = ("auto", "manual")
+DECISIONS = ("", "go", "stop")
+
+
+class ProductGates(BaseModel):
+    """When an account moves on, phase by phase.
+
+    contacts: before Harvey looks for people there. auto = accounts at or
+      above the threshold (all of them if the product has no rules),
+      manual = only the ones you approve, all = every assigned account.
+    write: before the Writer drafts its sequence. auto = as soon as it has
+      a sendable contact, manual = only the ones you approve.
+    Your own go/stop on an account always wins over the mode.
+    """
+    contacts: str = "auto"
+    write: str = "auto"
+
+    @field_validator("contacts", "write")
+    @classmethod
+    def _mode(cls, v, info):
+        v = (v or "auto").strip().lower()
+        allowed = GATE_CONTACTS if info.field_name == "contacts" else GATE_WRITE
+        if v not in allowed:
+            raise ValueError(f"modo no válido: {v}")
+        return v
+
+
 class Product(BaseModel):
     id: str = ""
     name: str
@@ -95,6 +123,7 @@ class Product(BaseModel):
     knowledge: str = ""
     icp: ProductICP = ProductICP()
     scoring: ScoringConfig = ScoringConfig()
+    gates: ProductGates = ProductGates()
 
     @field_validator("name", "description", "pricing", "knowledge")
     @classmethod
@@ -220,6 +249,7 @@ async def save_product(state, product: Product) -> Product:
                 "INSERT INTO products (id, name, status, data_json, created_at, updated_at) "
                 "VALUES (?, ?, ?, ?, ?, ?)", (product.id, product.name, product.status, data, now, now))
         await db.commit()
+    await refresh_gates(state, [product])     # a new mode or threshold moves the gates
     return product
 
 
@@ -254,6 +284,9 @@ async def assign_accounts(state, product_id: str, company_ids: list[str], batch:
                 await db.execute("UPDATE product_accounts SET batch = ? WHERE product_id = ? AND company_id = ?",
                                  (batch[:60], product_id, cid))
         await db.commit()
+    product = await get_product(state, product_id)
+    if product is not None:
+        await refresh_gates(state, [product])
     return added
 
 
@@ -300,6 +333,81 @@ async def mark_started(state, product_id: str, company_id: str) -> None:
         await _set_assignment(state, product_id, company_id, "active", only_from=("pending",))
 
 
+# ── the gates between phases ──
+
+def passes_threshold(product: Product, score) -> bool:
+    """At or above the product's threshold (any score if it has no rules)."""
+    if not product.scoring.configured():
+        return True
+    return score is not None and score >= product.scoring.threshold
+
+
+def gates_for(product: Product, row: dict) -> tuple[bool, bool]:
+    """(may look for contacts, may write) for one account of one product."""
+    if product.status != "active" or row.get("status") == "done":
+        return False, False
+    decision = row.get("contacts_decision") or ""
+    if decision in ("go", "stop"):
+        contact = decision == "go"
+    elif product.gates.contacts == "all":
+        contact = True
+    elif product.gates.contacts == "manual":
+        contact = False
+    else:
+        contact = passes_threshold(product, row.get("score"))
+    decision = row.get("write_decision") or ""
+    if decision in ("go", "stop"):
+        write = decision == "go"
+    else:
+        write = product.gates.write == "auto"
+    return contact, contact and write
+
+
+async def refresh_gates(state, products: list[Product] | None = None) -> int:
+    """Store each account's gates (what the Scout and the Writer read).
+    Returns how many changed."""
+    changed = 0
+    for product in products if products is not None else await list_products(state):
+        updates = []
+        for row in await assignments(state, product_id=product.id):
+            contact, write = gates_for(product, row)
+            if (bool(row.get("can_contact")), bool(row.get("can_write"))) != (contact, write):
+                updates.append((int(contact), int(write), product.id, row["company_id"]))
+        if updates:
+            async with state._connect() as db:
+                await db.executemany(
+                    "UPDATE product_accounts SET can_contact = ?, can_write = ? "
+                    "WHERE product_id = ? AND company_id = ?", updates)
+                await db.commit()
+            changed += len(updates)
+    return changed
+
+
+async def set_decision(state, product_id: str, company_ids: list[str], phase: str,
+                       decision: str) -> int:
+    """Your go / stop (or "" to leave it to the product's mode) on accounts,
+    at the contacts or the write gate. Returns how many accounts it touched."""
+    column = {"contacts": "contacts_decision", "write": "write_decision"}.get(phase)
+    if column is None:
+        raise ValueError(f"fase no válida: {phase}")
+    if decision not in DECISIONS:
+        raise ValueError(f"decisión no válida: {decision}")
+    ids = list(dict.fromkeys(c for c in company_ids if c))
+    if not ids:
+        return 0
+    async with state._connect() as db:
+        cursor = await db.execute(
+            f"UPDATE product_accounts SET {column} = ?, updated_at = ? WHERE product_id = ? "
+            f"AND company_id IN ({','.join('?' * len(ids))})",
+            (decision, _utcnow().isoformat(), product_id, *ids))
+        await db.commit()
+        touched = cursor.rowcount
+    product = await get_product(state, product_id)
+    if product is not None:
+        await refresh_gates(state, [product])
+    return touched
+
+
 # ── scoring ──
 
 async def score_products(state, accounts: list[dict], products: list[Product] | None = None) -> int:
@@ -310,7 +418,8 @@ async def score_products(state, accounts: list[dict], products: list[Product] | 
     by_id = {a["id"]: a for a in accounts}
     scored = 0
     now = _utcnow().isoformat()
-    for product in products if products is not None else await list_products(state):
+    products = products if products is not None else await list_products(state)
+    for product in products:
         if not product.scoring.configured():
             continue
         rows = await assignments(state, product_id=product.id)
@@ -329,6 +438,7 @@ async def score_products(state, accounts: list[dict], products: list[Product] | 
                     "WHERE product_id = ? AND company_id = ?", updates)
                 await db.commit()
             scored += len(updates)
+    await refresh_gates(state, products)      # a new score can open or close a gate
     return scored
 
 
@@ -377,7 +487,8 @@ async def choose_product(state, company_id: str,
     (None, False): the company is in no product, so the configured one.
     (product, False): the one already running there, else the best-scored
     pending one of an active product.
-    (None, True): wait. Its products are all done or paused.
+    (None, True): wait. Its products are all done, paused, or not past
+    their gates yet (below the threshold, or waiting for your approval).
     """
     if cache is not None and company_id in cache:
         return cache[company_id]
@@ -390,7 +501,7 @@ async def choose_product(state, company_id: str,
         rows = []
     if rows:
         running = [r for r in rows if r["status"] == "active" and r["product_id"] in products]
-        pending = [r for r in rows if r["status"] == "pending"
+        pending = [r for r in rows if r["status"] == "pending" and r.get("can_write")
                    and products.get(r["product_id"]) and products[r["product_id"]].status == "active"]
         pending.sort(key=lambda r: -(r["score"] if r["score"] is not None else -1))
         if running:
@@ -418,7 +529,7 @@ async def titles_for_company(state, company_id: str) -> list[str]:
     titles: list[str] = []
     rows = await assignments(state, company_id=company_id) if company_id else []
     for row in rows:
-        if row["status"] == "done":
+        if row["status"] == "done" or not row.get("can_contact"):
             continue
         product = await get_product(state, row["product_id"])
         if product and product.status == "active":

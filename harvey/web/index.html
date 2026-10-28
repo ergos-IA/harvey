@@ -38,6 +38,7 @@
     <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
     <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+    <symbol id="i-route" viewBox="0 0 24 24"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 6h8a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h8"/></symbol>
     <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></symbol>
   </defs>
 </svg>
@@ -81,6 +82,7 @@
     </div>
     <div class="nav-group">
       <div class="nav-label">Embudo</div>
+      <button onclick="showTab('process', this)"><svg class="icon" aria-hidden="true"><use href="#i-route"/></svg><span class="label">Proceso</span><span class="nav-count" id="nav-process"></span></button>
       <button onclick="showTab('products', this)"><svg class="icon" aria-hidden="true"><use href="#i-box"/></svg><span class="label">Productos</span><span class="nav-count" id="nav-products"></span></button>
       <button onclick="showTab('accounts', this)"><svg class="icon" aria-hidden="true"><use href="#i-flag"/></svg><span class="label">Cuentas</span><span class="nav-count" id="nav-accounts"></span></button>
       <button onclick="showTab('signals', this)"><svg class="icon" aria-hidden="true"><use href="#i-signals"/></svg><span class="label">Señales</span><span class="nav-count" id="nav-signals"></span></button>
@@ -151,6 +153,21 @@
       </div>
     </aside>
   </div>
+</div>
+
+<!-- Proceso: each product, phase by phase, with its gates -->
+<div id="process" class="section">
+  <div class="section-head">
+    <div>
+      <h2>Proceso</h2>
+      <p>Cada producto, fase a fase: dónde está cada cuenta, qué la frena y qué te toca decidir.
+         Tú controlas las dos puertas: cuándo se buscan contactos y cuándo se redacta.</p>
+    </div>
+  </div>
+  <div id="process-products"></div>
+  <div id="process-gates"></div>
+  <div id="process-steps"></div>
+  <div id="process-accounts"></div>
 </div>
 
 <!-- Productos: what you sell, each with its own ICP, scoring and accounts -->
@@ -556,6 +573,21 @@
   </div>
 
   <div class="help-section">
+    <h2>Proceso: todo el recorrido, fase a fase</h2>
+    <p>La pestaña <b>Proceso</b> enseña un producto de principio a fin: ocho fases (Producto, Cuentas, Señales, Puntuación, Contactos, Redacción, Envío y Respuesta). Cada fase dice cuántas cuentas hay en ella y qué le falta. Su borde superior es verde si está lista, ámbar si algo te espera y rojo si algo la bloquea. Pulsa una fase para ver solo sus cuentas.</p>
+    <p>Cada cuenta lleva una barra con su avance y una situación: <b>en marcha</b> (Harvey se encarga), <b>te espera</b> (decides tú), <b>en cola</b> (antes va otro producto), <b>atascada</b> (algo tiene que cambiar, y te dice qué), <b>parada</b> o <b>terminada</b>.</p>
+    <p>Tú controlas tres puertas por producto:</p>
+    <div class="table-card">
+    <table class="file-table">
+      <tr><td>1 · Antes de buscar contactos</td><td><b>Las que superan el corte</b> (por defecto), <b>solo las que yo apruebe</b> o <b>todas</b>. Una cuenta por debajo del corte no se investiga hasta que la apruebes.</td></tr>
+      <tr><td>2 · Antes de redactar</td><td><b>En cuanto haya contacto</b> o <b>solo las que yo apruebe</b>. Redactar es lo que gasta cuota de Claude.</td></tr>
+      <tr><td>3 · Antes de enviar</td><td>La Bandeja de salida: cada email espera tu aprobación (salvo que actives el piloto automático en Ajustes).</td></tr>
+    </table>
+    </div>
+    <p>En cada cuenta, <b>Aprobar</b> abre la puerta aunque no llegue al corte y <b>Descartar</b> la saca de este producto. Tu decisión manda sobre el modo de la puerta. Marca varias cuentas para decidir en bloque.</p>
+  </div>
+
+  <div class="help-section">
     <h2>Productos y campañas</h2>
     <p>Cada producto es una campaña. En su ficha (pestaña <b>Productos</b>) pones:</p>
     <div class="table-card">
@@ -593,6 +625,7 @@
       <tr><td>Hoy</td><td>Lo que espera una decisión tuya y cómo va el embudo. Empieza aquí cada día.</td></tr>
       <tr><td>Bandeja de salida</td><td>Los emails que Harvey quiere enviar. Apruébalos, edítalos o recházalos. Mira al lado los datos en que se basa cada email.</td></tr>
       <tr><td>Conversaciones</td><td>Las respuestas. Harvey contesta solo las fáciles (siempre pasando por la bandeja) y te marca las que necesitan una persona.</td></tr>
+      <tr><td>Proceso</td><td>Cada producto fase a fase: dónde está cada cuenta, qué la frena, y las puertas que abres o cierras tú.</td></tr>
       <tr><td>Productos</td><td>Lo que vendes: cada producto con su oferta, su cliente ideal, sus reglas de puntuación y sus cuentas.</td></tr>
       <tr><td>Cuentas</td><td>Tus empresas: importar lotes, investigar, puntuación (general o por producto) y cuántos contactos tiene cada una.</td></tr>
       <tr><td>Señales</td><td>Qué datos se recogen. Ya están elegidas para tu caso; solo tócalas si quieres añadir o quitar alguna.</td></tr>

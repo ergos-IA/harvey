@@ -104,12 +104,21 @@ def _company_answered(p: str) -> str:
 
 def _waits_for_product(p: str) -> str:
     """SQL: prospect ``p``'s company is in products, none of which the Writer
-    can write for now (all done, or pending on a paused product). Mirrors
-    harvey.products.choose_product."""
+    can write for now (all done, pending on a paused product, or not past
+    the write gate). Mirrors harvey.products.choose_product."""
     return (f"(EXISTS (SELECT 1 FROM product_accounts pa WHERE pa.company_id = {p}.company_id) "
             f"AND NOT EXISTS (SELECT 1 FROM product_accounts pa JOIN products pr ON pr.id = pa.product_id "
             f"WHERE pa.company_id = {p}.company_id AND (pa.status = 'active' "
-            f"OR (pa.status = 'pending' AND pr.status = 'active'))))")
+            f"OR (pa.status = 'pending' AND pr.status = 'active' AND pa.can_write = 1))))")
+
+
+# SQL, over companies ``c``: Harvey may look for people there. A company in
+# no product, or one of its products' contacts gate is open.
+_MAY_CONTACT = (
+    "(NOT EXISTS (SELECT 1 FROM product_accounts pa WHERE pa.company_id = c.id) "
+    "OR EXISTS (SELECT 1 FROM product_accounts pa JOIN products pr ON pr.id = pa.product_id "
+    "WHERE pa.company_id = c.id AND pa.can_contact = 1 AND pa.status != 'done' "
+    "AND pr.status = 'active'))")
 # Outbox error on what autopilot had approved when it was turned off.
 AUTOPILOT_OFF_REASON = "waiting for you: autopilot was turned off before it went out"
 # Outbox errors starting with this: the send was cut off and the email may
@@ -556,6 +565,17 @@ MIGRATIONS: list[str] = [
 
     ALTER TABLE campaigns ADD COLUMN product_id TEXT DEFAULT '';
     CREATE INDEX IF NOT EXISTS idx_campaigns_product ON campaigns(product_id);
+    """,
+    # ── v16: the gates between phases, per account and product ──
+    """
+    -- Your go/stop on an account at each gate ('' = the product's mode
+    -- decides), and the result the Scout and the Writer read:
+    -- can_contact (look for people there), can_write (draft its sequence).
+    -- harvey.products.refresh_gates keeps them current; closed until then.
+    ALTER TABLE product_accounts ADD COLUMN contacts_decision TEXT DEFAULT '';
+    ALTER TABLE product_accounts ADD COLUMN write_decision TEXT DEFAULT '';
+    ALTER TABLE product_accounts ADD COLUMN can_contact INTEGER DEFAULT 0;
+    ALTER TABLE product_accounts ADD COLUMN can_write INTEGER DEFAULT 0;
     """,
 ]
 
@@ -1937,16 +1957,19 @@ class StateManager:
         instead of retrying the same top-N-by-created_at companies every
         cycle — a company a team page didn't exist for last time is worth
         another look after ``stale_days``, not a permanent skip.
+
+        A company in products only once one of them opens its contacts gate.
         """
         async with self._connect() as db:
             db.row_factory = aiosqlite.Row
             async with db.execute(
-                """SELECT c.id, c.name, c.domain, c.industry
+                f"""SELECT c.id, c.name, c.domain, c.industry
                    FROM companies c
                    LEFT JOIN prospects p ON p.company_id = c.id
                    WHERE c.domain != ''
                      AND (c.prospects_checked_at IS NULL
                           OR c.prospects_checked_at < datetime('now', ?))
+                     AND {_MAY_CONTACT}
                    GROUP BY c.id
                    HAVING COUNT(p.id) = 0
                    ORDER BY c.prospects_checked_at IS NOT NULL, c.prospects_checked_at
