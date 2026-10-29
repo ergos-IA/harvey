@@ -96,7 +96,7 @@ def test_windows_npm_shim_without_the_executable_is_refused(tmp_path, monkeypatc
     with pytest.raises(claude_runtime.ClaudeRuntimeError) as err:
         real_find_claude()
     message = str(err.value)
-    assert "claude.cmd" in message.lower() and "isn't there" in message
+    assert "claude.cmd" in message.lower() and "no está" in message
     assert "install.ps1" in message and "winget" in message
 
 

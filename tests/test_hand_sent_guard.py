@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from harvey.state import MANUAL_SEND_KEY
+from harvey.state import HAND_SENT_REASON, MANUAL_SEND_KEY
 from tests.test_outbox_native import (  # noqa: F401  (state is a fixture)
     FakeProvider, make_sender, seed_campaign, seed_prospect, state,
 )
@@ -37,7 +37,7 @@ async def test_drain_never_sends_to_someone_emailed_by_hand(state):
     await make_sender(state, provider)._drain_due()
     assert provider.sent == []
     # The same reason undo restores, so an undo brings these back too.
-    assert {i["error"] for i in await state.get_outbox(status="cancelled")} == {"sent_by_hand"}
+    assert {i["error"] for i in await state.get_outbox(status="cancelled")} == {HAND_SENT_REASON}
 
 
 @pytest.mark.asyncio
@@ -47,7 +47,7 @@ async def test_drain_never_sends_a_first_email_to_someone_already_contacted(stat
     provider = FakeProvider()
     await make_sender(state, provider)._drain_due()
     assert provider.sent == []
-    assert (await state.get_outbox(status="cancelled"))[0]["error"] == "already contacted"
+    assert (await state.get_outbox(status="cancelled"))[0]["error"] == "ya contactado"
 
 
 @pytest.mark.asyncio

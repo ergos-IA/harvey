@@ -55,7 +55,7 @@ class ScoringRule(BaseModel):
     def _code(cls, v: str) -> str:
         v = (v or "").strip().upper()
         if not v:
-            raise ValueError("a scoring rule needs a signal code")
+            raise ValueError("una regla de puntuación necesita un código de señal")
         return v
 
     @field_validator("when")
@@ -69,15 +69,15 @@ class ScoringRule(BaseModel):
                 return {}
             if word in ("absent", "missing", "not exists"):
                 return {"exists": False}
-            raise ValueError(f"unknown condition {v!r}; use a mapping like {{older_than_days: 60}}")
+            raise ValueError(f"condición desconocida {v!r}; usa un mapa como {{older_than_days: 60}}")
         unknown = set(v) - CONDITIONS
         if unknown:
-            raise ValueError(f"unknown condition(s) {sorted(unknown)}; "
-                             f"supported: {', '.join(sorted(CONDITIONS))}")
+            raise ValueError(f"condiciones desconocidas {sorted(unknown)}; "
+                             f"admitidas: {', '.join(sorted(CONDITIONS))}")
         if "between" in v:
             b = v["between"]
             if not (isinstance(b, (list, tuple)) and len(b) == 2):
-                raise ValueError("between needs two numbers: [min, max]")
+                raise ValueError("between necesita dos números: [min, max]")
         for key in ("contains_any", "contains_none"):
             if key in v and isinstance(v[key], str):
                 v = {**v, key: [v[key]]}

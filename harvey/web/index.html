@@ -108,7 +108,7 @@
     </div>
     <div class="foot-actions">
       <button class="icon-btn" id="theme-btn" onclick="cycleTheme()"
-              title="Apariencia: sigue a tu sistema hasta que elijas una">auto</button>
+              title="Apariencia: sigue a tu sistema hasta que elijas una">Auto</button>
       <button class="refresh-btn" onclick="loadCurrentTab()" title="Actualizar esta página">
         <svg class="icon" style="width:13px;height:13px"><use href="#i-refresh"/></svg>Actualizar</button>
     </div>
@@ -420,7 +420,7 @@
             <input type="text" class="form-input" id="smtp-port" placeholder="587" autocomplete="off"></div>
         </div>
         <div class="form-group"><label class="form-label" for="smtp-user">Usuario</label>
-          <input type="text" class="form-input" id="smtp-user" placeholder="you@example.com" autocomplete="off"></div>
+          <input type="text" class="form-input" id="smtp-user" placeholder="tu@example.com" autocomplete="off"></div>
         <div class="form-group"><label class="form-label" for="smtp-pass">Contraseña</label>
           <div class="with-btn"><input type="password" class="form-input" id="smtp-pass" placeholder="Introduce la contraseña o contraseña de aplicación" autocomplete="off">
             <button class="btn btn-secondary" onclick="toggleVisibility('smtp-pass')">Mostrar</button></div></div>
@@ -478,7 +478,7 @@
     <div class="settings-row">
       <div>
         <h3>Verificadores</h3>
-        <p class="desc">Añade al menos uno para que se verifiquen los correos encontrados. Sin ninguno, las direcciones se quedan como <span class="email-tag guess" style="margin:0">guess</span> y nunca se envían. Reoon tiene el mejor plan gratuito (600 al mes).</p>
+        <p class="desc">Añade al menos uno para que se verifiquen los correos encontrados. Sin ninguno, las direcciones se quedan como <span class="email-tag guess" style="margin:0">sin verificar</span> y nunca se envían. Reoon tiene el mejor plan gratuito (600 al mes).</p>
       </div>
       <div class="fields">
         <div class="form-group"><label class="form-label" for="reoon-key">Clave de API de Reoon <span id="reoon-status" class="email-tag"></span></label>
@@ -630,7 +630,7 @@
       <tr><td>Cuentas</td><td>Tus empresas: importar lotes, investigar, puntuación (general o por producto) y cuántos contactos tiene cada una.</td></tr>
       <tr><td>Señales</td><td>Qué datos se recogen. Ya están elegidas para tu caso; solo tócalas si quieres añadir o quitar alguna.</td></tr>
       <tr><td>Descubrir</td><td>No la necesitas (ver arriba).</td></tr>
-      <tr><td>Empresas / Contactos</td><td>Todo lo encontrado. En Contactos se ve el estado del email: <i>verified</i> se envía, <i>guess</i> nunca.</td></tr>
+      <tr><td>Empresas / Contactos</td><td>Todo lo encontrado. En Contactos se ve el estado del email: <i>verificado</i> se envía, <i>sin verificar</i> nunca.</td></tr>
       <tr><td>Campañas</td><td>Las secuencias de 3 emails que ha escrito Harvey. Solo consulta.</td></tr>
       <tr><td>Actividad / Uso</td><td>Qué ha hecho Harvey y cuánto de tu cuota de Claude consume.</td></tr>
       <tr><td>Control</td><td>Arrancar y parar el bucle, y el registro.</td></tr>
@@ -681,11 +681,11 @@ Distribuciones Demo;distribuciones-demo.example;distribucion;60;9,5M;Valencia;Di
     </details>
     <details>
       <summary>Hay contactos pero no se escribe ningún email</summary>
-      <div class="faq-body">Solo se escribe a direcciones verificadas o <i>catch-all</i>. Sin <code>REOON_API_KEY</code> todas quedan como <i>guess</i> y no se usan. Falta también el token de Claude si el registro (Control) lo avisa.</div>
+      <div class="faq-body">Solo se escribe a direcciones verificadas o <i>catch-all</i>. Sin <code>REOON_API_KEY</code> todas quedan como <i>sin verificar</i> y no se usan. Falta también el token de Claude si el registro (Control) lo avisa.</div>
     </details>
     <details>
       <summary>¿Se envía algo sin que yo lo vea?</summary>
-      <div class="faq-body">No. Está en modo aprobación: todo espera en la Bandeja de salida. El piloto automático solo se activa en Ajustes escribiendo <code>autopilot</code>.</div>
+      <div class="faq-body">No. Está en modo aprobación: todo espera en la Bandeja de salida. El piloto automático solo se activa en Ajustes escribiendo <code>activar</code>.</div>
     </details>
     <details>
       <summary>¿Cuánto cuesta?</summary>

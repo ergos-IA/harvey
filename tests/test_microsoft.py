@@ -271,7 +271,7 @@ async def test_wrong_account_is_refused(graph):
     result = await p.send_email("jane@acme.com", "booking", "Hi.")
     assert not result.ok and "you@sender.example" in result.error
     assert ("POST", "/v1.0/me/messages") not in graph.calls()
-    with pytest.raises(GraphError, match="signed in as owner@sender.example"):
+    with pytest.raises(GraphError, match="has iniciado sesión como owner@sender.example"):
         await p.get_replies()
     ok, detail = await p.test_connection()
     assert not ok and "persona.email" in detail
@@ -435,7 +435,7 @@ async def test_next_link_back_to_the_first_page_is_refused(graph):
 async def test_too_many_pages_fails_closed(graph, monkeypatch):
     monkeypatch.setattr(microsoft, "MAX_INBOX_PAGES", 3)
     graph.inbox = [message(i) for i in range(10)]
-    with pytest.raises(GraphError, match="more than 3 pages"):
+    with pytest.raises(GraphError, match="más de 3 páginas"):
         await provider(graph).get_replies(limit=3)
     assert len(graph.inbox_requests()) == 3
 

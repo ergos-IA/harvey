@@ -91,10 +91,10 @@ _SHIM_TARGET_RE = re.compile(
 # text placeholder, not the real binary.
 _MIN_NATIVE_BYTES = 4096
 INSTALL_HINT = (
-    "Install Claude Code (https://code.claude.com/docs/en/setup): on Windows run "
-    "'irm https://claude.ai/install.ps1 | iex' in PowerShell or "
-    "'winget install Anthropic.ClaudeCode'; or 'npm install -g "
-    "@anthropic-ai/claude-code@latest' (without --ignore-scripts)."
+    "Instala Claude Code (https://code.claude.com/docs/en/setup): en Windows ejecuta "
+    "'irm https://claude.ai/install.ps1 | iex' en PowerShell o "
+    "'winget install Anthropic.ClaudeCode'; o 'npm install -g "
+    "@anthropic-ai/claude-code@latest' (sin --ignore-scripts)."
 )
 
 
@@ -138,12 +138,12 @@ def find_claude(env: dict | None = None) -> str | None:
         size = None  # removed between the checks: treated as missing
     if size is not None and size >= _MIN_NATIVE_BYTES:
         return str(native)
-    problem = ("is only a placeholder: the package's install script didn't run"
-               if size is not None else "isn't there")
+    problem = ("es solo un marcador: el script de instalación (install script) del paquete no se ejecutó"
+               if size is not None else "no está")
     raise ClaudeRuntimeError(
-        f"Found the claude.cmd shim ({found}), but the claude.exe it launches "
-        f"({native}) {problem}. Harvey never runs Claude through cmd.exe, which "
-        f"re-parses the flags that keep each call isolated. {INSTALL_HINT}")
+        f"Se ha encontrado el lanzador claude.cmd ({found}), pero el claude.exe que abre "
+        f"({native}) {problem}. Harvey nunca ejecuta Claude a través de cmd.exe, que "
+        f"vuelve a interpretar los parámetros que mantienen aislada cada llamada. {INSTALL_HINT}")
 
 
 def runtime_env(cwd: str, base: dict | None = None) -> dict:
@@ -244,8 +244,8 @@ def check_cli(env: dict | None = None) -> str:
     exe = find_claude(env)
     if not exe:
         raise ClaudeRuntimeError(
-            "Claude CLI not found on PATH. Install it (https://code.claude.com/docs/en/setup) "
-            "and run 'claude login'.")
+            "No se encuentra la CLI de Claude en el PATH. Instálala (https://code.claude.com/docs/en/setup) "
+            "y ejecuta 'claude login'.")
     key = _fingerprint(exe)
     with _capable_lock:
         if _capable.get(key):
@@ -254,15 +254,15 @@ def check_cli(env: dict | None = None) -> str:
         help_text = _probe_help(exe)
     except (OSError, subprocess.SubprocessError) as e:
         raise ClaudeRuntimeError(
-            f"Could not run '{exe} --help' to check the Claude CLI ({type(e).__name__}). "
-            "Harvey sends no prompt until it can confirm the CLI isolates calls.") from e
+            f"No se ha podido ejecutar '{exe} --help' para comprobar la CLI de Claude ({type(e).__name__}). "
+            "Harvey no envía ningún prompt hasta confirmar que la CLI aísla las llamadas.") from e
     missing = missing_flags(help_text)
     if missing:
         raise ClaudeRuntimeError(
-            f"This Claude CLI ({exe}) lacks {', '.join(missing)}, which Harvey needs "
-            "to keep your CLAUDE.md, hooks, skills, plugins and settings out of its "
-            "prompts. Update it ('claude update', or rebuild the Docker image) and "
-            "Harvey resumes on its own. No prompt was sent.")
+            f"A esta CLI de Claude ({exe}) le falta {', '.join(missing)}, que Harvey necesita "
+            "para mantener tu CLAUDE.md, hooks, skills, plugins y ajustes fuera de sus "
+            "prompts. Actualízala ('claude update', o reconstruye la imagen de Docker) y "
+            "Harvey se reanuda solo. No se ha enviado ningún prompt.")
     with _capable_lock:
         _capable[key] = True
     return exe

@@ -205,27 +205,27 @@ def _opt_out_reason(their_text: str, own_words: str) -> dict | None:
     for p in OPT_OUT_PATTERNS:
         if p in flat:
             return {"rule": "phrase", "matched": p,
-                    "why": f'Their reply contains "{p}".'}
+                    "why": f'Su respuesta contiene "{p}".'}
     m = ES_DONT_WRITE_RE.search(flat)
     if m:
         return {"rule": "phrase", "matched": m.group(0),
-                "why": f'Their reply contains "{m.group(0)}".'}
+                "why": f'Su respuesta contiene "{m.group(0)}".'}
     for line in their_text.split("\n"):
         folded = _fold(line)
         m = NO_THANKS_RE.search(folded) or NO_GRACIAS_RE.search(folded)
         if m:
             return {"rule": "no_thanks", "matched": m.group(0),
-                    "why": f'Their reply says "{m.group(0)}", what the opt-out line asks for.'}
+                    "why": f'Su respuesta dice "{m.group(0)}", que es lo que pide la línea de baja.'}
     bare = _fold(_MOBILE_SIGNATURE_RE.sub("", own_words or ""))
     bare = re.sub(r"[^\w\s-]", "", bare).strip()
     if bare in BARE_OPT_OUTS:
         return {"rule": "only_words", "matched": bare,
-                "why": f'Their reply was only "{bare}".'}
+                "why": f'Su respuesta solo decía "{bare}".'}
     return None
 
 
 MODEL_OPT_OUT = {"rule": "model", "matched": "",
-                 "why": "No opt-out phrase matched; the model read the reply as a request to stop."}
+                 "why": "Ninguna frase de baja ha coincidido; el modelo ha interpretado la respuesta como una petición de no recibir más emails."}
 
 # Phrases that mean a human must take over. Never auto-reply to these.
 ESCALATION_PATTERNS = (
@@ -661,7 +661,7 @@ class Handler:
                 action_type="escalation",
                 agent="handler",
                 details={"prospect_email": lead_email,
-                         "reason": f"'{listed}' is on your do-not-contact list",
+                         "reason": f"'{listed}' está en tu lista de no contactar",
                          "reply_preview": reply_text[:200]},
             )
             logger.info(f"Handler: {lead_email} wrote back but is on the do-not-contact list. "
@@ -687,7 +687,7 @@ class Handler:
             await self.state.update_conversation(convo.id, status="needs_human")
             await self.state.log_action(
                 action_type="escalation", agent="handler",
-                details={"prospect_email": lead_email, "reason": "instantly_approval_required",
+                details={"prospect_email": lead_email, "reason": "Instantly no puede retener respuestas para tu aprobación",
                          "reply_preview": reply_text[:200]},
             )
             logger.warning(
@@ -704,7 +704,7 @@ class Handler:
             await self.state.log_action(
                 action_type="escalation",
                 agent="handler",
-                details={"prospect_email": lead_email, "reason": "no usable reply draft",
+                details={"prospect_email": lead_email, "reason": "no hay ningún borrador de respuesta utilizable",
                          "reply_preview": reply_text[:200]},
             )
             logger.warning(
@@ -728,7 +728,7 @@ class Handler:
                 action_type="escalation",
                 agent="handler",
                 details={"prospect_email": lead_email,
-                         "reason": "first reply since you undid their opt-out",
+                         "reason": "primera respuesta desde que deshiciste su baja",
                          "reply_preview": reply_text[:200]},
             )
             logger.info(f"Handler: {lead_email} wrote after their opt-out was undone. Handed to you.")
@@ -740,7 +740,7 @@ class Handler:
                 action_type="escalation",
                 agent="handler",
                 details={"prospect_email": lead_email,
-                         "reason": "Harvey's answer was held: " + "; ".join(held_reasons)[:200],
+                         "reason": "se ha retenido la respuesta de Harvey: " + "; ".join(held_reasons)[:200],
                          "reply_preview": reply_text[:200]},
             )
             logger.warning(f"Handler: answer to {lead_email} held ({held_reasons}). Handed to you.")
@@ -814,7 +814,7 @@ class Handler:
                 break
             except Exception as e:
                 logger.error(f"Handler: error processing {msg.from_email}: {e}")
-                self.last_read_problem = f"a reply from {msg.from_email} couldn't be handled ({e})"
+                self.last_read_problem = f"una respuesta de {msg.from_email} no se pudo procesar ({e})"
                 complete = False
             finally:
                 if consumed:
@@ -843,7 +843,7 @@ class Handler:
                 prospect.id, prospect.email, "invalid"
             )
             cancelled = await self.state.cancel_pending_outbox_for_prospect(
-                prospect.id, reason="bounced"
+                prospect.id, reason="rebotado"
             )
             logger.warning(
                 f"Handler: BOUNCE for {prospect.email} — marked invalid, "
@@ -899,7 +899,7 @@ class Handler:
             conversation_id=convo.id,
             kind="reply",
             to_email=prospect.email,
-            subject=subject or "Re: your note",
+            subject=subject or "Re: tu mensaje",
             body=response,
             send_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
             status="pending_review" if require_approval else "approved",

@@ -167,7 +167,7 @@ async def test_budget_cap_refuses_before_spending(state, config, register):
     fake = register(FakeProvider([[biz(domain="a.com")]] * 10, per_query_cost=1.0))
     q = [D.DiscoveryQuery(term="roofer", location=c) for c in "abcdefghij"]
     report = await D.run_discovery(state, config, "fake", q, max_spend=2.0)
-    assert report.stopped == "over budget"
+    assert report.stopped == "por encima del presupuesto"
     assert fake.calls == 0, "the cap must be checked before the first call, not after"
     assert report.actual_cost == 0.0
 
@@ -181,7 +181,7 @@ async def test_budget_stops_mid_run_when_actual_exceeds_estimate(state, config, 
     register(fake)
     q = [D.DiscoveryQuery(term="roofer", location=c) for c in "abcdefghij"]
     report = await D.run_discovery(state, config, "fake", q, max_spend=3.0)
-    assert report.stopped == "budget reached"
+    assert report.stopped == "presupuesto alcanzado"
     assert fake.calls < 10
 
 
@@ -191,7 +191,7 @@ async def test_kill_switch_stops_between_batches(state, config, register):
     fake = register(FakeProvider([[biz(domain="a.com")]], per_query_cost=0.0))
     q = [D.DiscoveryQuery(term="roofer", location="Denver")]
     report = await D.run_discovery(state, config, "fake", q)
-    assert report.stopped == "paused"
+    assert report.stopped == "en pausa"
     assert fake.calls == 0
 
 
@@ -202,9 +202,9 @@ async def test_nothing_runs_until_signals_are_confirmed(state, config, register)
     fake = register(FakeProvider([[biz(domain="a.com")]]))
     report = await D.run_discovery(state, config, "fake",
                                    [D.DiscoveryQuery(term="roofer")])
-    assert report.stopped == "no confirmed signals"
+    assert report.stopped == "sin señales confirmadas"
     assert fake.calls == 0
-    assert "confirm signals" in report.errors[0].lower()
+    assert "confirma primero las señales" in report.errors[0].lower()
 
 
 # ── Entity resolution ──
@@ -556,7 +556,7 @@ async def test_tinyfish_error_handling():
 
     # 401 Unauthorized
     async with _client(lambda r: httpx.Response(401, json={"error": "unauthorized"})) as client:
-        with pytest.raises(RuntimeError, match="Invalid or missing API key"):
+        with pytest.raises(RuntimeError, match="clave de API no válida o ausente"):
             await provider.fetch(client, {"tinyfish_api_key": "bad"}, D.DiscoveryQuery(term="roofer"))
 
     # 402 Daily allowance used
@@ -566,12 +566,12 @@ async def test_tinyfish_error_handling():
 
     # 429 Repeated failure
     async with _client(lambda r: httpx.Response(429, headers={"Retry-After": "0.01"})) as client:
-        with pytest.raises(RuntimeError, match="rate limited"):
+        with pytest.raises(RuntimeError, match="límite de frecuencia"):
             await provider.fetch(client, {"tinyfish_api_key": "tf"}, D.DiscoveryQuery(term="roofer"))
 
     # Missing API key in env
     async with _client(lambda r: httpx.Response(200, json={})) as client:
-        with pytest.raises(RuntimeError, match="needs TINYFISH_API_KEY in .env"):
+        with pytest.raises(RuntimeError, match="necesita TINYFISH_API_KEY en .env"):
             await provider.fetch(client, {}, D.DiscoveryQuery(term="roofer"))
 
 
@@ -626,12 +626,12 @@ async def test_unconfigured_provider_says_which_key_is_missing(state, config, mo
     monkeypatch.setattr("harvey.config.load_env", lambda: EnvConfig())
     report = await D.run_discovery(state, config, "dataforseo_listings",
                                    [D.DiscoveryQuery(term="roofer")])
-    assert report.stopped == "not configured"
+    assert report.stopped == "sin configurar"
     assert "DATAFORSEO_LOGIN" in report.errors[0]
 
     tf_report = await D.run_discovery(state, config, "tinyfish",
                                       [D.DiscoveryQuery(term="roofer")])
-    assert tf_report.stopped == "not configured"
+    assert tf_report.stopped == "sin configurar"
     assert "TINYFISH_API_KEY" in tf_report.errors[0]
 
 
@@ -653,7 +653,7 @@ async def test_overpass_throttling_is_an_error_not_an_empty_market(monkeypatch):
         return httpx.Response(504, text="")
 
     provider = D.OpenStreetMap()
-    with pytest.raises(RuntimeError, match="throttling"):
+    with pytest.raises(RuntimeError, match="limitando"):
         async with _client(handler) as client:
             await provider.fetch(client, {}, D.DiscoveryQuery(
                 term="roofer", coordinate="39.7,-104.9,40"))
@@ -774,7 +774,7 @@ async def test_osm_refuses_a_term_it_cannot_map_instead_of_guessing():
     with every registered office in Denver. Returning nothing is correct;
     returning plausible junk is not."""
     provider = D.OpenStreetMap()
-    with pytest.raises(RuntimeError, match="no category"):
+    with pytest.raises(RuntimeError, match="ninguna categoría"):
         async with _client(lambda r: httpx.Response(200, json={})) as client:
             await provider.fetch(client, {}, D.DiscoveryQuery(
                 term="storm damage restoration", coordinate="39.7,-104.9,40"))
@@ -942,7 +942,7 @@ async def test_tinyfish_rate_limit_names_the_real_limits(monkeypatch):
         with pytest.raises(RuntimeError) as exc:
             await D.TinyFish().fetch(client, {"tinyfish_api_key": "tf"},
                                      D.DiscoveryQuery(term="roofer"))
-    assert "30" in str(exc.value) and "500 an hour" in str(exc.value)
+    assert "30" in str(exc.value) and "500 por hora" in str(exc.value)
 
 
 def test_tinyfish_docs_state_the_published_limits():
@@ -1016,7 +1016,7 @@ async def test_tinyfish_skips_a_malformed_item_and_keeps_the_rest():
 @pytest.mark.asyncio
 async def test_tinyfish_a_non_object_body_is_an_error_not_a_crash():
     async with _client(lambda r: httpx.Response(200, json=["not", "an", "object"])) as client:
-        with pytest.raises(RuntimeError, match="unexpected"):
+        with pytest.raises(RuntimeError, match="inesperada"):
             await D.TinyFish().fetch(client, {"tinyfish_api_key": "tf"},
                                      D.DiscoveryQuery(term="roofer"))
 

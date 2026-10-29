@@ -256,47 +256,49 @@ def check_warmup_service(health, warmup=None, *, error: str = "", other_service:
     """Is the sending mailbox actually warmed? Read from TrulyInbox when it's connected."""
     from harvey.integrations.trulyinbox import AFFILIATE_TAG, AFFILIATE_URL
     if error:
-        return Check("Warmup service", WARN, f"Couldn't read TrulyInbox: {error}")
+        return Check("Warmup service", WARN, f"No se ha podido leer TrulyInbox: {error}")
     if health is None:
         if other_service:
-            return Check("Warmup service", INFO, "Using another warmup service: check its "
-                         "dashboard for the inbox rate before cold email.")
-        return Check("Warmup service", INFO, "Not connected, so Harvey can't see whether this "
-                     "mailbox is warmed. We recommend TrulyInbox: it warms the mailbox, keeps "
-                     f"it healthy, and Harvey reads its inbox rate here. {AFFILIATE_URL} "
-                     f"{AFFILIATE_TAG} Then run: harvey trulyinbox connect")
+            return Check("Warmup service", INFO, "Usas otro servicio de calentamiento: consulta en "
+                         "su panel la tasa de bandeja de entrada antes de enviar emails en frío.")
+        return Check("Warmup service", INFO, "Sin conectar, así que Harvey no puede saber si este "
+                     "buzón está calentado. Te recomendamos TrulyInbox: calienta el buzón, lo "
+                     "mantiene sano y Harvey lee aquí su tasa de bandeja de entrada. "
+                     f"{AFFILIATE_URL} {AFFILIATE_TAG} Después ejecuta: harvey trulyinbox connect")
     if not health.found:
-        return Check("Warmup service", FAIL, f"{health.address} isn't in your TrulyInbox "
-                     "account yet. Add it in TrulyInbox to start its warmup.")
+        return Check("Warmup service", FAIL, f"{health.address} todavía no está en tu cuenta de "
+                     "TrulyInbox. Añádelo en TrulyInbox para empezar a calentarlo.")
     if not health.login_ok:
-        return Check("Warmup service", FAIL, f"TrulyInbox can't sign in to {health.address}. "
-                     "Reconnect the mailbox in TrulyInbox.")
+        return Check("Warmup service", FAIL, f"TrulyInbox no puede iniciar sesión en {health.address}. "
+                     "Vuelve a conectar el buzón en TrulyInbox.")
     if not health.warming:
-        return Check("Warmup service", FAIL, f"Warmup isn't on for {health.address}. "
-                     "Turn it on in TrulyInbox.")
+        return Check("Warmup service", FAIL, f"El calentamiento no está activado para {health.address}. "
+                     "Actívalo en TrulyInbox.")
     min_days = warmup.min_days if warmup is not None else 14
     days = (today or date.today()) - health.started_on if health.started_on else None
     days = days.days if days is not None else None
     hint = ""
     if health.started_on and warmup is not None and not warmup.start_date:
-        hint = (f" Set channels.email.warmup.start_date: {health.started_on.isoformat()} "
-                "so Harvey ramps cold email from it.")
+        hint = (f" Define channels.email.warmup.start_date: {health.started_on.isoformat()} "
+                "para que Harvey aumente el email en frío a partir de esa fecha.")
     rate = health.spam_rate
     if rate is not None and health.sent >= MIN_WARMUP_SAMPLE and rate >= MAX_WARMUP_SPAM:
-        return Check("Warmup service", FAIL, f"{round(rate * 100)}% spam in warmup over the "
-                     "last 14 days. Keep warming and hold cold email until it's under "
-                     f"{round(MAX_WARMUP_SPAM * 100)}%." + hint)
-    inbox = f", {round((1 - rate) * 100)}% inbox over the last 14 days" if rate is not None else ""
+        return Check("Warmup service", FAIL, f"{round(rate * 100)} % de spam en el calentamiento "
+                     "de los últimos 14 días. Sigue calentando y retén el email en frío hasta que "
+                     f"baje del {round(MAX_WARMUP_SPAM * 100)} %." + hint)
+    inbox = (f", {round((1 - rate) * 100)} % en bandeja de entrada en los últimos 14 días"
+             if rate is not None else "")
     if health.sent < MIN_WARMUP_SAMPLE:
-        return Check("Warmup service", WARN, f"TrulyInbox sent {health.sent} warmup emails in "
-                     "the last 14 days: not enough to judge yet. Check that warmup is running "
-                     "and keep warming before cold email." + hint)
+        return Check("Warmup service", WARN, f"TrulyInbox ha enviado {health.sent} emails de "
+                     "calentamiento en los últimos 14 días: todavía no son suficientes para "
+                     "valorarlo. Comprueba que el calentamiento está en marcha y sigue calentando "
+                     "antes del email en frío." + hint)
     if days is None or days < min_days:
-        shown = "warming" if days is None else f"day {max(days, 0)} of {min_days}"
-        return Check("Warmup service", FAIL, f"TrulyInbox: {shown}{inbox}. Keep warming "
-                     "before cold email." + hint)
-    return Check("Warmup service", OK, f"TrulyInbox: warmed, day {days}{inbox}. "
-                 "Keep it running alongside Harvey." + hint)
+        shown = "calentando" if days is None else f"día {max(days, 0)} de {min_days}"
+        return Check("Warmup service", FAIL, f"TrulyInbox: {shown}{inbox}. Sigue calentando "
+                     "antes del email en frío." + hint)
+    return Check("Warmup service", OK, f"TrulyInbox: calentado, día {days}{inbox}. "
+                 "Mantenlo activo junto a Harvey." + hint)
 
 
 def check_send_history(total_sent: int, bounces: int) -> Check:

@@ -92,25 +92,25 @@ class _WindowsReadBusyError(TokenError):
 def _check_open_file(fd: int, path: Path):
     st = os.fstat(fd)
     if not stat.S_ISREG(st.st_mode):
-        raise TokenError(f"{path} is not a regular file. Remove it and restart the dashboard.")
+        raise TokenError(f"{path} no es un archivo normal. Bórralo y reinicia el panel.")
     if _IS_WINDOWS:
         return  # ACLs, not mode bits: see the module docstring
     if st.st_uid != os.geteuid():
-        raise TokenError(f"{path} is owned by another user. Remove it and restart "
-                         "the dashboard to create a new token.")
+        raise TokenError(f"{path} pertenece a otro usuario. Bórralo y reinicia "
+                         "el panel para crear un token nuevo.")
     if st.st_mode & 0o077:
-        raise TokenError(f"{path} is readable or writable by other users "
-                         f"(mode {stat.S_IMODE(st.st_mode):o}), so the token may be known. "
-                         "Remove it and restart the dashboard to create a new one.")
+        raise TokenError(f"{path} lo pueden leer o escribir otros usuarios "
+                         f"(modo {stat.S_IMODE(st.st_mode):o}), así que el token podría conocerse. "
+                         "Bórralo y reinicia el panel para crear uno nuevo.")
     if st.st_nlink != 1:
-        raise _ExtraLinkError(f"{path} has other hard links. Remove it and restart "
-                              "the dashboard.")
+        raise _ExtraLinkError(f"{path} tiene otros enlaces duros. Bórralo y reinicia "
+                              "el panel.")
 
 
 def _read_token(path: Path) -> str | None:
     """The stored token, None if there is no file, TokenError if unusable."""
     if _IS_WINDOWS and os.path.islink(path):
-        raise TokenError(f"{path} is a symbolic link. Remove it and restart the dashboard.")
+        raise TokenError(f"{path} es un enlace simbólico. Bórralo y reinicia el panel.")
     flags = (os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
              | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0))
     try:
@@ -119,8 +119,8 @@ def _read_token(path: Path) -> str | None:
         return None
     except OSError as e:
         if e.errno in (errno.ELOOP, errno.EMLINK):
-            raise TokenError(f"{path} is a symbolic link. Remove it and restart "
-                             "the dashboard.") from e
+            raise TokenError(f"{path} es un enlace simbólico. Bórralo y reinicia "
+                             "el panel.") from e
         error_type = TokenError
         # The CRT can reduce sharing violations to EACCES without winerror.
         # Real ACL denials use the same code; they still fail closed after
@@ -128,7 +128,7 @@ def _read_token(path: Path) -> str | None:
         if _IS_WINDOWS and (e.errno == errno.EACCES
                             or getattr(e, "winerror", None) in (5, 32, 33)):
             error_type = _WindowsReadBusyError
-        raise error_type(f"Can't read {path}: {e.strerror}.") from e
+        raise error_type(f"No se puede leer {path}: {e.strerror}.") from e
     try:
         _check_open_file(fd, path)
         data = os.read(fd, 4097)
@@ -139,8 +139,8 @@ def _read_token(path: Path) -> str | None:
     except UnicodeDecodeError:
         token = ""
     if len(data) > 4096 or not TOKEN_RE.fullmatch(token):
-        raise TokenError(f"{path} doesn't hold a valid token. Remove it and restart "
-                         "the dashboard to create a new one.")
+        raise TokenError(f"{path} no contiene un token válido. Bórralo y reinicia "
+                         "el panel para crear uno nuevo.")
     return token
 
 
@@ -203,17 +203,17 @@ def load_or_create_token(path: Path) -> str:
     try:
         path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     except OSError as e:
-        raise TokenError(f"Can't create {path.parent}: {e.strerror}.") from e
+        raise TokenError(f"No se puede crear {path.parent}: {e.strerror}.") from e
     token = _read_token_settled(path)
     if token is not None:
         return token
     try:
         _publish_token(path, secrets.token_urlsafe(32))
     except OSError as e:
-        raise TokenError(f"Can't create {path}: {e.strerror}.") from e
+        raise TokenError(f"No se puede crear {path}: {e.strerror}.") from e
     token = _read_token_settled(path)
     if token is None:
-        raise TokenError(f"{path} disappeared while it was being created. Restart the dashboard.")
+        raise TokenError(f"{path} desapareció mientras se creaba. Reinicia el panel.")
     return token
 
 
@@ -289,8 +289,8 @@ def env_token() -> str | None:
     if not token:
         return None
     if not TOKEN_RE.fullmatch(token):
-        raise TokenError("HARVEY_DASHBOARD_TOKEN must be 43-128 characters of "
-                         "A-Z, a-z, 0-9, '-' or '_'.")
+        raise TokenError("HARVEY_DASHBOARD_TOKEN debe tener 43-128 caracteres de "
+                         "A-Z, a-z, 0-9, '-' o '_'.")
     return token
 
 
@@ -363,7 +363,7 @@ class DashboardGuard:
         hosted = host is not None and host in public_hosts()
         if host is None or not (is_loopback(host) or hosted):
             return await deny(400, "bad_host",
-                              "This dashboard only answers to localhost / 127.0.0.1.")
+                              "Este panel solo responde a localhost / 127.0.0.1.")
         host_header = hosts[0].lower()
         # A hosted dashboard sits behind the platform's TLS proxy.
         scheme = "https" if hosted else "http"
@@ -376,10 +376,11 @@ class DashboardGuard:
         origins = headers.get("origin", [])
         if origins and (len(origins) != 1 or origins[0].lower() != f"{scheme}://{host_header}"):
             if not navigation:
-                return await deny(403, "cross_origin", "Cross-origin requests are refused.")
+                return await deny(403, "cross_origin",
+                                  "Se rechazan las solicitudes de otro origen.")
         site = headers.get("sec-fetch-site", [])
         if site and site[0].lower() not in ("same-origin", "none") and not navigation:
-            return await deny(403, "cross_origin", "Cross-site requests are refused.")
+            return await deny(403, "cross_origin", "Se rechazan las solicitudes de otro sitio.")
 
         if public:
             return await self.app(scope, receive, send_secured)
@@ -391,7 +392,7 @@ class DashboardGuard:
             return await deny(503, "token_unavailable", str(e))
         if not bearer_ok(headers.get("authorization", []), token):
             return await deny(401, "unauthorized",
-                              "Open the link printed by 'harvey dashboard' to unlock.",
+                              "Abre el enlace que imprime 'harvey dashboard' para desbloquearlo.",
                               extra=[(b"www-authenticate", b'Bearer realm="harvey"')])
 
         # 4. Mutations carry JSON or nothing.
@@ -400,6 +401,6 @@ class DashboardGuard:
             has_body = bool(headers.get("transfer-encoding")) or length not in ("", "0")
             if has_body and not _is_json(headers.get("content-type", [""])[0]):
                 return await deny(415, "unsupported_media_type",
-                                  "Request bodies must be application/json.")
+                                  "El cuerpo de la solicitud debe ser application/json.")
 
         return await self.app(scope, receive, send_secured)

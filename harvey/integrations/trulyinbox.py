@@ -32,7 +32,7 @@ import httpx
 API_BASE = "https://lynx-api.trulyinbox.com"
 # The referral link, used everywhere Harvey points people at TrulyInbox.
 AFFILIATE_URL = "https://trulyinbox.com/?via=harvey"
-AFFILIATE_TAG = "(affiliate link)"
+AFFILIATE_TAG = "(enlace de afiliado)"
 TIMEOUT = httpx.Timeout(connect=10.0, read=20.0, write=10.0, pool=10.0)
 REPORT_DAYS = 14
 FIND_LIMIT = 25
@@ -42,23 +42,25 @@ FIND_LIMIT = 25
 CHOICE_KEY = "trulyinbox:choice"
 CHOICES = ("connected", "other")
 
-KEY_REJECTED = ("TrulyInbox rejected the API key. Create a workspace key in TrulyInbox "
-                "(Settings > API keys) and connect it again.")
-MISSING_SCOPE = ("The TrulyInbox key is missing a scope. Create a workspace key with "
-                 "accounts:read, warmup:read and analytics:read.")
-NO_API_PLAN = "Your TrulyInbox plan doesn't include API access. API access starts on Starter."
-PAUSED = "Your TrulyInbox subscription is paused. Resume it in TrulyInbox."
-WRONG_WORKSPACE = "This key belongs to a different TrulyInbox workspace."
-NO_WORKSPACE = ("Couldn't find the TrulyInbox workspace. Add the workspace:read scope "
-                "to the key, or set TRULYINBOX_WORKSPACE_ID in .env.")
-RATE_LIMITED = "TrulyInbox's API limit is reached. Try again in a minute."
-LOCKED_OUT = ("TrulyInbox locked this computer out for 15 minutes after rejected keys. "
-              "Wait, then try again with a working key.")
-BAD_WORKSPACE_ID = "TRULYINBOX_WORKSPACE_ID must be the workspace's number. Fix it in .env."
-NO_ADDRESS = ("Harvey doesn't know which mailbox it sends from. Set persona.email in "
-              "harvey.yaml first.")
-NO_ANSWER = "TrulyInbox didn't answer. Try again in a minute."
-UNREADABLE = "TrulyInbox sent a reply Harvey couldn't read."
+KEY_REJECTED = ("TrulyInbox ha rechazado la clave de API. Crea una clave de workspace en TrulyInbox "
+                "(Settings > API keys) y vuelve a conectarla.")
+MISSING_SCOPE = ("A la clave de TrulyInbox le falta un permiso (scope). Crea una clave de "
+                 "workspace con accounts:read, warmup:read y analytics:read.")
+NO_API_PLAN = ("Tu plan de TrulyInbox no incluye acceso a la API. El acceso a la API "
+               "empieza en el plan Starter.")
+PAUSED = "Tu suscripción de TrulyInbox está en pausa. Reactívala en TrulyInbox."
+WRONG_WORKSPACE = "Esta clave pertenece a otro workspace de TrulyInbox."
+NO_WORKSPACE = ("No se ha encontrado el workspace de TrulyInbox. Añade el permiso "
+                "workspace:read a la clave o define TRULYINBOX_WORKSPACE_ID en .env.")
+RATE_LIMITED = "Se ha alcanzado el límite de la API de TrulyInbox. Vuelve a intentarlo en un minuto."
+LOCKED_OUT = ("TrulyInbox ha bloqueado este ordenador durante 15 minutos tras varias claves "
+              "rechazadas. Espera y vuelve a intentarlo con una clave que funcione.")
+BAD_WORKSPACE_ID = ("TRULYINBOX_WORKSPACE_ID debe ser el número del workspace. "
+                    "Corrígelo en .env.")
+NO_ADDRESS = ("Harvey no sabe desde qué buzón envía. Define primero persona.email en "
+              "harvey.yaml.")
+NO_ANSWER = "TrulyInbox no ha respondido. Vuelve a intentarlo en un minuto."
+UNREADABLE = "TrulyInbox ha enviado una respuesta que Harvey no ha podido leer."
 
 # Each error rule in both spellings the docs use (6-digit and string codes).
 AUTH_CODES = {"150001", "150002", "invalid_api_key", "unauthorized", "Api.InvalidKey"}
@@ -199,7 +201,7 @@ class TrulyInbox:
             raise TrulyInboxError(NO_ANSWER)
         message = (_str(envelope.get("errorMessage")) or _str(error.get("message")))
         message = message.replace(self._key, "[hidden]")[:200]
-        raise TrulyInboxError(f"TrulyInbox returned {resp.status_code}"
+        raise TrulyInboxError(f"TrulyInbox ha devuelto {resp.status_code}"
                               + (f": {message}" if message else "."))
 
     async def _workspace(self) -> str:

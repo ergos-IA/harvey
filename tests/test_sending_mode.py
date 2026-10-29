@@ -103,7 +103,7 @@ async def test_autopilot_rows_are_marked_as_such(state):
     assert (await state.get_outbox_item(waiting))["approved_by"] == "you"
     assert await state.requeue_autopilot_approved() == 1
     item = await state.get_outbox_item(auto)
-    assert item["status"] == "pending_review" and "autopilot" in item["error"]
+    assert item["status"] == "pending_review" and "piloto automático" in item["error"]
     assert (await state.get_outbox_item(waiting))["status"] == "approved"   # yours stays
 
 
@@ -123,6 +123,34 @@ async def test_rows_approved_before_the_upgrade_count_as_approved(tmp_path):
     assert (await s.get_outbox_item("o1"))["approved_by"] == "earlier"
 
 
+@pytest.mark.asyncio
+async def test_english_outbox_reasons_from_before_become_spanish(tmp_path):
+    from harvey.state import HAND_SENT_REASON, HELD_FOR_REVIEW, MAYBE_SENT_PREFIX
+    db = tmp_path / "old.db"
+    conn = sqlite3.connect(db)
+    for script in MIGRATIONS[:16]:
+        conn.executescript(script)
+    for oid, status, err in (
+        ("o1", "pending_review", "held for your review: links to evil.example"),
+        ("o2", "failed", "may have gone out: send error: timeout"),
+        ("o3", "cancelled", "sent_by_hand"),
+        ("o4", "cancelled", "a colleague replied (Jo Li)"),
+    ):
+        conn.execute("INSERT INTO outbox (id, prospect_id, kind, step, to_email, subject, body, status, "
+                     "send_at, error) VALUES (?, 'p', 'sequence', 1, 'a@x.test', 's', 'b', ?, "
+                     "'2026-11-01T09:00:00', ?)", (oid, status, err))
+    conn.execute("PRAGMA user_version = 16")
+    conn.commit()
+    conn.close()
+    s = StateManager(str(db))
+    await s.init_db()
+    assert (await s.get_outbox_item("o1"))["error"] == HELD_FOR_REVIEW + "links to evil.example"
+    assert await s.count_held_for_review() == 1
+    assert (await s.get_outbox_item("o2"))["error"].startswith(MAYBE_SENT_PREFIX)
+    assert (await s.get_outbox_item("o3"))["error"] == HAND_SENT_REASON
+    assert (await s.get_outbox_item("o4"))["error"] == "ha respondido alguien de su empresa (Jo Li)"
+
+
 # ── sending respects the mode ──
 
 
@@ -139,7 +167,7 @@ async def test_with_approval_back_on_autopilot_rows_wait_and_yours_go(state):
     await make_sender(state, provider, require_approval=True)._drain_due()
     assert len(provider.sent) == 2                                  # yours and the pre-upgrade one
     item = await state.get_outbox_item(auto)
-    assert item["status"] == "pending_review" and "autopilot" in item["error"]
+    assert item["status"] == "pending_review" and "piloto automático" in item["error"]
 
 
 # ── the dashboard ──
@@ -237,22 +265,23 @@ MODE = {"mode": "approval", "provider": "gmail", "file": "harvey.local.yaml",
 
 def test_the_outbox_says_which_mode_and_offers_the_way_out():
     approval = _render("sendingModeBanner", MODE)
-    assert "Approval mode" in approval and "waits here until you approve it" in approval
+    assert "Modo aprobación" in approval and "espera aquí hasta que lo apruebes" in approval
     auto = _render("sendingModeBanner", {**MODE, "mode": "autopilot", "held": 2})
-    assert "Autopilot is on" in auto and "(2 now)" in auto and "Turn off autopilot" in auto
+    assert "El piloto automático está activado" in auto and "(2 ahora)" in auto and "Desactivar el piloto automático" in auto
     instantly = _render("sendingModeBanner", {**MODE, "provider": "instantly"})
-    assert "campaigns aren’t sent to Instantly" in instantly
+    assert "las campañas no se envían a Instantly" in instantly
 
 
 def test_settings_explains_both_and_asks_for_the_word():
     card = _render("sendingModeCard", MODE)
-    assert "Sending mode: Approval" in card and "<b>Autopilot</b>: Harvey sends on its own" in card
+    assert "Modo de envío: Aprobación" in card and "<b>Piloto automático</b>: Harvey envía por su cuenta" in card
     assert "acme.com, &lt;b&gt;x&lt;/b&gt;" in card and "harvey.local.yaml" in card
-    assert "Turn on autopilot…" in card and 'id="autopilot-go"' not in card
+    assert "Activar el piloto automático…" in card and 'id="autopilot-go"' not in card
     armed = _render("sendingModeCard", MODE, armed=True)
     assert 'id="autopilot-confirm"' in armed and 'id="autopilot-go" disabled' in armed
+    assert "Escribe <b>activar</b>" in armed and "!== 'activar'" in armed
     auto = _render("sendingModeCard", {**MODE, "mode": "autopilot"})
-    assert "Turn off autopilot" in auto and "works at once" in auto
+    assert "Desactivar el piloto automático" in auto and "surte efecto al instante" in auto
 
 
 # ── review of the switch: no autopilot email after "off" ──

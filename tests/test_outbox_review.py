@@ -75,7 +75,7 @@ def test_pending_drafts_carry_the_facts_behind_them(client):
     assert ctx["contact_source"] == "scraped_mailto"
     assert ctx["email_status"] == "risky"
     assert ctx["notes"] == "Lovable-built client portal."
-    assert ctx["signals"] == {"Plataforma y herramientas de la web": "Lovable, Stripe", "Invierte en Google Ads": "yes"}
+    assert ctx["signals"] == {"Plataforma y herramientas de la web": "Lovable, Stripe", "Invierte en Google Ads": "sí"}
 
 
 def test_editing_a_draft_changes_it_but_does_not_approve_it(client):

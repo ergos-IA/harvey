@@ -52,7 +52,7 @@ async def test_a_cancel_after_the_checks_is_never_overwritten_by_a_send(state, m
     await make_sender(state, provider)._drain_due()
     assert provider.sent == []
     item = await state.get_outbox_item(item_id)
-    assert item["status"] == "cancelled" and item["error"] == "stop_on_reply"
+    assert item["status"] == "cancelled" and item["error"] == "ha respondido"
 
 
 @pytest.mark.asyncio
@@ -90,7 +90,7 @@ async def test_a_hand_send_recorded_just_after_the_claim_still_stops_the_send(st
     provider = FakeProvider()
     await make_sender(state, provider)._drain_due()
     assert provider.sent == []
-    assert (await state.get_outbox_item(item_id))["error"] == "sent_by_hand"
+    assert (await state.get_outbox_item(item_id))["error"] == "lo enviaste tú a mano"
 
 
 @pytest.mark.asyncio
@@ -174,7 +174,7 @@ async def test_an_email_stuck_sending_is_failed_after_a_while_never_resent(state
     assert provider.sent == []
     stuck_item = await state.get_outbox_item(stuck)
     assert stuck_item["status"] == "failed"
-    assert "Sent folder" in stuck_item["error"]
+    assert "carpeta de enviados" in stuck_item["error"]
     # A claim this recent may be another sender's email in flight.
     assert (await state.get_outbox_item(fresh))["status"] == "sending"
 

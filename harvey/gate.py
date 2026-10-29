@@ -123,7 +123,7 @@ def do_not_contact_entries(raw) -> list[str]:
             continue
         entry = do_not_contact_entry(part)
         if not entry:
-            raise ValueError(f"'{part.strip()}' is not an email address or a domain")
+            raise ValueError(f"'{part.strip()}' no es una dirección de email ni un dominio")
         found.append(entry)
     return found
 
@@ -181,56 +181,56 @@ def pre_send_check(
 
     # Recipient sanity
     if not EMAIL_RE.match(to_email):
-        reasons.append(f"invalid recipient address '{to_email}'")
+        reasons.append(f"dirección de destinatario no válida: '{to_email}'")
     # Deliberately not limited to kind == "sequence": a reply is still contact,
     # and a list that lets automated replies through is not a do-not-contact
     # list. The operator can still answer by hand.
     blocked = do_not_contact_match(to_email, do_not_contact)
     if blocked:
-        reasons.append(f"'{blocked}' is on the do-not-contact list")
+        reasons.append(f"'{blocked}' está en la lista de no contactar")
     if prospect is not None:
         if (prospect.email or "").strip().lower() != to_email:
-            reasons.append("recipient does not match the prospect record")
+            reasons.append("el destinatario no coincide con la ficha del contacto")
         allowed = DELIVERABLE_STATUSES if allow_risky else {"verified"}
         # Replies go back to someone who emailed US — deliverability proven.
         if kind == "sequence" and (prospect.email_status or "guess") not in allowed:
             reasons.append(
-                f"email_status '{prospect.email_status or 'guess'}' is not deliverable"
+                f"el estado del email '{prospect.email_status or 'guess'}' no permite enviar"
             )
 
     # Content sanity
     if not subject:
-        reasons.append("empty subject")
+        reasons.append("asunto vacío")
     if not body:
-        reasons.append("empty body")
+        reasons.append("cuerpo vacío")
     if len(subject) > MAX_SUBJECT_LEN:
-        reasons.append(f"subject too long ({len(subject)} > {MAX_SUBJECT_LEN})")
+        reasons.append(f"asunto demasiado largo ({len(subject)} > {MAX_SUBJECT_LEN})")
     word_count = len(body.split())
     if word_count > MAX_BODY_WORDS:
-        reasons.append(f"body too long ({word_count} words > {MAX_BODY_WORDS})")
+        reasons.append(f"cuerpo demasiado largo ({word_count} palabras > {MAX_BODY_WORDS})")
 
     # Unrendered merge tags — the classic mass-mail embarrassment
     leftover = MERGE_TAG_RE.findall(subject + " " + body)
     if leftover:
-        reasons.append(f"unrendered merge tags: {sorted(set(leftover))[:3]}")
+        reasons.append(f"variables de combinación sin rellenar: {sorted(set(leftover))[:3]}")
 
     # Banned phrases (spam triggers + AI tells)
     lowered = _fold(subject + " " + body)
     hits = [p for p in BANNED_PHRASES if p in lowered]
     if hits:
-        reasons.append(f"banned phrases: {hits[:3]}")
+        reasons.append(f"frases prohibidas: {hits[:3]}")
 
     # Link budget: cold email with links goes to spam
     links = URL_RE.findall(body)
     if len(links) > MAX_LINKS:
-        reasons.append(f"too many links ({len(links)} > {MAX_LINKS})")
+        reasons.append(f"demasiados enlaces ({len(links)} > {MAX_LINKS})")
 
     if kind == "sequence" and postal_address.strip() and postal_address.strip() not in body:
-        reasons.append("postal address footer missing")
+        reasons.append("falta el pie con la dirección postal")
 
     # No HTML — Harvey sends plain text only
     if re.search(r"<\s*(html|body|div|table|img|a)\b", body, re.IGNORECASE):
-        reasons.append("HTML markup in body (plain text only)")
+        reasons.append("hay marcado HTML en el cuerpo (solo texto plano)")
 
     return GateResult(ok=not reasons, reasons=reasons)
 
@@ -452,13 +452,13 @@ def autopilot_review(subject: str, body: str, config, root=None, recipient: str 
         if not _is_ours(host, allowed) and not _is_booking_page(link, prefix)))
     if foreign:
         reasons.append(
-            f"links to {', '.join(foreign[:3])}, not one of your domains "
-            "(add it to channels.email.link_domains if it's yours)")
+            f"enlaza a {', '.join(foreign[:3])}, que no es uno de tus dominios "
+            "(añádelo a channels.email.link_domains si es tuyo)")
     words = _words(text)
     runs = _instruction_runs(root or PROJECT_ROOT)
     for i in range(len(words) - LEAK_RUN_WORDS + 1):
         source = runs.get(tuple(words[i:i + LEAK_RUN_WORDS]))
         if source:
-            reasons.append(f"quotes Harvey's instructions ({source})")
+            reasons.append(f"cita las instrucciones de Harvey ({source})")
             break
     return reasons

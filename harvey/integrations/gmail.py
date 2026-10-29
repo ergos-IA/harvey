@@ -119,12 +119,12 @@ class GmailProvider(MailProvider):
             return self._access_token
         stored = _load_token()
         if not stored:
-            self._token_problem = "not signed in to Gmail. Run 'harvey gmail auth'."
+            self._token_problem = "no has iniciado sesión en Gmail. Ejecuta 'harvey gmail auth'."
             logger.error("Gmail: " + self._token_problem)
             return None
         # Why there's no token, for whoever asked (get_replies says it).
-        unreachable = ("couldn't reach Google to refresh the Gmail sign-in{}; "
-                       "Harvey tries again next cycle.")
+        unreachable = ("no se ha podido contactar con Google para renovar la sesión de Gmail{}; "
+                       "Harvey lo reintenta en el siguiente ciclo.")
         try:
             async with httpx.AsyncClient(timeout=TIMEOUT) as client:
                 resp = await client.post(TOKEN_URL, data={
@@ -138,8 +138,8 @@ class GmailProvider(MailProvider):
             self._token_problem = unreachable.format(f" ({type(e).__name__})")
             return None
         if resp.status_code in (400, 401, 403):
-            self._token_problem = (f"Google rejected the saved Gmail sign-in ({resp.status_code}). "
-                                   "Run 'harvey gmail auth'.")
+            self._token_problem = (f"Google ha rechazado la sesión de Gmail guardada ({resp.status_code}). "
+                                   "Ejecuta 'harvey gmail auth'.")
             logger.error(f"Gmail token refresh rejected ({resp.status_code}). "
                          "Re-run 'harvey gmail auth'.")
             return None
@@ -155,7 +155,7 @@ class GmailProvider(MailProvider):
             data = None
         token = data.get("access_token") if isinstance(data, dict) else None
         if not isinstance(token, str) or not token:
-            self._token_problem = unreachable.format(" (no token in Google's answer)")
+            self._token_problem = unreachable.format(" (sin token en la respuesta de Google)")
             logger.error("Gmail token refresh returned no access token.")
             return None
         self._token_problem = ""
@@ -231,7 +231,7 @@ class GmailProvider(MailProvider):
 
         data = await self._request("POST", "/messages/send", sending=True, json=payload)
         if data is None:
-            return SendResult(ok=False, error="gmail send failed")
+            return SendResult(ok=False, error="el envío por Gmail ha fallado")
 
         # Fetch the assigned RFC Message-ID for bounce/thread matching later.
         message_id = ""
@@ -273,7 +273,7 @@ class GmailProvider(MailProvider):
         """
         if not await self._token():
             raise GmailError(self._token_problem
-                             or "not signed in to Gmail. Run 'harvey gmail auth'.")
+                             or "no has iniciado sesión en Gmail. Ejecuta 'harvey gmail auth'.")
         self._pending = None
         recent_full = (self._last_full_read
                        and time.time() - self._last_full_read < FULL_READ_EVERY_SECONDS)
@@ -382,8 +382,8 @@ class GmailProvider(MailProvider):
             seen_tokens.add(token)
             params["pageToken"] = token
         else:
-            raise GmailError(f"history has more than {MAX_INBOX_PAGES} pages; "
-                             "refusing a partial read")
+            raise GmailError(f"el historial tiene más de {MAX_INBOX_PAGES} páginas; "
+                             "se rechaza una lectura parcial")
         out, done = [], set()
         for msg_id, moved_in in wanted:
             if msg_id in done:
@@ -449,7 +449,7 @@ class GmailProvider(MailProvider):
             seen_tokens.add(token)
             params["pageToken"] = token
         raise GmailError(
-            f"inbox has more than {MAX_INBOX_PAGES} pages; refusing a partial read"
+            f"el buzón tiene más de {MAX_INBOX_PAGES} páginas; se rechaza una lectura parcial"
         )
 
     @staticmethod

@@ -307,7 +307,7 @@ async def get_setup_status():
     checks.append({
         "id": "warmup_service",
         "label": {"connected": "Calentamiento: TrulyInbox conectado",
-                  "other": "Warmup: your own warmup service"}.get(choice, "Calienta tu buzón"),
+                  "other": "Calentamiento: tu propio servicio de calentamiento"}.get(choice, "Calienta tu buzón"),
         "done": bool(choice),
         # Instantly warms its own accounts, so there it's a suggestion, not a step.
         "required": provider != "instantly",
@@ -1003,7 +1003,7 @@ async def _with_context(items: list[dict]) -> list[dict]:
             elif r["value_num"] is None:
                 value = ""
             else:
-                value = "yes" if r["value_num"] else "no"
+                value = "sí" if r["value_num"] else "no"
             key = (r["company_id"], r["label"])
             seen = (r["run_id"] or r["observed_at"])
             prev_seen, values = latest.get(key, (None, []))
@@ -1101,9 +1101,9 @@ async def set_sending_mode(request: Request):
         body = None
     mode = body.get("mode") if isinstance(body, dict) else None
     if mode not in ("approval", "autopilot"):
-        return _refuse('expected {"mode": "approval"} or {"mode": "autopilot", "confirm": "autopilot"}', 400)
+        return _refuse('se esperaba {"mode": "approval"} o {"mode": "autopilot", "confirm": "autopilot"}', 400)
     if mode == "autopilot" and body.get("confirm") != "autopilot":
-        return _refuse('Type "autopilot" to confirm: Harvey will send email without asking you.', 400)
+        return _refuse('Escribe «activar» para confirmar: Harvey enviará correos sin preguntarte.', 400)
     path = _resolve_config_file()
     try:
         set_require_approval(mode == "approval", path)
@@ -1316,11 +1316,11 @@ async def mark_prospect_sent(prospect_id: str, request: Request):
         if body is None:
             body = {}
         if not isinstance(body, dict) or not isinstance(body.get("sent", True), bool):
-            return _refuse('expected {"sent": true|false}', 400)
+            return _refuse('se esperaba {"sent": true|false}', 400)
         sent = body.get("sent", True)
         rows = await query_db("SELECT status FROM prospects WHERE id = ?", (prospect_id,))
         if not rows:
-            return _refuse("unknown prospect", 404)
+            return _refuse("Ese prospecto no existe.", 404)
         current = rows[0].get("status") or "new"
         state = _state()
         await state.init_db()
@@ -1401,7 +1401,7 @@ async def sending_toggle(action: str):
         state = _state()
         await state.init_db()
         if action == "pause":
-            await state.set_setting("sending_paused", "paused from dashboard")
+            await state.set_setting("sending_paused", "Pausado desde el panel")
         else:
             await state.set_setting("sending_paused", "")
             await state.set_setting("bounce_count", "0")
@@ -1483,7 +1483,7 @@ async def get_opt_out(prospect_id: str):
     """Why this person is opted out: the rule, the words and their message."""
     rows = await query_db("SELECT status FROM prospects WHERE id = ?", (prospect_id,))
     if not rows:
-        return _refuse("unknown prospect", 404)
+        return _refuse("Ese prospecto no existe.", 404)
     status = rows[0].get("status") or "new"
     state = _state()
     await state.init_db()
@@ -1524,10 +1524,10 @@ async def undo_opt_out(prospect_id: str, request: Request):
     except ValueError:
         body = None
     if not isinstance(body, dict) or body.get("confirm") is not True:
-        return _refuse('expected {"confirm": true}', 400)
+        return _refuse('se esperaba {"confirm": true}', 400)
     rows = await query_db("SELECT email FROM prospects WHERE id = ?", (prospect_id,))
     if not rows:
-        return _refuse("unknown prospect", 404)
+        return _refuse("Ese prospecto no existe.", 404)
     state = _state()
     await state.init_db()
     history = await state.opt_out_history(prospect_id)
@@ -1840,7 +1840,7 @@ async def stop_discovery():
     try:
         state = _state()
         await state.init_db()
-        await state.set_setting("discovery_paused", "stopped from dashboard")
+        await state.set_setting("discovery_paused", "Detenido desde el panel")
         return {"success": True}
     except Exception as e:
         return JSONResponse({"success": False, "message": str(e)}, status_code=500)
@@ -1880,7 +1880,7 @@ REPLY_STATUSES = ("replied", "meeting", "closed")
 def _eta_text(minutes) -> str:
     if minutes is None:
         return ""
-    return "less than a minute left" if minutes < 1 else f"about {round(minutes)} min left"
+    return "queda menos de un minuto" if minutes < 1 else f"quedan unos {round(minutes)} min"
 
 
 @app.get("/api/live-status")
@@ -1984,49 +1984,64 @@ async def get_live_status():
                 "state": state_, "detail": detail}
 
     profile_eta = next((r["eta_min"] for r in running if r["stage"] == "profile"), None)
-    read_detail = f"{profiled} of {with_site} read"
+    read_detail = f"{profiled} de {with_site} leídas"
     if reading and profile_eta is not None:
         read_detail += " · " + _eta_text(profile_eta)
     if no_site:
-        read_detail += f" · {no_site} have no website (skipped)"
+        read_detail += (" · 1 no tiene web (omitido)" if no_site == 1
+                        else f" · {no_site} no tienen web (omitidos)")
+
+    def n(count, one, many):
+        return f"{count} {one if count == 1 else many}"
 
     steps = [
-        step("Find businesses", companies, 0, finding,
-             f"{companies} businesses found", info=True),
-        step("Read their websites", profiled, with_site, reading, read_detail),
-        step("Find emails", checked, profiled, finding_emails,
-             f"{checked} of {profiled} checked · {len(with_email)} emails found"),
-        step("Check emails are real", len(with_email) - unconfirmed, len(with_email), False,
-             f"{by_status.get('verified', 0)} verified · {by_status.get('risky', 0)} risky · "
-             f"{unconfirmed} not confirmed"
-             + (f" · {by_status['invalid']} bad" if by_status.get("invalid") else "")),
-        step("Write first emails", len(drafted), len(deliverable | drafted), False,
-             f"{len(drafted)} written · see Campaigns"),
-        step("Sent", len(sent & drafted), len(drafted), False,
-             f"{len(sent & drafted)} of {len(drafted)} sent"),
-        step("Replies", replies, 0, False,
-             f"{replies} replies" if replies else "No replies yet", info=True),
+        step("Encontrar negocios", companies, 0, finding,
+             n(companies, "negocio encontrado", "negocios encontrados"), info=True),
+        step("Leer sus webs", profiled, with_site, reading, read_detail),
+        step("Encontrar emails", checked, profiled, finding_emails,
+             f"{checked} de {profiled} revisados · "
+             + n(len(with_email), "email encontrado", "emails encontrados")),
+        step("Comprobar que los emails existen", len(with_email) - unconfirmed, len(with_email), False,
+             f"{by_status.get('verified', 0)} verificados · {by_status.get('risky', 0)} dudosos · "
+             f"{unconfirmed} sin confirmar"
+             + (f" · {by_status['invalid']} no válidos" if by_status.get("invalid") else "")),
+        step("Escribir los primeros emails", len(drafted), len(deliverable | drafted), False,
+             f"{len(drafted)} escritos · míralos en Campañas"),
+        step("Enviados", len(sent & drafted), len(drafted), False,
+             f"{len(sent & drafted)} de {len(drafted)} enviados"),
+        step("Respuestas", replies, 0, False,
+             n(replies, "respuesta", "respuestas") if replies else "Aún no hay respuestas", info=True),
     ]
 
     next_tab = ""   # where the next step is done, when it's done in the dashboard
     if reading or finding:
-        next_up = "Wait — Harvey is working. This page updates by itself."
+        next_up = "Espera: Harvey está trabajando. Esta página se actualiza sola."
     elif finding_emails:
-        next_up = "Wait — emails are being found."
+        next_up = "Espera: se están buscando los emails."
     elif stopped:
-        next_up, next_tab = "A job stopped before finishing. Run it again.", "discover"
+        next_up, next_tab = "Una tarea se detuvo antes de terminar. Vuelve a ejecutarla.", "discover"
     elif harvey_sends and awaiting_review:
-        next_up, next_tab = f"Review the {awaiting_review} draft(s) waiting in the Outbox.", "outbox"
+        next_up, next_tab = ("Revisa el borrador que espera en la Bandeja de salida."
+                             if awaiting_review == 1 else
+                             f"Revisa los {awaiting_review} borradores que esperan en la Bandeja de salida."), "outbox"
     elif by_hand:
-        next_up, next_tab = f"Open Campaigns and send the {len(by_hand)} unsent email(s).", "campaigns"
+        next_up, next_tab = ("Abre Campañas y envía el email pendiente."
+                             if len(by_hand) == 1 else
+                             f"Abre Campañas y envía los {len(by_hand)} emails pendientes."), "campaigns"
     elif profiled > checked:
-        next_up, next_tab = f"Find emails for the {profiled - checked} businesses not checked yet.", "controls"
+        left = profiled - checked
+        next_up, next_tab = ("Busca los emails del negocio que falta por revisar."
+                             if left == 1 else
+                             f"Busca los emails de los {left} negocios que faltan por revisar."), "controls"
     elif deliverable - drafted:
-        next_up, next_tab = f"Write first emails for {len(deliverable - drafted)} more contact(s).", "controls"
+        more = len(deliverable - drafted)
+        next_up, next_tab = ("Escribe los primeros emails de 1 contacto más."
+                             if more == 1 else
+                             f"Escribe los primeros emails de {more} contactos más."), "controls"
     elif not companies:
-        next_up, next_tab = "Search for businesses to get started.", "discover"
+        next_up, next_tab = "Busca negocios para empezar.", "discover"
     else:
-        next_up, next_tab = "Search more cities or industries to get more leads.", "discover"
+        next_up, next_tab = "Busca en más ciudades o sectores para conseguir más prospectos.", "discover"
 
     return {
         "steps": steps,
@@ -2369,10 +2384,10 @@ def _codes(raw) -> list[str]:
     if isinstance(raw, str):
         raw = raw.split(",")
     if not isinstance(raw, list) or any(not isinstance(c, str) for c in raw):
-        raise ValueError("signals must be a list of strings or comma-separated string")
+        raise ValueError("las señales deben ser una lista de textos o un texto separado por comas")
     codes = list(dict.fromkeys(c.strip() for c in raw if c.strip()))
     if len(codes) > 200 or any(len(c) > 128 for c in codes):
-        raise ValueError("too many or oversized signal codes")
+        raise ValueError("demasiados códigos de señal, o alguno demasiado largo")
     return codes
 
 
@@ -2383,10 +2398,10 @@ def _range_bound(raw):
     if raw is None or raw == "":
         return None
     if isinstance(raw, bool) or not isinstance(raw, (int, float, str)):
-        raise ValueError("range bounds must be numbers")
+        raise ValueError("los límites del rango deben ser números")
     value = float(raw)
     if value != value or abs(value) > 1e12:
-        raise ValueError("range bound is out of bounds")
+        raise ValueError("un límite del rango está fuera de los valores permitidos")
     return value
 
 
@@ -2402,23 +2417,23 @@ def _ranges(raw) -> list[dict]:
                 continue
             pieces = part.split(":")
             if len(pieces) != 3:
-                raise ValueError("ranges look like CODE:min:max")
+                raise ValueError("los rangos tienen la forma CÓDIGO:mín:máx")
             items.append({"code": pieces[0], "min": pieces[1], "max": pieces[2]})
         raw = items
     if not isinstance(raw, list) or any(not isinstance(r, dict) for r in raw):
-        raise ValueError("ranges must be a list of {code, min, max}")
+        raise ValueError("los rangos deben ser una lista de {code, min, max}")
     if len(raw) > COHORT_MAX_RANGES:
-        raise ValueError("too many ranges")
+        raise ValueError("demasiados rangos")
     out = []
     for r in raw:
         code = r.get("code")
         if not isinstance(code, str) or not code.strip() or len(code) > 128:
-            raise ValueError("each range needs a signal code")
+            raise ValueError("cada rango necesita un código de señal")
         low, high = _range_bound(r.get("min")), _range_bound(r.get("max"))
         if low is None and high is None:
-            raise ValueError(f"range on {code} needs a min or a max")
+            raise ValueError(f"el rango de {code} necesita un mínimo o un máximo")
         if low is not None and high is not None and low > high:
-            raise ValueError(f"range on {code}: min is above max")
+            raise ValueError(f"rango de {code}: el mínimo es mayor que el máximo")
         out.append({"code": code.strip(), "min": low, "max": high})
     return out
 
@@ -2427,10 +2442,10 @@ def _cohort_integer(raw, default):
     if raw is None:
         return default
     if isinstance(raw, bool) or not isinstance(raw, (int, str)):
-        raise ValueError("offset and limit must be integers")
+        raise ValueError("offset y limit deben ser números enteros")
     value = int(raw)
     if abs(value) > 9223372036854775807:
-        raise ValueError("offset or limit is too large")
+        raise ValueError("offset o limit es demasiado grande")
     return value
 
 
@@ -2447,7 +2462,7 @@ async def preview_cohort(request: Request):
     try:
         body = await request.json()
         if not isinstance(body, dict):
-            raise ValueError("request body must be an object")
+            raise ValueError("el cuerpo de la solicitud debe ser un objeto")
         require = _codes(body.get("require"))
         exclude = _codes(body.get("exclude"))
         ranges = _ranges(body.get("ranges"))
@@ -2548,7 +2563,7 @@ async def static_file(path: str):
     target = (WEB_DIR / path).resolve()
     root = WEB_DIR.resolve()
     if not target.is_file() or not target.is_relative_to(root):
-        return PlainTextResponse("not found", status_code=404)
+        return PlainTextResponse("no encontrado", status_code=404)
 
     if target.suffix in BINARY_TYPES:
         return Response(
@@ -2580,9 +2595,9 @@ def _check_loopback_bind(host: str) -> str:
         name = name[1:-1]
     if not auth.is_loopback(name):
         raise DashboardSetupError(
-            f"Refusing to listen on {host!r}: the dashboard only listens on this machine "
-            "(127.0.0.1, ::1 or localhost). To reach it from elsewhere, tunnel instead: "
-            "ssh -L 5555:127.0.0.1:5555 <this-host>")
+            f"No se escucha en {host!r}: el panel solo escucha en esta máquina "
+            "(127.0.0.1, ::1 o localhost). Para acceder desde otro sitio, usa un túnel: "
+            "ssh -L 5555:127.0.0.1:5555 <este-host>")
     return name
 
 
@@ -2608,13 +2623,13 @@ def _start_hosted(host: str, port: int):
     try:
         if not auth.env_token():
             raise DashboardSetupError(
-                "Set HARVEY_DASHBOARD_TOKEN (e.g. python -c \"import secrets; "
-                "print(secrets.token_urlsafe(32))\") to run the dashboard on a server.")
+                "Define HARVEY_DASHBOARD_TOKEN (p. ej. python -c \"import secrets; "
+                "print(secrets.token_urlsafe(32))\") para ejecutar el panel en un servidor.")
     except auth.TokenError as e:
         raise DashboardSetupError(str(e)) from e
     names = ", ".join(sorted(auth.public_hosts()))
-    print(f"\n  Harvey Dashboard (hosted) on {host}:{port} for {names}.")
-    print("  Open https://<domain>/#token=<HARVEY_DASHBOARD_TOKEN> to unlock it.\n")
+    print(f"\n  Panel de Harvey (alojado) en {host}:{port} para {names}.")
+    print("  Abre https://<dominio>/#token=<HARVEY_DASHBOARD_TOKEN> para desbloquearlo.\n")
     uvicorn.run(app, host=host, port=port, log_level="warning",
                 proxy_headers=False, server_header=False, date_header=False)
 
@@ -2632,11 +2647,11 @@ def start_dashboard(host: str = "127.0.0.1", port: int = 5555):
     except (DashboardSetupError, auth.TokenError) as e:
         raise DashboardSetupError(str(e)) from e
 
-    print(f"\n  Harvey Dashboard running. Open this link to unlock it:\n\n    {url}\n")
-    print(f"  The token is stored in {token_store.path} (owner-only). Keep the link")
-    print("  private; anyone with it can use the dashboard. Press Ctrl+C to stop.\n")
+    print(f"\n  Panel de Harvey en marcha. Abre este enlace para desbloquearlo:\n\n    {url}\n")
+    print(f"  El token se guarda en {token_store.path} (solo para el propietario). No compartas")
+    print("  el enlace: cualquiera que lo tenga puede usar el panel. Pulsa Ctrl+C para parar.\n")
     if os.name == "nt":
-        print("  Windows: the token file is protected by your folder's permissions,")
-        print("  not POSIX file modes.\n")
+        print("  Windows: el archivo del token lo protegen los permisos de tu carpeta,")
+        print("  no los modos de archivo POSIX.\n")
     uvicorn.run(app, host=bind, port=port, log_level="warning",
                 proxy_headers=False, server_header=False, date_header=False)

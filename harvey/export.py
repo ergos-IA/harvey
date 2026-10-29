@@ -112,8 +112,8 @@ def _do_not_contact(config) -> list[str]:
         return []
     except Exception as e:
         # Never export the people the list was meant to keep out.
-        raise ConfigError(f"compliance.do_not_contact couldn't be read ({e}). "
-                          "Fix it before exporting.") from e
+        raise ConfigError(f"no se ha podido leer compliance.do_not_contact ({e}). "
+                          "Corrígelo antes de exportar.") from e
 
 
 def to_csv(rows: list[dict]) -> str:

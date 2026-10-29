@@ -122,14 +122,14 @@ class WarmupConfig(BaseModel):
             try:
                 _date.fromisoformat(v)
             except ValueError:
-                raise ValueError(f"warmup.start_date '{v}' must be YYYY-MM-DD.")
+                raise ValueError(f"warmup.start_date '{v}' debe tener el formato AAAA-MM-DD.")
         return v
 
     @field_validator("min_days", "start_sends", "daily_increase")
     @classmethod
     def _non_negative(cls, v: int) -> int:
         if v < 0:
-            raise ValueError("warmup values must be >= 0")
+            raise ValueError("los valores de warmup deben ser >= 0")
         return v
 
     def days_in(self, today: _date | None = None) -> int | None:
@@ -178,7 +178,7 @@ class SendWindowConfig(BaseModel):
             _time.fromisoformat(v)
         except ValueError:
             raise ValueError(
-                f"send_window time '{v}' is not valid. Use 24h HH:MM, e.g. '08:00'."
+                f"la hora de send_window '{v}' no es válida. Usa el formato de 24 h HH:MM, p. ej. '08:00'."
             )
         return v
 
@@ -186,8 +186,8 @@ class SendWindowConfig(BaseModel):
     def _start_before_end(self):
         if _time.fromisoformat(self.start) >= _time.fromisoformat(self.end):
             raise ValueError(
-                "send_window.start must be earlier than send_window.end "
-                "(a send window can't run past midnight)."
+                "send_window.start debe ser anterior a send_window.end "
+                "(una ventana de envío no puede pasar de medianoche)."
             )
         return self
 
@@ -244,7 +244,7 @@ class EmailChannelConfig(BaseModel):
     @classmethod
     def _sends_non_negative(cls, v: int) -> int:
         if v < 0:
-            raise ValueError("max_daily_sends must be >= 0")
+            raise ValueError("max_daily_sends debe ser >= 0")
         return v
 
     def cold_daily_cap(self, today: _date | None = None) -> int:
@@ -306,15 +306,15 @@ def normalize_prospect_country(v) -> str:
     """
     if isinstance(v, bool):
         raise ValueError(
-            f"prospect_country was read as {v}. YAML turns an unquoted NO or "
-            'ON into true/false, so quote the code, e.g. prospect_country: "NO".'
+            f"prospect_country se ha leído como {v}. YAML convierte un NO u ON sin comillas "
+            'en true/false, así que pon el código entre comillas, p. ej. prospect_country: "NO".'
         )
     v = str(v or "").strip().upper()
     v = {"UK": "GB", "USA": "US"}.get(v, v)
     if v and not (len(v) == 2 and v.isascii() and v.isalpha()):
         raise ValueError(
-            f"'{v}' is not a valid prospect_country. Use a two-letter "
-            "country code such as US or GB, or leave it empty."
+            f"'{v}' no es un prospect_country válido. Usa un código de país "
+            "de dos letras como US o GB, o déjalo vacío."
         )
     return v
 
@@ -353,8 +353,8 @@ class PreclearedConfig(BaseModel):
         v = str(v or "unknown").strip().lower()
         if v not in PRECLEARED_ADDRESS_SOURCES:
             raise ValueError(
-                f"'{v}' is not a valid address_source. "
-                f"Use one of: {', '.join(PRECLEARED_ADDRESS_SOURCES)}."
+                f"'{v}' no es un address_source válido. "
+                f"Usa uno de estos: {', '.join(PRECLEARED_ADDRESS_SOURCES)}."
             )
         return v
 
@@ -367,8 +367,8 @@ class PreclearedConfig(BaseModel):
     def _country_when_enabled(self):
         if self.enabled and self.sender_country not in ("GB", "US"):
             raise ValueError(
-                "compliance.precleared.sender_country must be GB or US "
-                "when the check is enabled."
+                "compliance.precleared.sender_country debe ser GB o US "
+                "cuando la comprobación está activada."
             )
         return self
 
@@ -429,13 +429,13 @@ class ComplianceConfig(BaseModel):
         if isinstance(v, str):
             v = [v]
         if not isinstance(v, (list, tuple)):
-            raise ValueError("must be a list of email addresses and domains")
+            raise ValueError("debe ser una lista de direcciones de email y dominios")
         seen: list[str] = []
         for item in v:
             if item is None:
                 continue
             if not isinstance(item, str):
-                raise ValueError(f"{item!r} is not an email address or a domain")
+                raise ValueError(f"{item!r} no es una dirección de email ni un dominio")
             for cleaned in do_not_contact_entries(item):
                 if cleaned not in seen:
                     seen.append(cleaned)
@@ -450,13 +450,13 @@ class ComplianceConfig(BaseModel):
             return v
         if any(bit in lowered for bit in ("http", "www.", "click", "@")):
             raise ValueError(
-                "opt_out_line can't contain a link or an email address: cold email "
-                "allows one link, and opting out must be as simple as replying."
+                "opt_out_line no puede contener un enlace ni una dirección de email: el email en frío "
+                "admite un solo enlace, y darse de baja debe ser tan sencillo como responder."
             )
         if not _ASKS_FOR_OPT_OUT_RE.search(v):
             raise ValueError(
-                "opt_out_line must ask for a reply Harvey recognises as an opt-out, "
-                'e.g. Reply "no thanks" / Reply STOP. Recognised: '
+                "opt_out_line debe pedir una respuesta que Harvey reconozca como baja, "
+                'p. ej. Responde "no, gracias" / Responde BAJA. Reconocidas: '
                 + ", ".join(f'"{w}"' for w in OPT_OUT_WORDS) + "."
             )
         return v
@@ -484,16 +484,16 @@ def compliance_notice(config) -> str:
     compliance = compliance_of(config)
     missing = []
     if not compliance.postal_address.strip():
-        missing.append("a postal address (compliance.postal_address: a street "
-                       "address, PO box or virtual mailbox)")
+        missing.append("una dirección postal (compliance.postal_address: una dirección, "
+                       "un apartado de correos o un buzón virtual)")
     if not compliance.opt_out_line.strip():
-        missing.append("a way to opt out (compliance.opt_out_line)")
+        missing.append("una forma de darse de baja (compliance.opt_out_line)")
     if not missing:
         return ""
     return (
-        "Cold emails are going out without " + " or ".join(missing) + ". US law "
-        "(CAN-SPAM) requires both in every cold email. Set them in harvey.yaml "
-        "(or harvey.local.yaml if you trained Harvey)."
+        "Los emails en frío están saliendo sin " + " ni ".join(missing) + ". La ley "
+        "estadounidense (CAN-SPAM) exige ambas en cada email en frío. Defínelas en harvey.yaml "
+        "(o en harvey.local.yaml si has entrenado a Harvey)."
     )
 
 
@@ -509,7 +509,7 @@ class QuietHoursConfig(BaseModel):
             _time.fromisoformat(v)
         except ValueError:
             raise ValueError(
-                f"'{v}' is not a valid time. Use 24h HH:MM format, e.g. '22:00'."
+                f"'{v}' no es una hora válida. Usa el formato de 24 h HH:MM, p. ej. '22:00'."
             )
         return v
 
@@ -520,7 +520,7 @@ class QuietHoursConfig(BaseModel):
 
         if v not in pytz.all_timezones_set:
             raise ValueError(
-                f"'{v}' is not a valid timezone. Use an IANA name like 'America/New_York'."
+                f"'{v}' no es una zona horaria válida. Usa un nombre IANA como 'Europe/Madrid'."
             )
         return v
 
@@ -534,14 +534,14 @@ class UsageConfig(BaseModel):
     @classmethod
     def _valid_percent(cls, v: float) -> float:
         if not 0 < v <= 100:
-            raise ValueError("max_daily_claude_percent must be between 0 and 100")
+            raise ValueError("max_daily_claude_percent debe estar entre 0 y 100")
         return v
 
     @field_validator("heartbeat_interval_minutes")
     @classmethod
     def _valid_interval(cls, v: int) -> int:
         if v < 1:
-            raise ValueError("heartbeat_interval_minutes must be at least 1")
+            raise ValueError("heartbeat_interval_minutes debe ser al menos 1")
         return v
 
 
@@ -572,8 +572,8 @@ class BrainConfig(BaseModel):
         v = str(v or "claude").strip().lower()
         if v not in BRAIN_PROVIDERS:
             raise ValueError(
-                f"'{v}' is not a supported brain provider. "
-                f"Use one of: {', '.join(BRAIN_PROVIDERS)}."
+                f"'{v}' no es un proveedor de brain compatible. "
+                f"Usa uno de estos: {', '.join(BRAIN_PROVIDERS)}."
             )
         return v
 
@@ -582,7 +582,7 @@ class BrainConfig(BaseModel):
     def _valid_model(cls, v) -> str:
         v = str(v or "").strip()
         if v and not _MODEL_NAME_RE.match(v):
-            raise ValueError(f"'{v}' is not a valid model name.")
+            raise ValueError(f"'{v}' no es un nombre de modelo válido.")
         return v
 
     @field_validator("reasoning_effort", mode="before")
@@ -591,8 +591,8 @@ class BrainConfig(BaseModel):
         v = str(v or "").strip().lower()
         if v and v not in CODEX_REASONING_EFFORTS:
             raise ValueError(
-                f"'{v}' is not a valid reasoning effort. "
-                f"Use one of: {', '.join(CODEX_REASONING_EFFORTS)}."
+                f"'{v}' no es un nivel de razonamiento válido. "
+                f"Usa uno de estos: {', '.join(CODEX_REASONING_EFFORTS)}."
             )
         return v
 
@@ -674,20 +674,20 @@ def load_config(config_path: str | None = None) -> HarveyConfig:
         data = yaml.safe_load(read_user_text(config_path))
     except FileNotFoundError:
         raise ConfigFileNotFoundError(
-            f"Config file not found: {config_path}. "
-            "Create one from harvey.yaml.example or run 'harvey setup'."
+            f"No se encuentra el archivo de configuración: {config_path}. "
+            "Crea uno a partir de harvey.yaml.example o ejecuta 'harvey setup'."
         )
     except yaml.YAMLError as e:
-        raise ConfigError(f"Invalid YAML in {config_path}:\n  {e}")
+        raise ConfigError(f"YAML no válido en {config_path}:\n  {e}")
     except OSError as e:
-        raise ConfigError(f"Could not read {config_path}: {e}")
+        raise ConfigError(f"No se ha podido leer {config_path}: {e}")
 
     if data is None:
-        raise ConfigError(f"{config_path} is empty. Run 'harvey setup' to configure Harvey.")
+        raise ConfigError(f"{config_path} está vacío. Ejecuta 'harvey setup' para configurar Harvey.")
     if not isinstance(data, dict):
         raise ConfigError(
-            f"{config_path} must contain a YAML mapping (key: value pairs), "
-            f"got {type(data).__name__}."
+            f"{config_path} debe contener un mapa YAML (pares clave: valor), "
+            f"y contiene {type(data).__name__}."
         )
 
     try:
@@ -723,17 +723,17 @@ def load_brain_config(config_path: str | None = None) -> BrainConfig:
     except FileNotFoundError:
         return BrainConfig()
     except (yaml.YAMLError, OSError) as e:
-        raise ConfigError(f"Could not read the brain settings in {config_path}: {e}")
+        raise ConfigError(f"No se han podido leer los ajustes de brain en {config_path}: {e}")
     section = data.get("brain") if isinstance(data, dict) else None
     if section is None:
         return BrainConfig()
     if not isinstance(section, dict):
-        raise ConfigError(f"'brain' in {config_path} must be a mapping.")
+        raise ConfigError(f"'brain' en {config_path} debe ser un mapa.")
     try:
         return BrainConfig(**section)
     except ValidationError as e:
         raise ConfigError(
-            f"Invalid brain settings in {config_path}:\n{_format_validation_error(e)}"
+            f"Ajustes de brain no válidos en {config_path}:\n{_format_validation_error(e)}"
         )
 
 
@@ -817,15 +817,15 @@ def set_require_approval(value: bool, path=None) -> Path:
     try:
         raw = data_bytes.decode("utf-8-sig").replace("\r\n", "\n")
     except UnicodeDecodeError:
-        raise ConfigError(f"{path.name} isn't UTF-8, so it isn't rewritten. Set "
-                          f"channels.email.require_approval there by hand.")
+        raise ConfigError(f"{path.name} no está en UTF-8, así que no se reescribe. Define "
+                          f"channels.email.require_approval ahí a mano.")
     try:
         data = yaml.safe_load(raw)
     except yaml.YAMLError as e:
-        raise ConfigError(f"Invalid YAML in {path.name}: {e}")
+        raise ConfigError(f"YAML no válido en {path.name}: {e}")
     if _email_section(data) is None:
-        raise ConfigError(f"{path.name} has no channels.email section. Set "
-                          f"channels.email.require_approval there by hand.")
+        raise ConfigError(f"{path.name} no tiene sección channels.email. Define "
+                          f"channels.email.require_approval ahí a mano.")
     expected = copy.deepcopy(data)
     _email_section(expected)["require_approval"] = bool(value)
     word = "true" if value else "false"
@@ -847,8 +847,8 @@ def set_require_approval(value: bool, path=None) -> Path:
             tmp.unlink(missing_ok=True)
         _mode_cache.pop(str(target), None)
         return path
-    raise ConfigError(f"Couldn't change require_approval in {path.name} safely. "
-                      f"Set channels.email.require_approval: {word} there by hand.")
+    raise ConfigError(f"No se ha podido cambiar require_approval en {path.name} de forma segura. "
+                      f"Define channels.email.require_approval: {word} ahí a mano.")
 
 
 _mode_cache: dict[str, tuple[tuple, object]] = {}
@@ -958,7 +958,7 @@ def _find_config_file() -> str:
         if path.exists():
             return str(path)
     raise ConfigFileNotFoundError(
-        "harvey.yaml not found in "
+        "No se encuentra harvey.yaml en "
         + ", ".join(str(p.parent) for p in candidates)
-        + ". Create one from harvey.yaml.example or run 'harvey setup'."
+        + ". Crea uno a partir de harvey.yaml.example o ejecuta 'harvey setup'."
     )

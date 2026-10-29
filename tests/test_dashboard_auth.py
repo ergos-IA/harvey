@@ -536,7 +536,7 @@ def test_token_open_denied_fails_closed_with_bounded_retry(tmp_path, monkeypatch
     monkeypatch.setattr(auth.os, "open", open_denied)
     monkeypatch.setattr(auth.time, "sleep", sleeps.append)
     monkeypatch.setattr(auth, "_publish_token", lambda *a: pytest.fail("denial must not create a token"))
-    with pytest.raises(auth.TokenError, match="Can't read") as caught:
+    with pytest.raises(auth.TokenError, match="No se puede leer") as caught:
         auth.load_or_create_token(path)
     assert caught.value.__cause__ is denied
     assert len(attempts) == expected_attempts
@@ -558,7 +558,7 @@ def test_windows_unrelated_open_error_is_not_retried(tmp_path, monkeypatch):
     monkeypatch.setattr(auth.os, "open", fail_open)
     monkeypatch.setattr(auth.time, "sleep", lambda *a: pytest.fail("I/O failure must fail immediately"))
     monkeypatch.setattr(auth, "_publish_token", lambda *a: pytest.fail("read errors must not replace the token"))
-    with pytest.raises(auth.TokenError, match="Can't read") as caught:
+    with pytest.raises(auth.TokenError, match="No se puede leer") as caught:
         auth.load_or_create_token(path)
     assert caught.value.__cause__ is error
     assert path.read_bytes() == before
@@ -578,7 +578,7 @@ def test_windows_validation_errors_are_not_retried(tmp_path, monkeypatch, failur
         monkeypatch.setattr(auth.os.path, "islink", lambda p: True)
     elif failure == "security":
         def reject(*args):
-            raise auth.TokenError("not a regular file")
+            raise auth.TokenError("no es un archivo normal")
         monkeypatch.setattr(auth, "_check_open_file", reject)
     with pytest.raises(auth.TokenError):
         auth.load_or_create_token(path)
@@ -595,7 +595,7 @@ def test_readable_existing_token_is_refused(tmp_path):
     path = tmp_path / "dashboard-token"
     path.write_text("A" * 43)
     os.chmod(path, 0o644)
-    _expect_locked(path, "readable or writable by other users")
+    _expect_locked(path, "leer o escribir otros usuarios")
     assert path.read_text() == "A" * 43  # left for the operator to inspect
 
 
@@ -606,7 +606,7 @@ def test_symlinked_token_is_refused(tmp_path):
     os.chmod(real, 0o600)
     path = tmp_path / "dashboard-token"
     path.symlink_to(real)
-    _expect_locked(path, "symbolic link")
+    _expect_locked(path, "enlace simbólico")
 
 
 @POSIX
@@ -614,7 +614,7 @@ def test_dangling_symlink_is_not_followed_to_create_a_file(tmp_path):
     path = tmp_path / "dashboard-token"
     target = tmp_path / "planted-target"
     path.symlink_to(target)
-    _expect_locked(path, "symbolic link")
+    _expect_locked(path, "enlace simbólico")
     assert not target.exists()
 
 
@@ -624,7 +624,7 @@ def test_hardlinked_token_is_refused(tmp_path):
     path.write_text("C" * 43)
     os.chmod(path, 0o600)
     os.link(path, tmp_path / "copy")
-    _expect_locked(path, "hard links")
+    _expect_locked(path, "enlaces duros")
 
 
 @pytest.mark.parametrize("content", [b"", b"short", b"x" * 43 + b"!", b"\xff" * 50,
@@ -634,17 +634,17 @@ def test_malformed_token_is_refused(tmp_path, content):
     path.write_bytes(content)
     if os.name != "nt":
         os.chmod(path, 0o600)
-    _expect_locked(path, "valid token")
+    _expect_locked(path, "token válido")
 
 
 @POSIX
 def test_non_regular_token_paths_are_refused(tmp_path):
     d = tmp_path / "dir-token"
     d.mkdir()
-    _expect_locked(d, "not a regular file|Can't read")
+    _expect_locked(d, "no es un archivo normal|No se puede leer")
     fifo = tmp_path / "fifo-token"
     os.mkfifo(fifo, 0o600)
-    _expect_locked(fifo, "not a regular file")  # and doesn't hang
+    _expect_locked(fifo, "no es un archivo normal")  # and doesn't hang
 
 
 @POSIX
@@ -654,7 +654,7 @@ def test_unusable_token_locks_the_api_but_not_the_shell(env, anon):
     os.chmod(path, 0o640)
     dash.token_store.configure(path)
     r = anon.get("/api/companies", headers={"Authorization": "Bearer " + "E" * 43})
-    assert r.status_code == 503 and "Remove it" in r.json()["message"]
+    assert r.status_code == 503 and "Bórralo" in r.json()["message"]
     assert anon.get("/").status_code == 200
 
 
@@ -666,7 +666,7 @@ def test_unusable_token_locks_the_api_but_not_the_shell(env, anon):
 def test_non_loopback_binds_are_refused(env, monkeypatch, host):
     import uvicorn
     monkeypatch.setattr(uvicorn, "run", lambda *a, **k: pytest.fail("must not start"))
-    with pytest.raises(dash.DashboardSetupError, match="only listens on this machine"):
+    with pytest.raises(dash.DashboardSetupError, match="solo escucha en esta máquina"):
         dash.start_dashboard(host=host, port=5555)
 
 
@@ -692,7 +692,7 @@ def test_startup_fails_closed_without_a_usable_token(env, monkeypatch):
     if os.name != "nt":
         os.chmod(bad, 0o600)
     dash.token_store.configure(bad)
-    with pytest.raises(dash.DashboardSetupError, match="valid token"):
+    with pytest.raises(dash.DashboardSetupError, match="token válido"):
         dash.start_dashboard()
 
 

@@ -154,7 +154,7 @@ def test_prospect_country_is_checked_and_norway_stays_a_string(files, monkeypatc
     wizard._setup_compliance()
     finish(wizard)
 
-    assert "not a valid prospect_country" in capsys.readouterr().out
+    assert "no es un prospect_country válido" in capsys.readouterr().out
     # YAML would read an unquoted NO as false; the saved value must stay "NO".
     assert saved(files.config)["prospect_country"] == "NO"
     assert load_config(str(files.config)).compliance.precleared.prospect_country == "NO"

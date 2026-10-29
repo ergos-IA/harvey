@@ -123,7 +123,7 @@ class MicrosoftProvider(MailProvider):
             return self._access_token
         stored = _load_token()
         if not stored:
-            raise GraphError("not authorized. Run 'harvey microsoft auth'.")
+            raise GraphError("sin autorización. Ejecuta 'harvey microsoft auth'.")
         try:
             async with self._client() as client:
                 resp = await client.post(_token_url(self.tenant), data={
@@ -136,8 +136,8 @@ class MicrosoftProvider(MailProvider):
             raise GraphError(f"token refresh failed: {e}") from e
         if resp.status_code != 200:
             raise GraphError(
-                f"token refresh rejected ({resp.status_code}): {resp.text[:200]}. "
-                "Re-run 'harvey microsoft auth'."
+                f"se ha rechazado la renovación del token ({resp.status_code}): {resp.text[:200]}. "
+                "Vuelve a ejecutar 'harvey microsoft auth'."
             )
         data = resp.json()
         if data.get("refresh_token"):
@@ -208,8 +208,8 @@ class MicrosoftProvider(MailProvider):
         expected = (getattr(getattr(self.config, "persona", None), "email", "") or "").strip().lower()
         if expected and me != expected:
             raise GraphError(
-                f"signed in as {me}, but persona.email is {expected}. Run "
-                f"'harvey microsoft auth' again and sign in as {expected}."
+                f"has iniciado sesión como {me}, pero persona.email es {expected}. Vuelve a "
+                f"ejecutar 'harvey microsoft auth' e inicia sesión como {expected}."
             )
         return me
 
@@ -302,7 +302,7 @@ class MicrosoftProvider(MailProvider):
                 raise GraphError(f"inbox page {page}: @odata.nextLink repeats an earlier page")
             seen_urls.add(url)
         raise GraphError(
-            f"inbox has more than {MAX_INBOX_PAGES} pages; refusing a partial read"
+            f"el buzón tiene más de {MAX_INBOX_PAGES} páginas; se rechaza una lectura parcial"
         )
 
     @staticmethod

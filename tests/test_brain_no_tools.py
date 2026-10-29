@@ -152,7 +152,7 @@ async def test_old_cli_fails_closed_without_sending_the_prompt(
     brain = Brain(state)
     assert await brain.think("secret prospect data") == ""
     assert missing in brain.paused_reason and "claude update" in brain.paused_reason
-    assert "No prompt was sent" in brain.paused_reason
+    assert "No se ha enviado ningún prompt" in brain.paused_reason
     # The heartbeat's preflight reports the same, so nothing in the cycle runs.
     assert missing in await brain.preflight()
     stored = await state.get_setting(brain_mod.BRAIN_STATUS_KEY)
@@ -164,8 +164,8 @@ async def test_missing_cli_fails_closed(state, monkeypatch):
     monkeypatch.setattr(claude_runtime, "find_claude", lambda env=None: None)
     brain = Brain(state)
     assert await brain.think("hi") == ""
-    assert "not found" in brain.paused_reason
-    assert "not found" in await brain.preflight()
+    assert "No se encuentra" in brain.paused_reason
+    assert "No se encuentra" in await brain.preflight()
 
 
 @pytest.mark.asyncio
@@ -176,7 +176,7 @@ async def test_unrunnable_help_fails_closed(state, monkeypatch):
     monkeypatch.setattr(claude_runtime, "_probe_help", broken)
     brain = Brain(state)
     assert await brain.think("hi") == ""
-    assert "sends no prompt" in brain.paused_reason
+    assert "no envía ningún prompt" in brain.paused_reason
 
 
 @pytest.mark.asyncio
@@ -214,9 +214,9 @@ async def test_help_that_exits_nonzero_fails_closed_even_listing_every_flag(
     monkeypatch.setattr(brain_mod.asyncio, "create_subprocess_exec", no_call)
     brain = Brain(state)
     assert await brain.think("secret prospect data") == ""
-    assert "sends no prompt" in brain.paused_reason
+    assert "no envía ningún prompt" in brain.paused_reason
     assert "CalledProcessError" in brain.paused_reason
-    assert "sends no prompt" in await brain.preflight()
+    assert "no envía ningún prompt" in await brain.preflight()
     # The CLI ran only for --help, and the failure wasn't cached as a pass.
     assert set(record.read_text().split()) == {"--help"}
     assert claude_runtime._capable == {}

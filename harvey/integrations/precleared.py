@@ -220,14 +220,14 @@ class PreclearedClient:
                 resp = await client.post(API_URL, json=payload, headers=headers)
         except httpx.HTTPError as e:
             return Clearance(allowed=False, held=True, hold_kind="unavailable",
-                             reason=self._redact(f"Precleared unreachable: {e}"))
+                             reason=self._redact(f"no se puede contactar con Precleared: {e}"))
 
         if resp.status_code == 429:
             # Keyless allowance used up: a free key gives this install its own.
             return Clearance(
                 allowed=False, held=True, hold_kind="keyless_limit", fix_url=GET_KEY_URL,
-                reason="Precleared daily allowance used up; add PRECLEARED_API_KEY "
-                       "(free key: https://precleared.dev/get-key) or wait until tomorrow",
+                reason="se ha agotado el cupo diario de Precleared; añade PRECLEARED_API_KEY "
+                       "(clave gratuita: https://precleared.dev/get-key) o espera a mañana",
             )
         if resp.status_code == 402:
             # The key's free checks for today are used and it has no credits left,
@@ -237,15 +237,15 @@ class PreclearedClient:
             return Clearance(
                 allowed=False, held=True, hold_kind="out_of_checks", fix_url=buy_url,
                 reason=self._redact(
-                    "Precleared: today's free checks on your key are used and it has "
-                    f"no credits left; add a pack ({buy_url}) "
-                    "or wait until tomorrow"
+                    "Precleared: tu clave ha gastado las comprobaciones gratuitas de hoy y no le "
+                    f"quedan créditos; añade un paquete ({buy_url}) "
+                    "o espera a mañana"
                 ),
             )
         if resp.status_code == 401:
             return Clearance(allowed=False, held=True, hold_kind="key_rejected",
                              fix_url=GET_KEY_URL,
-                             reason="PRECLEARED_API_KEY was rejected (wrong or revoked)")
+                             reason="se ha rechazado PRECLEARED_API_KEY (incorrecta o revocada)")
         if resp.status_code != 200:
             return Clearance(allowed=False, held=True, hold_kind="unavailable",
                              reason=f"Precleared HTTP {resp.status_code}: "
@@ -255,18 +255,18 @@ class PreclearedClient:
             data = resp.json()
         except ValueError:
             return Clearance(allowed=False, held=True, hold_kind="unavailable",
-                             reason="Precleared returned invalid JSON")
+                             reason="Precleared ha devuelto un JSON no válido")
 
         # Only a JSON object with a known verdict counts as an answer.
         # Anything else is treated like an unavailable check, so cold email
         # is held, not failed, and the rest of the cycle carries on.
         if not isinstance(data, dict):
             return Clearance(allowed=False, held=True, hold_kind="unavailable",
-                             reason="Precleared returned an unexpected response (not a JSON object)")
+                             reason="Precleared ha devuelto una respuesta inesperada (no es un objeto JSON)")
         verdict = data.get("verdict")
         if not isinstance(verdict, str) or verdict not in VERDICTS:
             return Clearance(allowed=False, held=True, hold_kind="unavailable",
-                             reason="Precleared returned a response without a known verdict")
+                             reason="Precleared ha devuelto una respuesta sin un veredicto conocido")
 
         receipt = data.get("receipt")
         receipt_id = _text(receipt.get("id")) if isinstance(receipt, dict) else ""
@@ -519,39 +519,42 @@ def hold_message(hold: dict) -> dict:
         waiting = max(1, int(hold.get("waiting") or 1))
     except (TypeError, ValueError):
         waiting = 1
-    emails = f"{waiting} cold email is waiting" if waiting == 1 else f"{waiting} cold emails are waiting"
-    replies = "Replies are not held."
+    emails = (f"{waiting} email en frío está esperando" if waiting == 1
+              else f"{waiting} emails en frío están esperando")
+    replies = "Las respuestas no se retienen."
     if kind == "keyless_limit":
         return {
-            "tone": "warn", "url": url or GET_KEY_URL, "url_label": "Get a free key",
-            "title": "Precleared's free checks for today are used up",
-            "detail": (f"{emails}. Without a key, Precleared allows 10 checks a day. "
-                       f"A free key gives Harvey its own 25 a day: get one at {url or GET_KEY_URL} "
-                       "and put it in .env as PRECLEARED_API_KEY. Otherwise the waiting "
-                       f"emails go out after the checks reset at midnight UK time. {replies}"),
+            "tone": "warn", "url": url or GET_KEY_URL, "url_label": "Consigue una clave gratuita",
+            "title": "Se han agotado las comprobaciones gratuitas de Precleared de hoy",
+            "detail": (f"{emails}. Sin clave, Precleared permite 10 comprobaciones al día. "
+                       f"Una clave gratuita le da a Harvey sus propias 25 al día: consíguela en "
+                       f"{url or GET_KEY_URL} y ponla en .env como PRECLEARED_API_KEY. Si no, los "
+                       "emails en espera salen cuando las comprobaciones se reinicien a medianoche "
+                       f"(hora del Reino Unido). {replies}"),
         }
     if kind == "out_of_checks":
         return {
-            "tone": "warn", "url": url or BUY_URL, "url_label": "Buy checks",
-            "title": "Your Precleared key is out of checks for today",
-            "detail": (f"{emails}. The key has used today's free checks and has no pack "
-                       f"left. Buy checks to send them now: {url or BUY_URL}. Otherwise they "
-                       "go out after the free checks reset at midnight UK time, or switch the "
-                       f"check off (compliance.precleared.enabled: false). {replies}"),
+            "tone": "warn", "url": url or BUY_URL, "url_label": "Compra comprobaciones",
+            "title": "Tu clave de Precleared se ha quedado sin comprobaciones por hoy",
+            "detail": (f"{emails}. La clave ha gastado las comprobaciones gratuitas de hoy y no le "
+                       f"queda ningún paquete. Compra comprobaciones para enviarlos ya: "
+                       f"{url or BUY_URL}. Si no, salen cuando las comprobaciones gratuitas se "
+                       "reinicien a medianoche (hora del Reino Unido), o desactiva la comprobación "
+                       f"(compliance.precleared.enabled: false). {replies}"),
         }
     if kind == "key_rejected":
         return {
-            "tone": "bad", "url": url or GET_KEY_URL, "url_label": "Get a new key",
-            "title": "Precleared rejected your key",
-            "detail": (f"{emails}. PRECLEARED_API_KEY was rejected (wrong or revoked). "
-                       "Check the key in .env, get a new free key at "
-                       f"{url or GET_KEY_URL}, or switch the check off "
+            "tone": "bad", "url": url or GET_KEY_URL, "url_label": "Consigue una clave nueva",
+            "title": "Precleared ha rechazado tu clave",
+            "detail": (f"{emails}. Se ha rechazado PRECLEARED_API_KEY (incorrecta o revocada). "
+                       "Revisa la clave en .env, consigue una clave gratuita nueva en "
+                       f"{url or GET_KEY_URL} o desactiva la comprobación "
                        f"(compliance.precleared.enabled: false). {replies}"),
         }
-    reason = _text(_clean(_text(hold.get("reason")))) or "no answer"
+    reason = _text(_clean(_text(hold.get("reason")))) or "sin respuesta"
     return {
         "tone": "warn", "url": "", "url_label": "",
-        "title": "Precleared can't be reached right now",
-        "detail": (f"{emails} until it answers ({reason}). Harvey asks again every "
-                   f"cycle. {replies}"),
+        "title": "Ahora mismo no se puede contactar con Precleared",
+        "detail": (f"{emails} hasta que responda ({reason}). Harvey vuelve a preguntar en "
+                   f"cada ciclo. {replies}"),
     }

@@ -255,7 +255,7 @@ class Sender:
             return
         # Instantly only deploys on autopilot, so nobody has read these
         # templates: what a planted instruction would add holds the campaign.
-        held = [f"step {s.step} {r}" for s in campaign.sequence
+        held = [f"paso {s.step}: {r}" for s in campaign.sequence
                 for r in autopilot_review(s.subject, s.body, self.config)]
         if held:
             logger.warning(f"Sender: Instantly campaign '{campaign.name}' held for review: {held}")
@@ -265,7 +265,7 @@ class Sender:
                 await self.state.log_action(
                     action_type="escalation", agent="sender",
                     details={"campaign_name": campaign.name,
-                             "reason": "campaign held: " + "; ".join(held)[:200]},
+                             "reason": "campaña retenida: " + "; ".join(held)[:200]},
                 )
             return
 
@@ -489,8 +489,8 @@ class Sender:
     def _render(self, text: str, prospect) -> str:
         """Fill merge variables. The pre-send gate rejects any leftovers."""
         replacements = {
-            # A company inbox has no name; "there" keeps "Hi {{first_name}}," readable.
-            "first_name": prospect.first_name or ("there" if prospect.is_company_inbox else ""),
+            # A company inbox has no name; "equipo" keeps "Hola {{first_name}}," readable.
+            "first_name": prospect.first_name or ("equipo" if prospect.is_company_inbox else ""),
             "last_name": prospect.last_name,
             "company": prospect.company,
             "title": prospect.title,
@@ -587,7 +587,7 @@ class Sender:
                 f"{COLLEAGUE_REPLIED} at their company."
             )
         if staged:
-            mode = "awaiting your approval" if require_approval else "approved"
+            mode = "pendientes de tu aprobación" if require_approval else "aprobados"
             logger.info(
                 f"Sender: staged {staged} email(s) for '{campaign.name}' "
                 f"({mode}). Review in the dashboard Outbox tab."
@@ -631,7 +631,7 @@ class Sender:
         if prev["status"] in ("pending_review", "approved", "sending"):
             return "wait"
         if prev["status"] != "sent":
-            return "cancelled", f"step {prev['step']} wasn't sent ({prev['status']})"
+            return "cancelled", f"el paso {prev['step']} no se envió ({prev['status']})"
 
         def _at(value):
             try:
@@ -661,18 +661,18 @@ class Sender:
         """Why this email must not go out, as (status, error), or None."""
         await sync_sending_mode(self.config, self.state)   # "Turn off autopilot" counts at once
         if prospect is None:
-            return "failed", "prospect missing"
+            return "failed", "falta el contacto"
         if item["kind"] == "sequence":
             # Stop-on-reply / opt-out: never continue a sequence after contact.
             if prospect.status in STOP_STATUSES:
-                return "cancelled", f"prospect status '{prospect.status}'"
+                return "cancelled", f"estado del contacto: '{prospect.status}'"
             # The user already emailed them by hand: whatever Harvey staged
             # (before, during or after that) would be a second email.
             if await self.state.get_setting(MANUAL_SEND_KEY + prospect.id):
                 return "cancelled", HAND_SENT_REASON
             # A first email to someone already contacted is always a duplicate.
             if item["step"] == 1 and prospect.status == "contacted":
-                return "cancelled", "already contacted"
+                return "cancelled", "ya contactado"
             # Someone else at their company answered: the rest of the
             # company gets no more cold email.
             colleague = await self.state.colleague_who_replied(prospect.id)
@@ -689,7 +689,7 @@ class Sender:
                 f"Sender: gate blocked email to {item['to_email']}: "
                 f"{gate.reasons}"
             )
-            return "failed", "gate: " + "; ".join(gate.reasons)[:300]
+            return "failed", "control previo: " + "; ".join(gate.reasons)[:300]
         if (item.get("approved_by") == "autopilot"
                 and getattr(self.config.channels.email, "require_approval", True)):
             # Autopilot approved it, and autopilot has since been turned off.
@@ -823,7 +823,7 @@ class Sender:
                 if not clearance.allowed:
                     await self.state.update_outbox_item(
                         item["id"], status="failed",
-                        error=f"precleared: {clearance.verdict}: {clearance.reason}"[:300],
+                        error=f"Precleared: {clearance.verdict}: {clearance.reason}"[:300],
                     )
                     logger.warning(
                         f"Sender: Precleared held back email to {item['to_email']}: "
@@ -868,7 +868,7 @@ class Sender:
                 # It may have gone out before the error: never retry it.
                 await self.state.update_outbox_item(
                     item["id"], status="failed",
-                    error=f"{MAYBE_SENT_PREFIX}send error: {e}"[:300],
+                    error=f"{MAYBE_SENT_PREFIX}error de envío: {e}"[:300],
                 )
                 logger.warning(f"Sender: send to {item['to_email']} raised: {e}")
                 continue

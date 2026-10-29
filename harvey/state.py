@@ -38,19 +38,19 @@ WRITABLE_EMAIL_STATUSES = ("verified", "risky")
 # presence tells the Sender never to email them as well.
 MANUAL_SEND_KEY = "manual_send:"
 # Outbox cancel reason for mail the user sent by hand instead; undo restores it.
-HAND_SENT_REASON = "sent_by_hand"
+HAND_SENT_REASON = "lo enviaste tú a mano"
 # Set when you undo someone's opt-out: Harvey's first reply to them after
 # that waits for your approval, even on autopilot. Cleared once it has.
 REVIEW_NEXT_REPLY_KEY = "review_next_reply:"
 # Outbox error prefix for an email autopilot held for a human (gate.
 # autopilot_review): approve-all skips these, they're approved one by one.
-HELD_FOR_REVIEW = "held for your review: "
+HELD_FOR_REVIEW = "retenido para tu revisión: "
 # Set while the heartbeat holds sending because replies couldn't all be read
 # (JSON: since, last_seen, reason), so Today and `harvey status` can say so.
 SENDS_HELD_KEY = "sends_held"
 # Outbox error on a sequence email cancelled because someone else at the
 # company replied: one answer from a company stops the cold email to all of it.
-COLLEAGUE_REPLIED = "a colleague replied"
+COLLEAGUE_REPLIED = "ha respondido alguien de su empresa"
 # Setting set (to their name) when someone's reply stops their company.
 # An out-of-office or a "wrong person" doesn't set it.
 COMPANY_STOP_KEY = "company_stop:"
@@ -120,14 +120,14 @@ _MAY_CONTACT = (
     "WHERE pa.company_id = c.id AND pa.can_contact = 1 AND pa.status != 'done' "
     "AND pr.status = 'active'))")
 # Outbox error on what autopilot had approved when it was turned off.
-AUTOPILOT_OFF_REASON = "waiting for you: autopilot was turned off before it went out"
+AUTOPILOT_OFF_REASON = "pendiente de ti: el piloto automático se desactivó antes de que saliera"
 # Outbox errors starting with this: the send was cut off and the email may
 # have reached them. Never retried, and counted as Harvey's mail, so the
 # dashboard never offers a second one by hand.
-MAYBE_SENT_PREFIX = "may have gone out: "
+MAYBE_SENT_PREFIX = "puede que ya haya salido: "
 STALE_SENDING_ERROR = (
-    MAYBE_SENT_PREFIX + "Harvey stopped in the middle of sending it; check "
-    "your Sent folder before emailing them again"
+    MAYBE_SENT_PREFIX + "Harvey se detuvo a mitad del envío; revisa tu carpeta "
+    "de enviados antes de volver a escribirle"
 )
 # A claimed email still not finished after this long was cut off mid-send (a
 # send itself takes seconds, and a whole cycle is stopped after 10 minutes).
@@ -576,6 +576,29 @@ MIGRATIONS: list[str] = [
     ALTER TABLE product_accounts ADD COLUMN write_decision TEXT DEFAULT '';
     ALTER TABLE product_accounts ADD COLUMN can_contact INTEGER DEFAULT 0;
     ALTER TABLE product_accounts ADD COLUMN can_write INTEGER DEFAULT 0;
+    """,
+    # ── v17: outbox reasons in Spanish ──
+    # The reasons Harvey writes on outbox rows are now Spanish, and some are
+    # matched by prefix or exact value (HELD_FOR_REVIEW, MAYBE_SENT_PREFIX,
+    # HAND_SENT_REASON, AUTOPILOT_OFF_REASON). Rows written before keep
+    # working: their English prefix or value becomes the Spanish one.
+    """
+    UPDATE outbox SET error = 'puede que ya haya salido: Harvey se detuvo a mitad del envío; '
+        || 'revisa tu carpeta de enviados antes de volver a escribirle'
+        WHERE error = 'may have gone out: Harvey stopped in the middle of sending it; '
+        || 'check your Sent folder before emailing them again';
+    UPDATE outbox SET error = 'retenido para tu revisión: ' || substr(error, 23)
+        WHERE substr(error, 1, 22) = 'held for your review: ';
+    UPDATE outbox SET error = 'puede que ya haya salido: ' || substr(error, 20)
+        WHERE substr(error, 1, 19) = 'may have gone out: ';
+    UPDATE outbox SET error = 'ha respondido alguien de su empresa' || substr(error, 20)
+        WHERE substr(error, 1, 19) = 'a colleague replied';
+    UPDATE outbox SET error = 'pendiente de ti: el piloto automático se desactivó antes de que saliera'
+        WHERE error = 'waiting for you: autopilot was turned off before it went out';
+    UPDATE outbox SET error = 'lo enviaste tú a mano' WHERE error = 'sent_by_hand';
+    UPDATE outbox SET error = 'ha respondido' WHERE error = 'stop_on_reply';
+    UPDATE outbox SET error = 'rebotado' WHERE error = 'bounced';
+    UPDATE outbox SET error = 'ya contactado' WHERE error = 'already contacted';
     """,
 ]
 
@@ -1377,7 +1400,7 @@ class StateManager:
                 return (await cursor.fetchone())[0]
 
     async def cancel_pending_outbox_for_prospect(
-        self, prospect_id: str, reason: str = "stop_on_reply"
+        self, prospect_id: str, reason: str = "ha respondido"
     ) -> int:
         """Stop-on-reply: cancel everything queued for a prospect who replied."""
         async with self._connect() as db:

@@ -95,7 +95,7 @@ async def test_repeated_page_token_fails_closed():
 async def test_page_bound_does_not_return_a_partial_inbox(monkeypatch):
     import harvey.integrations.gmail as gmail
     monkeypatch.setattr(gmail, 'MAX_INBOX_PAGES', 2, raising=False)
-    with pytest.raises(RuntimeError, match='partial'):
+    with pytest.raises(RuntimeError, match='parcial'):
         await provider([{'nextPageToken': 'one'}, {'nextPageToken': 'two'}]).get_replies()
 
 

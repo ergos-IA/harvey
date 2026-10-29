@@ -120,7 +120,7 @@ class Brain:
         if self.unavailable:
             return self.unavailable
         if time.monotonic() < self._usage_limited_until:
-            return f"{self.provider_label} usage limit reached for this plan"
+            return f"Se ha alcanzado el límite de uso de {self.provider_label} de este plan"
         return ""
 
     async def preflight(self) -> str:
@@ -205,8 +205,8 @@ class Brain:
         resume = time.strftime("%H:%M UTC", time.gmtime(until))
         await self._record_status(
             "paused",
-            f"{self.provider_label} usage limit reached for this plan; calls resume "
-            f"after {resume}.",
+            f"Se ha alcanzado el límite de uso de {self.provider_label} de este plan; las llamadas se reanudan "
+            f"después de las {resume}.",
             kind="usage_limit", until=until)
         self._usage_pause_recorded = True
 

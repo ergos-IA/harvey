@@ -229,7 +229,7 @@ def send_hold_reason(unread: list, paused: str, read_problem: str) -> str | None
     if paused:
         return None
     if unread:
-        return read_problem or "replies couldn't all be read and handled."
+        return read_problem or "no se han podido leer y gestionar todas las respuestas."
     return ""
 
 

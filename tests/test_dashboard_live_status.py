@@ -84,8 +84,8 @@ def _step(data, label):
 def test_live_status_on_an_empty_database(client):
     data = client.get("/api/live-status").json()
     assert data["running"] == [] and data["stopped"] == []
-    assert _step(data, "Read their websites")["state"] == "waiting"
-    assert data["next"] == "Search for businesses to get started."
+    assert _step(data, "Leer sus webs")["state"] == "waiting"
+    assert data["next"] == "Busca negocios para empezar."
     assert data["next_tab"] == "discover"
 
 
@@ -98,9 +98,9 @@ def test_businesses_without_a_website_do_not_stall_reading(client, env):
     _company(env, "a", "a.test", profiled=True, checked=True)
     _company(env, "b", "b.test", profiled=True, checked=True)
     _company(env, "c")  # no website: never read, so never counted as pending
-    step = _step(client.get("/api/live-status").json(), "Read their websites")
+    step = _step(client.get("/api/live-status").json(), "Leer sus webs")
     assert (step["done"], step["total"], step["state"]) == (2, 2, "done")
-    assert "1 have no website (skipped)" in step["detail"]
+    assert "1 no tiene web (omitido)" in step["detail"]
 
 
 def test_queued_drafts_are_not_counted_as_sent(client, env):
@@ -108,19 +108,19 @@ def test_queued_drafts_are_not_counted_as_sent(client, env):
     _prospect(env, "p2", "b@acme.test", status="contacted")
     _campaign(env, "c1", ["p1", "p2"])
     data = client.get("/api/live-status").json()
-    sent = _step(data, "Sent")
+    sent = _step(data, "Enviados")
     assert (sent["done"], sent["total"]) == (1, 2)
-    assert _step(data, "Write first emails")["done"] == 2  # per person, not per campaign
-    assert data["next"] == "Open Campaigns and send the 1 unsent email(s)."
+    assert _step(data, "Escribir los primeros emails")["done"] == 2  # per person, not per campaign
+    assert data["next"] == "Abre Campañas y envía el email pendiente."
     assert data["next_tab"] == "campaigns"
 
 
 def test_unconfirmed_emails_are_reported_not_hidden(client, env):
     _prospect(env, "p1", "a@acme.test", email_status="verified")
     _prospect(env, "p2", "b@acme.test", email_status="guess")
-    step = _step(client.get("/api/live-status").json(), "Check emails are real")
+    step = _step(client.get("/api/live-status").json(), "Comprobar que los emails existen")
     assert (step["done"], step["total"]) == (1, 2)
-    assert "1 not confirmed" in step["detail"]
+    assert "1 sin confirmar" in step["detail"]
 
 
 def test_a_live_run_shows_progress_and_time_left(client, env):
@@ -133,9 +133,9 @@ def test_a_live_run_shows_progress_and_time_left(client, env):
               "run_id) VALUES ('a', 'TECH_STACK', 'profile', ?, 'r1')", (_ts(1),))
     data = client.get("/api/live-status").json()
     assert [r["stage"] for r in data["running"]] == ["profile"]
-    assert data["running"][0]["eta_text"].endswith("min left")
-    assert _step(data, "Read their websites")["state"] == "running"
-    assert data["next"].startswith("Wait") and data["next_tab"] == ""
+    assert data["running"][0]["eta_text"].startswith("qued")
+    assert _step(data, "Leer sus webs")["state"] == "running"
+    assert data["next"].startswith("Espera") and data["next_tab"] == ""
 
 
 def test_a_killed_run_is_reported_as_stopped_not_running(client, env):
@@ -145,8 +145,8 @@ def test_a_killed_run_is_reported_as_stopped_not_running(client, env):
     data = client.get("/api/live-status").json()
     assert data["running"] == []
     assert [r["stage"] for r in data["stopped"]] == ["profile"]
-    assert _step(data, "Read their websites")["state"] != "running"
-    assert "stopped before finishing" in data["next"]
+    assert _step(data, "Leer sus webs")["state"] != "running"
+    assert "se detuvo antes de terminar" in data["next"]
 
 
 def _outbox(env, oid, pid, status):
@@ -163,7 +163,7 @@ def test_drafts_waiting_in_the_outbox_point_there_not_at_gmail(client, env, monk
     _campaign(env, "c1", ["p1"])
     _outbox(env, "o1", "p1", "pending_review")
     assert client.get("/api/live-status").json()["next"] == \
-        "Review the 1 draft(s) waiting in the Outbox."
+        "Revisa el borrador que espera en la Bandeja de salida."
 
 
 def test_approved_mail_harvey_will_send_is_not_a_job_for_the_user(client, env):
@@ -171,11 +171,11 @@ def test_approved_mail_harvey_will_send_is_not_a_job_for_the_user(client, env):
     _prospect(env, "p1", "a@acme.test", status="queued")
     _campaign(env, "c1", ["p1"])
     _outbox(env, "o1", "p1", "approved")
-    assert "Open Campaigns" not in client.get("/api/live-status").json()["next"]
+    assert "Abre Campañas" not in client.get("/api/live-status").json()["next"]
 
 
 def test_opted_out_and_unreachable_people_are_never_asked_to_be_sent(client, env):
     _prospect(env, "p1", "a@acme.test", status="opted_out")
     _prospect(env, "p2", "b@acme.test", email_status="guess", status="queued")
     _campaign(env, "c1", ["p1", "p2"])
-    assert "Open Campaigns" not in client.get("/api/live-status").json()["next"]
+    assert "Abre Campañas" not in client.get("/api/live-status").json()["next"]

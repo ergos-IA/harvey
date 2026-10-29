@@ -161,7 +161,7 @@ def test_prospect_country_is_optional_and_normalised():
 @pytest.mark.parametrize("yaml_value", [False, True])
 def test_unquoted_yaml_country_is_an_error_not_ignored(yaml_value):
     # YAML reads an unquoted NO (Norway) as False and ON as True.
-    with pytest.raises(ValidationError, match="quote"):
+    with pytest.raises(ValidationError, match="comillas"):
         PreclearedConfig(enabled=True, sender_country="US", prospect_country=yaml_value)
 
 
@@ -286,7 +286,7 @@ async def test_consent_needed_fails_the_item_with_the_reason(state):
     assert provider.sent == []
     failed = await state.get_outbox(status="failed")
     assert len(failed) == 1
-    assert failed[0]["error"].startswith("precleared: consent_needed")
+    assert failed[0]["error"].startswith("Precleared: consent_needed")
     assert "PECR reg. 22(2)" in failed[0]["error"]
     assert "Get consent first" in failed[0]["error"]
 
@@ -495,7 +495,7 @@ async def test_keyless_daily_limit_points_to_a_free_key(state):
     result = await client.clear("person@example.com", state)
 
     assert result.held and not result.allowed
-    assert "add PRECLEARED_API_KEY" in result.reason
+    assert "añade PRECLEARED_API_KEY" in result.reason
     assert "precleared.dev/get-key" in result.reason
 
 
@@ -511,9 +511,9 @@ async def test_key_out_of_checks_points_to_its_checkout_link_not_a_free_key(stat
     result = await client.clear("person@example.com", state)
 
     assert result.held and not result.allowed
-    assert "pack" in result.reason
+    assert "paquete" in result.reason
     assert f"({checkout})" in result.reason
-    assert "add PRECLEARED_API_KEY" not in result.reason
+    assert "añade PRECLEARED_API_KEY" not in result.reason
     # Harvey's own wording, not the API's free text.
     assert "Buy a pack to continue" not in result.reason
     # Nothing cached, so the next cycle asks again.
@@ -546,8 +546,8 @@ async def test_key_out_of_checks_without_a_usable_link_falls_back_to_the_buy_pag
     result = await client.clear("person@example.com", state)
 
     assert result.held and not result.allowed
-    assert "add a pack (https://precleared.dev/buy)" in result.reason
-    assert "add PRECLEARED_API_KEY" not in result.reason
+    assert "añade un paquete (https://precleared.dev/buy)" in result.reason
+    assert "añade PRECLEARED_API_KEY" not in result.reason
     assert await state.get_setting(SETTINGS_PREFIX + "person@example.com") == ""
 
 

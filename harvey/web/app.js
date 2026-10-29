@@ -318,7 +318,7 @@ async function lockIfRefused(r) {
   showLock(r.status === 503
     ? 'El servidor del panel no puede usar su archivo de token, así que rechaza todas las peticiones. ' + why
     : authToken()
-      ? 'The saved token was not accepted (the dashboard may have a new one).'
+      ? 'No se ha aceptado el token guardado (puede que el panel tenga uno nuevo).'
       : 'Esta pestaña aún no tiene el token del panel.');
   return true;
 }
@@ -1121,7 +1121,7 @@ async function runCohort() {
   const ranges = _cohortRanges();
   if (!require.length && !ranges.length) { el.innerHTML = ''; return; }
   // Remove the prior export button as soon as its criteria become stale.
-  el.innerHTML = '<p class="muted">Loading cohort…</p>';
+  el.innerHTML = '<p class="muted">Cargando cohorte…</p>';
 
   const data = await api('/api/cohort', {
     method: 'POST',
@@ -1160,7 +1160,7 @@ async function runCohort() {
         (hasPrev ? '' : ' disabled') + '>Anterior</button>' +
       '<button class="btn btn-secondary btn-sm" onclick="pageCohort(1)"' +
         (hasNext ? '' : ' disabled') + '>Siguiente</button>' +
-      '<button class="btn btn-secondary btn-sm" onclick="exportCohort(this)">Export CSV</button>' +
+      '<button class="btn btn-secondary btn-sm" onclick="exportCohort(this)">Exportar CSV</button>' +
       '</div>';
   } else if (data.size === 0) {
     html += '<p class="muted" style="font-size:13px;margin-top:12px">' +
@@ -1193,17 +1193,17 @@ async function exportCohort(button) {
   let link;
   try {
     const response = await authFetch('/api/cohort.csv?' + qs);
-    if (await lockIfRefused(response)) throw new Error('Dashboard authorization required');
-    if (!response.ok) throw new Error('Export failed (HTTP ' + response.status + ')');
+    if (await lockIfRefused(response)) throw new Error('El panel necesita autorización');
+    if (!response.ok) throw new Error('La exportación ha fallado (HTTP ' + response.status + ')');
     url = URL.createObjectURL(await response.blob());
     link = document.createElement('a');
     link.href = url;
     link.download = 'cohort.csv';
     document.body.appendChild(link);
     link.click();
-    button.textContent = 'Export CSV';
+    button.textContent = 'Exportar CSV';
   } catch (error) {
-    button.textContent = 'Export failed — retry';
+    button.textContent = 'La exportación ha fallado: reintentar';
   } finally {
     if (link) link.remove();
     // Give the browser time to start consuming the download before revoking.
@@ -1452,7 +1452,7 @@ function brainCallChips(data) {
   // A paused brain must not look healthy: say so, and why.
   const paused = st.status === 'paused'
     ? '<span class="chip" title="' + escHtml(st.reason || '') + '">' +
-      escHtml(st.provider === 'codex' ? 'Codex' : 'Brain') + ' <b>paused</b>: ' +
+      escHtml(st.provider === 'codex' ? 'Codex' : 'El modelo') + ' <b>en pausa</b>: ' +
       escHtml((st.reason || '').slice(0, 120)) + '</span>'
     : '';
   if (data.brain_provider === 'codex') {
@@ -1486,16 +1486,16 @@ function emailTag(p) {
 function quotaCardHtml(data) {
   const provider = data && data.quota_provider;
   if (!provider) return '';
-  const title = provider === 'codex' ? 'Codex (ChatGPT plan) Quota' : 'Claude Subscription Quota';
+  const title = provider === 'codex' ? 'Cuota de Codex (plan de ChatGPT)' : 'Cuota de la suscripción de Claude';
   let html = '<h2>' + escHtml(title) + '</h2>';
   if (!data.quota || !Object.keys(data.quota).length) {
     const why = provider === 'codex'
-      ? "Quota unavailable: Harvey couldn't read your ChatGPT plan's limits (check codex login, the Codex CLI version, and network)."
-      : "Quota unavailable: Harvey couldn't read your Claude subscription's limits (check claude login and network).";
-    return html + '<p class="muted">' + escHtml(why) + ' Until it can, budgets count Harvey\'s own calls.</p>';
+      ? 'Cuota no disponible: Harvey no ha podido leer los límites de tu plan de ChatGPT (revisa codex login, la versión de Codex CLI y la red).'
+      : 'Cuota no disponible: Harvey no ha podido leer los límites de tu suscripción de Claude (revisa claude login y la red).';
+    return html + '<p class="muted">' + escHtml(why) + ' Mientras tanto, los presupuestos cuentan solo las llamadas propias de Harvey.</p>';
   }
   const labels = {five_hour: 'Ventana de 5 horas', seven_day: 'Semanal', primary: 'Ventana principal',
-                  secondary: 'Ventana secundaria', limit_reached: 'Usage limit reached'};
+                  secondary: 'Ventana secundaria', limit_reached: 'Límite de uso alcanzado'};
   for (const [key, w] of Object.entries(data.quota)) {
     const pct = Math.min(100, Math.max(0, w.utilization || 0));
     const color = pct >= 80 ? 'yellow' : 'green';
@@ -1733,52 +1733,52 @@ let _sendingMode = null, _autopilotArmed = false, _modeBusy = false;
 function sendingModeBanner(m) {
   if (!m) return '';
   if (m.mode === 'autopilot') {
-    return '<div class="banner wait mode-banner">' + icon('alert') + '<div><b>Autopilot is on</b>' +
-      '<p>Harvey sends email on its own. It holds anything that links to a site that isn’t yours or ' +
-      'quotes its own instructions; those wait here' + (m.held ? ' (' + m.held + ' now)' : '') + '.</p></div>' +
+    return '<div class="banner wait mode-banner">' + icon('alert') + '<div><b>El piloto automático está activado</b>' +
+      '<p>Harvey envía los correos por su cuenta. Retiene cualquiera que enlace a un sitio que no es tuyo o ' +
+      'que cite sus propias instrucciones; esos esperan aquí' + (m.held ? ' (' + m.held + ' ahora)' : '') + '.</p></div>' +
       '<button class="btn btn-secondary btn-sm" onclick="setSendingMode(\'approval\')"' +
-        (_modeBusy ? ' disabled' : '') + '>Turn off autopilot</button></div>';
+        (_modeBusy ? ' disabled' : '') + '>Desactivar el piloto automático</button></div>';
   }
   const instantly = m.provider === 'instantly';
-  return '<div class="banner mode-banner">' + icon('check') + '<div><b>Approval mode</b>' +
+  return '<div class="banner mode-banner">' + icon('check') + '<div><b>Modo aprobación</b>' +
     '<p>' + (instantly
-      ? 'Instantly can’t hold single emails, so campaigns aren’t sent to Instantly until you turn on autopilot.'
-      : 'Every email Harvey writes waits here until you approve it.') +
-    ' <a href="#" onclick="goTab(\'settings\');return false">About autopilot</a></p></div></div>';
+      ? 'Instantly no puede retener correos sueltos, así que las campañas no se envían a Instantly hasta que actives el piloto automático.'
+      : 'Cada correo que escribe Harvey espera aquí hasta que lo apruebes.') +
+    ' <a href="#" onclick="goTab(\'settings\');return false">Sobre el piloto automático</a></p></div></div>';
 }
 
 function sendingModeCard(m) {
-  if (!m) return '<div class="card muted">Couldn’t read the sending mode.</div>';
+  if (!m) return '<div class="card muted">No se pudo leer el modo de envío.</div>';
   const auto = m.mode === 'autopilot';
   const instantly = m.provider === 'instantly';
-  const domains = (m.your_domains || []).map(escHtml).join(', ') || 'none yet';
-  let html = '<div class="card mode-card"><h3>Sending mode: ' + (auto ? 'Autopilot' : 'Approval') + '</h3>' +
-    '<p><b>Approval</b> (the default): every email Harvey writes, first emails, follow-ups and replies, ' +
-      'waits in the Outbox until you approve it.' +
-      (instantly ? ' On Instantly, which can’t hold single emails, that means campaigns aren’t deployed.' : '') + '</p>' +
-    '<p><b>Autopilot</b>: Harvey sends on its own, on schedule, within your daily limit and quiet hours. ' +
-      'Opt-outs, bounces and Pause all sending work the same. It still holds an email for you when it links ' +
-      'to, or gives an address at, a site that isn’t yours, or quotes Harvey’s own instructions: text from ' +
-      'websites and replies can try to steer what it writes. The first reply after you undo an opt-out waits too.</p>' +
-    '<p class="muted">Counted as yours: ' + domains + (m.booking_page ? '; your booking page ' + escHtml(m.booking_page) : '') +
-      '. Add others under <code>channels.email.link_domains</code> in <code>' + escHtml(m.file) + '</code>.</p>';
+  const domains = (m.your_domains || []).map(escHtml).join(', ') || 'ninguno todavía';
+  let html = '<div class="card mode-card"><h3>Modo de envío: ' + (auto ? 'Piloto automático' : 'Aprobación') + '</h3>' +
+    '<p><b>Aprobación</b> (por defecto): cada correo que escribe Harvey, ya sean primeros correos, seguimientos o respuestas, ' +
+      'espera en la Bandeja de salida hasta que lo apruebes.' +
+      (instantly ? ' En Instantly, que no puede retener correos sueltos, eso significa que las campañas no se despliegan.' : '') + '</p>' +
+    '<p><b>Piloto automático</b>: Harvey envía por su cuenta, según lo programado, dentro de tu límite diario y fuera de las horas de silencio. ' +
+      'Las bajas, los rebotes y «Pausar todos los envíos» funcionan igual. Aun así, te retiene un correo cuando enlaza ' +
+      'a un sitio que no es tuyo (o da una dirección en él) o cuando cita las propias instrucciones de Harvey: el texto de ' +
+      'las webs y de las respuestas puede intentar dirigir lo que escribe. La primera respuesta tras deshacer una baja también espera.</p>' +
+    '<p class="muted">Se consideran tuyos: ' + domains + (m.booking_page ? '; tu página de reservas ' + escHtml(m.booking_page) : '') +
+      '. Añade otros en <code>channels.email.link_domains</code> dentro de <code>' + escHtml(m.file) + '</code>.</p>';
   if (auto) {
-    html += '<div class="convo-actions"><span class="muted">Turning it off works at once: emails autopilot ' +
-      'approved that haven’t gone out come back to the Outbox.' +
-      (instantly ? ' Campaigns already on Instantly keep running until you pause them there.' : '') + '</span>' +
+    html += '<div class="convo-actions"><span class="muted">Desactivarlo surte efecto al instante: los correos que el piloto automático ' +
+      'aprobó y aún no han salido vuelven a la Bandeja de salida.' +
+      (instantly ? ' Las campañas que ya están en Instantly siguen en marcha hasta que las pauses allí.' : '') + '</span>' +
       '<button class="btn btn-primary btn-sm" onclick="setSendingMode(\'approval\')"' +
-        (_modeBusy ? ' disabled' : '') + '>Turn off autopilot</button></div>';
+        (_modeBusy ? ' disabled' : '') + '>Desactivar el piloto automático</button></div>';
   } else if (_autopilotArmed) {
-    html += '<div class="convo-actions mode-confirm"><span class="muted">Approve a batch or two by hand first ' +
-      'and read what Harvey writes. Type <b>autopilot</b> to turn it on. It starts from Harvey’s next cycle.</span>' +
-      '<input class="form-input" id="autopilot-confirm" autocomplete="off" aria-label="Type autopilot to confirm" ' +
-        'oninput="document.getElementById(\'autopilot-go\').disabled = this.value.trim().toLowerCase() !== \'autopilot\'" ' +
-        'onkeydown="if (event.key === \'Enter\' && this.value.trim().toLowerCase() === \'autopilot\') setSendingMode(\'autopilot\')">' +
-      '<button class="btn btn-primary btn-sm" id="autopilot-go" disabled onclick="setSendingMode(\'autopilot\')">Turn on autopilot</button>' +
-      '<button class="btn btn-ghost btn-sm" onclick="_autopilotArmed=false;renderSendingModeCard()">Cancel</button></div>';
+    html += '<div class="convo-actions mode-confirm"><span class="muted">Aprueba antes uno o dos lotes a mano ' +
+      'y lee lo que escribe Harvey. Escribe <b>activar</b> para encenderlo. Empieza a partir del próximo ciclo de Harvey.</span>' +
+      '<input class="form-input" id="autopilot-confirm" autocomplete="off" aria-label="Escribe activar para confirmar" ' +
+        'oninput="document.getElementById(\'autopilot-go\').disabled = this.value.trim().toLowerCase() !== \'activar\'" ' +
+        'onkeydown="if (event.key === \'Enter\' && this.value.trim().toLowerCase() === \'activar\') setSendingMode(\'autopilot\')">' +
+      '<button class="btn btn-primary btn-sm" id="autopilot-go" disabled onclick="setSendingMode(\'autopilot\')">Activar el piloto automático</button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="_autopilotArmed=false;renderSendingModeCard()">Cancelar</button></div>';
   } else {
     html += '<div class="convo-actions"><button class="btn btn-secondary btn-sm" ' +
-      'onclick="_autopilotArmed=true;renderSendingModeCard()">Turn on autopilot…</button></div>';
+      'onclick="_autopilotArmed=true;renderSendingModeCard()">Activar el piloto automático…</button></div>';
   }
   return html + '</div>';
 }
@@ -1801,7 +1801,9 @@ async function setSendingMode(mode) {
   const body = {mode};
   if (mode === 'autopilot') {
     const input = document.getElementById('autopilot-confirm');
-    body.confirm = input ? input.value.trim().toLowerCase() : '';
+    const typed = input ? input.value.trim().toLowerCase() : '';
+    // The UI asks for the Spanish word; the server's guard expects 'autopilot'.
+    body.confirm = typed === 'activar' ? 'autopilot' : typed;
   }
   _modeBusy = true;
   document.querySelectorAll('.mode-banner button, .mode-card button').forEach(b => { b.disabled = true; });
@@ -1828,7 +1830,7 @@ async function setSendingMode(mode) {
 }
 
 // Why autopilot sent this back for a human (sender: gate.autopilot_review).
-const HELD_PREFIX = 'held for your review: ';   // state.HELD_FOR_REVIEW
+const HELD_PREFIX = 'retenido para tu revisión: ';   // state.HELD_FOR_REVIEW
 function heldReason(item) {
   const e = String((item && item.error) || '');
   const why = e.startsWith(HELD_PREFIX) ? e.slice(HELD_PREFIX.length) : '';
@@ -1860,7 +1862,7 @@ function renderDesk(items, i) {
         fixedSubject + ' oninput="deskKeep()">' +
       '<textarea id="desk-body" class="desk-edit-body" rows="14" oninput="deskKeep()">' +
         escHtml(unsaved.body) + '</textarea>'
-    : '<div class="subject">' + escHtml(cur.subject || '(no subject)') + '</div>' +
+    : '<div class="subject">' + escHtml(cur.subject || '(sin asunto)') + '</div>' +
       '<div class="body">' + escHtml(cur.body) + '</div>';
   // Cold email leaves with the footer underneath; show it as it will go out.
   // Not added again when the body already ends with it, as in the Sender.
@@ -2949,10 +2951,10 @@ function renderContacts() {
 // something else) needs you: see what triggered it, then undo it here.
 let _optOut = {id: null, data: null, armed: false, busy: false};
 const OPT_OUT_RULES = {
-  phrase: 'Matched an opt-out phrase',
-  no_thanks: 'Matched “no thanks”',
-  only_words: 'Their reply was only an opt-out word',
-  model: 'The model’s judgement (no phrase matched)',
+  phrase: 'Coincidió con una frase de baja',
+  no_thanks: 'Coincidió con «no, gracias»',
+  only_words: 'Su respuesta era solo una palabra de baja',
+  model: 'Criterio del modelo (no coincidió ninguna frase)',
 };
 
 async function toggleOptOut(i) {
@@ -2970,38 +2972,38 @@ async function toggleOptOut(i) {
 function optOutPanel(p) {
   const d = _optOut.data;
   const name = escHtml([p.first_name, p.last_name].filter(Boolean).join(' ') || p.email);
-  if (!d) return '<div class="optout-panel muted">Loading…</div>';
-  if (d.error) return '<div class="optout-panel muted">Couldn’t load the opt-out record. Try again.</div>';
-  let html = '<div class="optout-panel"><h4>' + (d.opted_out ? 'Why Harvey stopped emailing ' : 'Opt-out history for ') +
+  if (!d) return '<div class="optout-panel muted">Cargando…</div>';
+  if (d.error) return '<div class="optout-panel muted">No se pudo cargar el registro de la baja. Inténtalo de nuevo.</div>';
+  let html = '<div class="optout-panel"><h4>' + (d.opted_out ? 'Por qué Harvey dejó de escribir a ' : 'Historial de bajas de ') +
     name + '</h4>';
   if (d.recorded) {
     html += '<p>' + escHtml(d.why) + '</p><div class="optout-meta">' +
       escHtml(own(OPT_OUT_RULES, d.rule) || d.rule || '') + (d.at ? ' · ' + relTime(d.at) : '') + '</div>';
   } else if (d.opted_out || (d.history || []).length) {
-    html += '<p>They opted out before Harvey kept a record of why.' +
-      (d.message ? ' The last thing they wrote:' : ' There’s no reply from them on file.') + '</p>';
+    html += '<p>Se dio de baja antes de que Harvey guardara el motivo.' +
+      (d.message ? ' Lo último que escribió:' : ' No hay ninguna respuesta suya registrada.') + '</p>';
   }
   if (d.message) {
-    html += '<div class="thread-msg received"><div class="sender">' + escHtml(p.first_name || 'They') +
+    html += '<div class="thread-msg received"><div class="sender">' + escHtml(p.first_name || 'Contacto') +
       (d.at ? ' &middot; ' + relTime(d.at) : '') + '</div>' + escHtml(d.message) + '</div>';
   }
   const undone = (d.history || []).filter(h => h.action === 'opt_out_undone');
   if (undone.length) {
-    html += '<div class="optout-meta">' + undone.map(h => 'You undid an opt-out ' + relTime(h.at)).join(' · ') + '</div>';
+    html += '<div class="optout-meta">' + undone.map(h => 'Deshiciste una baja ' + relTime(h.at)).join(' · ') + '</div>';
   }
   if (!d.opted_out) {
-    html += '<div class="convo-actions"><span class="muted">Not opted out now (' +
+    html += '<div class="convo-actions"><span class="muted">Ahora no está de baja (' +
       escHtml(statusMeta(d.status).label) + ').</span></div>';
   } else if (_optOut.armed) {
-    html += '<div class="convo-actions"><span class="muted">Harvey will treat them as having replied. Nothing is ' +
-      'sent automatically, emails the opt-out cancelled stay cancelled, and Harvey’s answer to their next ' +
-      'reply waits for your approval, even on autopilot. Only undo it if they didn’t mean to opt out.</span>' +
+    html += '<div class="convo-actions"><span class="muted">Harvey lo tratará como si hubiera respondido. No se ' +
+      'envía nada automáticamente, los correos que canceló la baja siguen cancelados y la respuesta de Harvey a su ' +
+      'próximo mensaje espera tu aprobación, incluso con el piloto automático. Deshazla solo si no quería darse de baja.</span>' +
       '<button class="btn btn-primary btn-sm" onclick="undoOptOut()"' + (_optOut.busy ? ' disabled' : '') +
-        '>Confirm undo</button>' +
-      '<button class="btn btn-ghost btn-sm" onclick="_optOut.armed=false;renderContacts()">Cancel</button></div>';
+        '>Confirmar</button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="_optOut.armed=false;renderContacts()">Cancelar</button></div>';
   } else {
     html += '<div class="convo-actions"><button class="btn btn-secondary btn-sm" ' +
-      'onclick="_optOut.armed=true;renderContacts()">Undo opt-out</button></div>';
+      'onclick="_optOut.armed=true;renderContacts()">Deshacer la baja</button></div>';
   }
   return html + '</div>';
 }
@@ -3041,7 +3043,7 @@ async function showOptOut(prospectId, email) {
 function fillMergeVars(text, r) {
   const inbox = r.source === 'company_inbox';
   const vals = {
-    first_name: r.first_name || (inbox ? 'there' : ''), last_name: r.last_name || '',
+    first_name: r.first_name || (inbox ? 'equipo' : ''), last_name: r.last_name || '',
     company: r.company || '', title: r.title || '',
     personalization: r.personalization_notes || '',
   };
@@ -3087,7 +3089,7 @@ async function openInGmail(ci, si, ri) {
   try { if (!claimed) claimed = await markSent(ci, ri, true); } finally { _gmailBusy = false; }
   if (!claimed) { w.close(); return; }
   w.location.href = url;
-  if (left) showToast('Este borrador aún tiene un {{placeholder}}. Corrígelo en Gmail antes de enviarlo.', 'error');
+  if (left) showToast('Este borrador aún tiene una variable {{…}} sin rellenar. Corrígelo en Gmail antes de enviarlo.', 'error');
 }
 
 async function markSent(ci, ri, sent) {

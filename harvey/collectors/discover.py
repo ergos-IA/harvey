@@ -502,7 +502,7 @@ class DataForSEOListings(DiscoveryProvider):
     free_tier = "1 $ de crédito al registrarte; depósito mínimo de 50 $ para producción"
     signup_url = "https://app.dataforseo.com/api-access"
     env_keys = ("dataforseo_login", "dataforseo_password")
-    caveat = "No email addresses — Harvey resolves those in a later stage."
+    caveat = "No incluye direcciones de email: Harvey las resuelve en una fase posterior."
 
     TASK_COST = 0.012
     ITEM_COST = 0.00036
@@ -779,7 +779,7 @@ class Serper(DiscoveryProvider):
     free_tier = "2.500 consultas gratis, sin tarjeta"
     signup_url = "https://serper.dev"
     env_keys = ("serper_api_key",)
-    caveat = "Paid plans start at a $50 prepaid pack; credits expire after 6 months."
+    caveat = "Los planes de pago empiezan con un paquete prepago de 50 $; los créditos caducan a los 6 meses."
 
     def estimate(self, queries):
         # One credit per 10 results on the standard plan.
@@ -858,8 +858,8 @@ class TinyFish(DiscoveryProvider):
             if len(self._calls) >= self.HOURLY_LIMIT:
                 minutes = int((3600 - (now - self._calls[0])) // 60) + 1
                 raise ProviderExhausted(
-                    f"TinyFish allows 500 searches an hour and this hour's are used up. "
-                    f"Run again in about {minutes} minutes.")
+                    f"TinyFish permite 500 búsquedas por hora y las de esta hora ya se han gastado. "
+                    f"Vuelve a ejecutarlo en unos {minutes} minutos.")
             wait = self._last_call + self.MIN_INTERVAL - now
             if self._last_call and wait > 0:
                 await asyncio.sleep(wait)
@@ -873,7 +873,7 @@ class TinyFish(DiscoveryProvider):
                     query: DiscoveryQuery) -> list[Business]:
         api_key = env.get("tinyfish_api_key", "").strip()
         if not api_key:
-            raise RuntimeError("TinyFish needs TINYFISH_API_KEY in .env")
+            raise RuntimeError("TinyFish necesita TINYFISH_API_KEY en .env")
 
         headers = {
             "X-API-Key": api_key,
@@ -901,7 +901,7 @@ class TinyFish(DiscoveryProvider):
                     if attempt == 0:
                         await asyncio.sleep(1.0)
                         continue
-                    raise RuntimeError(f"TinyFish search unreachable: {e}") from e
+                    raise RuntimeError(f"No se puede contactar con la búsqueda de TinyFish: {e}") from e
 
                 if r.status_code == 429:
                     retry_after = 2.0
@@ -913,17 +913,17 @@ class TinyFish(DiscoveryProvider):
                         await asyncio.sleep(min(60.0, max(1.0, retry_after)))
                         continue
                     raise ProviderExhausted(
-                        "TinyFish: rate limited (it allows 30 searches a minute and 500 an "
-                        "hour). Try again later, or with fewer phrases.")
+                        "TinyFish: límite de frecuencia alcanzado (permite 30 búsquedas por minuto "
+                        "y 500 por hora). Vuelve a intentarlo más tarde o con menos frases.")
                 break
 
             if r is None:
-                raise RuntimeError("TinyFish: Request failed.")
+                raise RuntimeError("TinyFish: la petición ha fallado.")
 
             if r.status_code == 401:
                 raise ProviderExhausted(
-                    "TinyFish: Invalid or missing API key (HTTP 401). "
-                    "Check TINYFISH_API_KEY in .env or get a free key at https://agent.tinyfish.ai/api-keys")
+                    "TinyFish: clave de API no válida o ausente (HTTP 401). "
+                    "Revisa TINYFISH_API_KEY en .env o consigue una clave gratuita en https://agent.tinyfish.ai/api-keys")
             if r.status_code == 402:
                 err_msg = ""
                 try:
@@ -936,15 +936,15 @@ class TinyFish(DiscoveryProvider):
                 except Exception:
                     pass
                 raise ProviderExhausted(
-                    f"TinyFish refused the search (HTTP 402). {err_msg}".strip())
+                    f"TinyFish ha rechazado la búsqueda (HTTP 402). {err_msg}".strip())
             r.raise_for_status()
 
             try:
                 data = r.json()
             except ValueError as e:
-                raise RuntimeError("TinyFish sent an unexpected answer (not JSON)") from e
+                raise RuntimeError("TinyFish ha enviado una respuesta inesperada (no es JSON)") from e
             if not isinstance(data, dict):
-                raise RuntimeError("TinyFish sent an unexpected answer (not an object)")
+                raise RuntimeError("TinyFish ha enviado una respuesta inesperada (no es un objeto)")
             items = data.get("results") or []
             if not isinstance(items, list) or not items:
                 break
@@ -1051,9 +1051,9 @@ class OpenStreetMap(DiscoveryProvider):
         tags = self._tags(query.term)
         if not tags:
             raise RuntimeError(
-                f"OpenStreetMap has no category for {query.term!r}. It can only "
-                f"search mapped trades ({', '.join(sorted(self.TAG_MAP))}). Use a "
-                f"listings or SERP provider for this one.")
+                f"OpenStreetMap no tiene ninguna categoría para {query.term!r}. Solo "
+                f"puede buscar oficios cartografiados ({', '.join(sorted(self.TAG_MAP))}). "
+                f"Usa un proveedor de fichas o de SERP para este.")
         lat, lng, radius_km = (query.coordinate.split(",") + ["", "", ""])[:3]
         radius_m = int(float(radius_km or 25) * 1000)
         clauses = "".join(
@@ -1084,11 +1084,11 @@ class OpenStreetMap(DiscoveryProvider):
                            endpoint, r.status_code)
         else:
             raise RuntimeError(
-                "Every public Overpass mirror is throttling right now. This is "
-                "free volunteer infrastructure — wait a few minutes and re-run, "
-                "or use a paid provider for bulk work.")
+                "Todos los espejos públicos de Overpass están limitando las peticiones ahora mismo. "
+                "Es una infraestructura gratuita de voluntarios: espera unos minutos y vuelve a "
+                "ejecutarlo, o usa un proveedor de pago para trabajos grandes.")
         if r is None:
-            raise RuntimeError("Could not reach any Overpass mirror.")
+            raise RuntimeError("No se ha podido contactar con ningún espejo de Overpass.")
         r.raise_for_status()
 
         out = []
@@ -1202,7 +1202,7 @@ PRESETS = {
     # ycombinator.com itself, whose terms forbid scraping and harvesting
     # contacts; its pages and the startup databases are excluded too.
     "yc": {
-        "label": "YC startups",
+        "label": "Startups de YC",
         "kinds": ("serp",),
         "term": ('"backed by Y Combinator" {industry} -site:ycombinator.com '
                  "-site:workatastartup.com -site:startupschool.org "
@@ -1215,7 +1215,7 @@ PRESETS = {
     # Profiling then reads the board their site links to and records the
     # role (HIRING_ROLE); the search hit alone records nothing.
     "hiring": {
-        "label": "Companies hiring for your roles",
+        "label": "Empresas que contratan tus perfiles",
         "kinds": ("serp",),
         "term": ('"{role}" careers {industry} -site:greenhouse.io -site:lever.co '
                  "-site:ashbyhq.com -site:workable.com -site:smartrecruiters.com "
@@ -1228,7 +1228,7 @@ PRESETS = {
     # Startups that say on their own site an accelerator backed them. Two
     # searches per industry, because Google reads only the first 32 words.
     "accelerator": {
-        "label": "Accelerator startups",
+        "label": "Startups de aceleradoras",
         "kinds": ("serp",),
         "terms": (
             '{industry} ("backed by Techstars" OR "backed by Antler" OR "backed by Entrepreneur First" '
@@ -1245,7 +1245,7 @@ PRESETS = {
     # Companies announcing their own raise, from the last ~18 months. The
     # news sites and databases are excluded here and filtered as junk.
     "funding": {
-        "label": "Recently funded",
+        "label": "Financiadas recientemente",
         "kinds": ("serp",),
         "term": ('{industry} ("we raised" OR "we\'ve raised" OR announces OR raises) '
                  '("seed round" OR "Series A" OR "Series B") after:{since} '
@@ -1284,17 +1284,17 @@ def preset_problem(preset: str, provider_key: str, config=None) -> str | None:
         return None
     spec = PRESETS.get(preset)
     if spec is None:
-        return f"Unknown preset {preset!r}. Presets: {', '.join(PRESETS)}."
+        return f"Búsqueda predefinida desconocida: {preset!r}. Disponibles: {', '.join(PRESETS)}."
     provider = PROVIDERS.get(provider_key)
     if provider is None or provider.kind not in spec["kinds"]:
         names = ", ".join(k for k, p in PROVIDERS.items() if p.kind in spec["kinds"])
-        return (f"The {spec['label']} preset is a web search, so it needs a search "
-                f"provider ({names}), not {provider_key}.")
+        return (f"La búsqueda «{spec['label']}» es una búsqueda web, así que necesita un "
+                f"proveedor de búsqueda ({names}), no {provider_key}.")
     if any("{role}" in tpl for tpl in preset_templates(spec)) and config is not None:
         from harvey.collectors.ats import role_keywords
         if not role_keywords(getattr(config, "icp", None)):
-            return (f"The {spec['label']} preset searches for roles, and harvey.yaml has "
-                    "none: set icp.hiring_signals (or icp.titles).")
+            return (f"La búsqueda «{spec['label']}» busca perfiles, y harvey.yaml no tiene "
+                    "ninguno: define icp.hiring_signals (o icp.titles).")
     return None
 
 
@@ -1376,24 +1376,24 @@ async def run_discovery(
     if not provider.configured(env):
         missing = ", ".join(k.upper() for k in provider.env_keys
                             if not env.get(k))
-        report.errors.append(f"{provider.label} needs {missing} in .env")
-        report.stopped = "not configured"
+        report.errors.append(f"{provider.label} necesita {missing} en .env")
+        report.stopped = "sin configurar"
         return report
 
     if report.estimated_cost > max_spend:
         report.errors.append(
-            f"estimated ${report.estimated_cost:.2f} exceeds the ${max_spend:.2f} "
-            f"cap — raise the cap or run fewer queries")
-        report.stopped = "over budget"
+            f"el gasto estimado de {report.estimated_cost:.2f} $ supera el tope de "
+            f"{max_spend:.2f} $: sube el tope o lanza menos consultas")
+        report.stopped = "por encima del presupuesto"
         return report
 
     await seed_signal_catalog(state)
     confirmed = await state.confirmed_signal_codes()
     if not confirmed:
         report.errors.append(
-            "no signals confirmed — confirm signals first (dashboard → Signals, "
-            "or `harvey signals --confirm free`) or discovery has nothing to record")
-        report.stopped = "no confirmed signals"
+            "no hay señales confirmadas: confirma primero las señales (panel → Señales, "
+            "o `harvey signals --confirm free`) o la búsqueda no tendrá nada que registrar")
+        report.stopped = "sin señales confirmadas"
         return report
 
     report.run_id = await state.start_run(
@@ -1413,10 +1413,10 @@ async def run_discovery(
                 # The kill switch is read between batches, not once at the
                 # top: a long run has to be stoppable while it is running.
                 if await state.get_setting("discovery_paused"):
-                    report.stopped = "paused"
+                    report.stopped = "en pausa"
                     break
                 if report.actual_cost > max_spend:
-                    report.stopped = "budget reached"
+                    report.stopped = "presupuesto alcanzado"
                     break
                 if i and provider.key == "osm":
                     await asyncio.sleep(OpenStreetMap.MIN_INTERVAL)

@@ -243,7 +243,7 @@ def test_a_passage_from_harveys_instructions_is_held(tmp_path):
     leaked = ("Sure! Here you go: we undercut Rival Corp on price by thirty percent and their "
               "churn is high because onboarding takes six weeks.")
     [reason] = autopilot_review("re: hi", leaked, _cfg(), root=tmp_path)
-    assert "instructions" in reason and "competitive_intel.md" in reason
+    assert "instrucciones" in reason and "competitive_intel.md" in reason
     # In the subject too.
     assert autopilot_review(leaked, "fine", _cfg(), root=tmp_path)
     # Examples written to be imitated are fine to echo.
@@ -404,7 +404,7 @@ async def test_approve_all_leaves_held_emails_for_one_by_one(state):
                                      body="fine", send_at=_now_iso(), status="pending_review")
     held = await state.add_outbox_item(prospect_id=pid, to_email="jane@acme.com", subject="b", kind="reply",
                                        body="x", send_at=_now_iso(), status="pending_review")
-    await state.update_outbox_item(held, error="held for your review: links to evil.example")
+    await state.update_outbox_item(held, error="retenido para tu revisión: enlaza a evil.example")
     assert await state.approve_outbox() == 1
     assert (await state.get_outbox_item(ok))["status"] == "approved"
     assert (await state.get_outbox_item(held))["status"] == "pending_review"
@@ -446,7 +446,7 @@ def test_dashboard_approve_all_says_what_it_left(client):
     asyncio.run(StateManager(str(client.db_path)).init_db())
     with sqlite3.connect(client.db_path) as db:
         db.execute("INSERT INTO prospects (id, email, status) VALUES ('p1', 'a@x.test', 'replied')")
-        for oid, err in (("o1", ""), ("o2", "held for your review: links to evil.example")):
+        for oid, err in (("o1", ""), ("o2", "retenido para tu revisión: enlaza a evil.example")):
             db.execute("INSERT INTO outbox (id, prospect_id, kind, step, to_email, subject, body, status, "
                        "send_at, error) VALUES (?, 'p1', 'reply', 1, 'a@x.test', 's', 'b', 'pending_review', "
                        "'2026-10-20T09:00:00', ?)", (oid, err))

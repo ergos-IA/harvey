@@ -67,7 +67,7 @@ def test_create_list_and_update_a_product(client):
 @pytest.mark.parametrize("body, message", [
     ({**PRODUCT, "name": ""}, "nombre"),
     ({**PRODUCT, "status": "borrado"}, "estado"),
-    ({**PRODUCT, "scoring": {"rules": [{"signal": "EMPLOYEE_COUNT", "when": {"cuando": 1}}]}}, "condition"),
+    ({**PRODUCT, "scoring": {"rules": [{"signal": "EMPLOYEE_COUNT", "when": {"cuando": 1}}]}}, "condici"),
 ])
 def test_bad_products_are_refused(client, body, message):
     r = client.post("/api/products", json=body)

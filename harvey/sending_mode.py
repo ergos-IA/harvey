@@ -31,27 +31,30 @@ async def sync_sending_mode(config, state) -> bool:
 def held_message(hold: dict, waiting: int) -> tuple[str, str]:
     """What Today and `harvey status` say while sending is held because
     replies couldn't all be read or handled: (title, detail)."""
-    reason = str(hold.get("reason") or "replies couldn't all be read").strip().rstrip(".")
+    reason = str(hold.get("reason") or "no se pudieron leer todas las respuestas").strip().rstrip(".")
     low = reason.lower()
-    if low.startswith("a reply from"):
+    # The reasons come from the handler and the mail providers, in English
+    # or (once translated) in Spanish: match both.
+    if low.startswith(("a reply from", "una respuesta de")):
         # The inbox was read; handling one reply failed. Its text and the
         # sender's address are no guide to a fix, so match nothing in it.
-        title = "Harvey isn't sending: it couldn't handle a reply"
-        fix = "Harvey tries again every cycle; if this lasts, check the log."
+        title = "Harvey no está enviando: no pudo gestionar una respuesta"
+        fix = "Harvey lo reintenta en cada ciclo; si se alarga, revisa el registro."
     else:
-        title = "Harvey isn't sending: it couldn't read your inbox"
+        title = "Harvey no está enviando: no pudo leer tu bandeja de entrada"
         # Only the providers' own messages name a fix.
         if "harvey gmail auth" in low:
-            fix = "Run `harvey gmail auth` to sign in again."
+            fix = "Ejecuta `harvey gmail auth` para volver a iniciar sesión."
         elif "harvey microsoft auth" in low:
-            fix = "Run `harvey microsoft auth` to sign in again."
-        elif "refusing a partial read" in low:
-            fix = ("The mailbox got more mail in the last week than Harvey reads, so it can't "
-                   "be sure it saw every reply. Send from a dedicated mailbox, or archive old mail.")
+            fix = "Ejecuta `harvey microsoft auth` para volver a iniciar sesión."
+        elif "refusing a partial read" in low or "lectura parcial" in low:
+            fix = ("El buzón recibió la última semana más correo del que Harvey lee, así que no "
+                   "puede asegurar que vio todas las respuestas. Envía desde un buzón dedicado "
+                   "o archiva el correo antiguo.")
         else:
-            fix = "Harvey tries again every cycle; if this lasts, check the log."
-    emails = "1 email is waiting" if waiting == 1 else f"{waiting} emails are waiting"
+            fix = "Harvey lo reintenta en cada ciclo; si se alarga, revisa el registro."
+    emails = "1 correo espera" if waiting == 1 else f"{waiting} correos esperan"
     return (title,
-            f"{reason}. {fix} {emails}: replies are read first, so an opt-out "
-            f"stops its follow-up before anything goes. Held since "
+            f"{reason}. {fix} {emails}: primero se leen las respuestas, para que una baja "
+            f"detenga su seguimiento antes de que salga nada. Retenido desde "
             f"{str(hold.get('since', '?'))[:16].replace('T', ' ')} UTC.")

@@ -88,13 +88,13 @@ async def test_the_heartbeat_records_and_clears_it(state):
 @pytest.mark.parametrize("reason,fix", [
     ("Gmail: not signed in to Gmail. Run 'harvey gmail auth'.", "harvey gmail auth"),
     ("Microsoft: not authorized. Run 'harvey microsoft auth'.", "harvey microsoft auth"),
-    ("inbox has more than 40 pages; refusing a partial read", "more mail"),
-    ("Graph 503 on GET /me/messages", "tries again every cycle"),
+    ("inbox has more than 40 pages; refusing a partial read", "más correo"),
+    ("Graph 503 on GET /me/messages", "reintenta en cada ciclo"),
 ])
 def test_the_message_names_the_fix(reason, fix):
     title, detail = held_message({"reason": reason, "since": "2026-10-24T08:00:00"}, waiting=3)
-    assert "isn't sending" in title
-    assert fix in detail and "3 emails are waiting" in detail and "opt-out" in detail
+    assert "no está enviando" in title
+    assert fix in detail and "3 correos esperan" in detail and "baja" in detail
 
 
 # ── where it shows ──
@@ -133,8 +133,8 @@ def test_harvey_status_shows_it(tmp_path, monkeypatch, capsys):
 @pytest.mark.parametrize("stored,status,body,expect", [
     (None, None, None, "harvey gmail auth"),                        # never signed in
     ({"refresh_token": "r"}, 400, {"error": "invalid_grant"}, "harvey gmail auth"),
-    ({"refresh_token": "r"}, "network", None, "couldn't reach Google"),
-    ({"refresh_token": "r"}, 503, {}, "couldn't reach Google"),
+    ({"refresh_token": "r"}, "network", None, "no se ha podido contactar con Google"),
+    ({"refresh_token": "r"}, 503, {}, "no se ha podido contactar con Google"),
 ])
 async def test_gmail_says_which_sign_in_problem_it_is(monkeypatch, stored, status, body, expect):
     import httpx
@@ -158,9 +158,9 @@ async def test_gmail_says_which_sign_in_problem_it_is(monkeypatch, stored, statu
 def test_a_reply_that_couldnt_be_handled_is_worded_as_that():
     reason = "a reply from ann@gmail.com couldn't be handled (KeyError: 'signature' not authorized pages)"
     title, detail = held_message({"reason": reason, "since": "2026-10-24T08:00:00"}, waiting=1)
-    assert "couldn't handle a reply" in title
-    assert "harvey gmail auth" not in detail and "more mail" not in detail
-    assert "1 email is waiting" in detail
+    assert "no pudo gestionar una respuesta" in title
+    assert "harvey gmail auth" not in detail and "más correo" not in detail
+    assert "1 correo espera" in detail
 
 
 @pytest.mark.asyncio
@@ -173,7 +173,7 @@ async def test_a_new_hold_after_a_stale_one_starts_now(state):
 
 @pytest.mark.parametrize("unread,paused,problem,expected", [
     (["read_replies"], "", "gmail: not signed in", "gmail: not signed in"),
-    (["read_replies"], "", "", "replies couldn't all be read and handled."),
+    (["read_replies"], "", "", "no se han podido leer y gestionar todas las respuestas."),
     (["read_replies"], "Codex is paused", "gmail: x", None),      # the brain card covers it
     ([], "", "", ""),                                             # sending ran: clear
 ])
