@@ -687,3 +687,21 @@ def test_a_spanish_opt_out_line_validates():
     for bad in ('Responde "paso" y no te escribo más.', "Escríbeme si no te interesa."):
         with pytest.raises(pydantic.ValidationError):
             ComplianceConfig(opt_out_line=bad)
+
+
+def _persona_config(name):
+    from types import SimpleNamespace as NS
+    return NS(persona=NS(name=name, company="Example Co"),
+              channels=NS(email=NS(link_domains=["example.com"])))
+
+
+@pytest.mark.parametrize("ending, signed", [
+    ("Un saludo,\nAna María Ejemplo", True),
+    ("Un saludo,\nAna María", True),        # first name only
+    ("Un saludo,\nAna", True),
+    ("Un saludo.", False),
+    ("Ana tiene razón, ¿hablamos el martes?", False),  # a sentence, not a sign-off
+])
+def test_a_first_name_sign_off_counts_as_signed(ending, signed):
+    from harvey.signature import is_signed
+    assert is_signed("Hola.\n\n" + ending, _persona_config("Ana María Ejemplo")) is signed

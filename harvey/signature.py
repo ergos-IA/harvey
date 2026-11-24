@@ -8,7 +8,7 @@ the user's own site). Plain text like the rest of the email. It goes
 between the body and the compliance footer, added at send time like the
 footer, so it reaches mail already queued and the Outbox shows it before
 anyone approves. Nothing is added when the body already ends with the
-name (the writer signed it) or the persona has no name.
+name, full or first name only (the writer signed it), or the persona has no name.
 """
 
 from __future__ import annotations
@@ -33,8 +33,14 @@ def is_signed(body: str, config) -> bool:
     lines = signature_lines(config)
     if not lines:
         return True
-    tail = "\n".join((body or "").rstrip().splitlines()[-4:]).lower()
-    return lines[0].lower() in tail
+    name = lines[0].lower()
+    tail_lines = [l.strip().lower() for l in (body or "").rstrip().splitlines()[-4:]]
+    if name in "\n".join(tail_lines):
+        return True
+    # Signed with the first name only ("Un saludo,\nJosé Miguel").
+    first = name.split()[0]
+    last = [l for l in tail_lines if l][-1:] or [""]
+    return last[0].split()[:1] == [first] and len(last[0]) <= len(name)
 
 
 def outgoing_footer(config, body: str = "") -> str:
