@@ -347,7 +347,8 @@ harvey trulyinbox [connect|other]  # Warmup service: connect TrulyInbox, or reco
 harvey microsoft auth|test   # Microsoft 365 provider (docs/microsoft365.md)
 harvey profile               # Read discovered companies' websites (free, no Claude)
 harvey retry-writes          # Retry prospects the Writer couldn't write for
-harvey accounts import|list|enrich|score|cohort   # ABM flow for Spain (docs/espana.md)
+harvey accounts import|list|enrich|score|cohort   # ABM flow for Spain (docs/espana.md); import --product <name> assigns them
+harvey products [import <file.json> [--assign] | export [file]]   # Products (offer + ICP + scoring) as JSON, matched by name
 ```
 
 En Windows el venv se activa con `.venv\Scripts\activate` (PowerShell: `.venv\Scripts\Activate.ps1`).

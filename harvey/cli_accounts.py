@@ -44,8 +44,22 @@ def _fmt_num(value) -> str:
 async def _import(args):
     from harvey.collectors.spain.accounts import import_accounts
     state = await _state()
+    product = None
+    if args.product:
+        from harvey.products import list_products
+        wanted = args.product.strip().lower()
+        product = next((p for p in await list_products(state)
+                        if wanted in (p.id, p.name.strip().lower())), None)
+        if product is None:
+            raise SystemExit(f"No existe el producto {args.product!r}. Míralos con: harvey products")
     report = await import_accounts(state, args.file, batch=args.batch, segment=args.segment,
                                    dry_run=args.dry_run)
+    if product is not None and not args.dry_run and report.company_ids:
+        from harvey.collectors.spain.accounts import tracked_accounts
+        from harvey.products import assign_accounts, score_products
+        await assign_accounts(state, product.id, report.company_ids, report.batch)
+        await score_products(state, await tracked_accounts(state), [product])
+        print(f"\n  {len(report.company_ids)} account(s) assigned to product '{product.name}'.")
     if args.dry_run:
         print(f"\n  Dry run: {report.created} account(s) would be imported as batch "
               f"'{report.batch}'.")
@@ -96,12 +110,15 @@ async def _score(args):
     from harvey.scoring import score_accounts
     config = _config_or_none()
     scoring = _scoring_config(config)
+    state = await _state()
+    scored_products = await _score_products(state)
     if not scoring.configured():
-        print("\n  No scoring rules yet. Add a `scoring:` section to harvey.yaml "
-              "(see harvey/accounts_config.py for the format).\n")
+        if not scored_products:
+            print("\n  No scoring rules yet. Add a `scoring:` section to harvey.yaml "
+                  "(see harvey/accounts_config.py for the format), or load products "
+                  "with their own rules: harvey products import <file.json>\n")
         return
     threshold = args.threshold if args.threshold is not None else scoring.threshold
-    state = await _state()
     accounts = await tracked_accounts(state, segment=args.segment, batch=args.batch)
     results = await score_accounts(state, scoring, accounts, store=not args.no_store)
     above = sum(1 for _, s in results if s.score >= threshold)
@@ -115,6 +132,25 @@ async def _score(args):
     if not args.no_store:
         print("\n  Stored as ICP_SCORE. Build the cohort: harvey accounts cohort "
               f"--min-score {threshold:g}  (or Dashboard → Signals, range ICP_SCORE ≥ {threshold:g})\n")
+
+
+async def _score_products(state) -> bool:
+    """Score every product's accounts with that product's own rules (the gates
+    read these scores) and print one line per product. False if none has rules."""
+    from harvey.collectors.spain.accounts import tracked_accounts
+    from harvey.products import assignments, list_products, passes_threshold, score_products
+
+    products = [p for p in await list_products(state) if p.scoring.configured()]
+    if not products:
+        return False
+    await score_products(state, await tracked_accounts(state), products)
+    print("\n  Products (their own rules):")
+    for p in products:
+        rows = await assignments(state, product_id=p.id)
+        above = sum(1 for r in rows if passes_threshold(p, r.get("score")))
+        print(f"    {p.name[:40]:<40} {len(rows):>4} account(s), {above} at or above "
+              f"{p.scoring.threshold:g}")
+    return True
 
 
 async def _cohort(args):
@@ -171,6 +207,7 @@ def register(subparsers) -> None:
     p.add_argument("--batch", default="", help="Batch (lote) name (default: the file's name)")
     p.add_argument("--segment", default="", help="Segment for rows that don't give one")
     p.add_argument("--dry-run", action="store_true", help="Check the file without importing")
+    p.add_argument("--product", default="", help="Also assign the accounts to this product (name or id)")
 
     p = actions.add_parser("list", help="List tracked accounts")
     filters(p)

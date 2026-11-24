@@ -1055,6 +1055,10 @@ def main():
     from harvey.cli_accounts import register as register_accounts
     register_accounts(subparsers)
 
+    # harvey products list|import|export
+    from harvey.cli_products import register as register_products
+    register_products(subparsers)
+
     # harvey users list|add|passwd|remove
     from harvey.cli_users import register as register_users
     register_users(subparsers)
