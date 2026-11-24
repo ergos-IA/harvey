@@ -7,7 +7,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 # System deps (curl needed for the Claude CLI installer)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates \
+    curl ca-certificates libatomic1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
