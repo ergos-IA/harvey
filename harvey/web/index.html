@@ -49,6 +49,19 @@
   <div class="card" style="max-width:500px;width:100%">
     <h2>Panel bloqueado</h2>
     <p class="lede" id="lock-reason" role="alert"></p>
+    <form onsubmit="loginWithPassword(event)" style="margin-bottom:20px">
+      <div class="form-group">
+        <label class="form-label" for="login-email">Email</label>
+        <input type="email" class="form-input" id="login-email" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="login-password">Contraseña</label>
+        <input type="password" class="form-input" id="login-password" autocomplete="current-password" required>
+      </div>
+      <button class="btn btn-primary" type="submit" id="login-btn">Entrar</button>
+    </form>
+    <details>
+    <summary class="lede" style="cursor:pointer">Acceso de administrador con token</summary>
     <p class="lede">Abre el enlace que <code>harvey dashboard</code> mostró en tu terminal
       o ejecuta <code>harvey dashboard --url</code> para mostrarlo de nuevo. También puedes pegar
       el token de <code>data/dashboard-token</code>:</p>
@@ -59,6 +72,7 @@
       </div>
       <button class="btn btn-primary" type="submit">Desbloquear</button>
     </form>
+    </details>
   </div>
 </div>
 
@@ -105,6 +119,10 @@
     <div class="harvey-status" id="header-status">
       <span class="status-dot stopped" id="header-dot"></span>
       <span id="header-status-text">Comprobando…</span>
+    </div>
+    <div class="foot-user" id="foot-user" style="display:none;font-size:12px;margin:6px 0">
+      <span id="foot-user-email"></span>
+      · <a href="#" onclick="logout(event)">Salir</a>
     </div>
     <div class="foot-actions">
       <button class="icon-btn" id="theme-btn" onclick="cycleTheme()"

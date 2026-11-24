@@ -52,7 +52,14 @@ def _resolve_config_file() -> Path:
 # route except the static shell needs the token (see dashboard_auth).
 app = FastAPI(title="Harvey Dashboard", docs_url=None, redoc_url=None, openapi_url=None)
 token_store = auth.TokenStore(TOKEN_FILE)
-app.add_middleware(auth.DashboardGuard, store=token_store)
+# Named users (email + password) for a hosted dashboard; the token above
+# stays the admin key. See harvey/dashboard_users.py.
+from harvey import dashboard_users  # noqa: E402
+
+app.add_middleware(auth.DashboardGuard, store=token_store,
+                   session_lookup=dashboard_users.session_email,
+                   login_path=dashboard_users.LOGIN_PATH)
+app.include_router(dashboard_users.router)
 
 # Harvey process tracking
 _harvey_process: subprocess.Popen | None = None

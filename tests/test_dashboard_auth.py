@@ -79,6 +79,10 @@ def _protected_requests():
             continue
         path = re.sub(r"\{[^}]+\}", "x", route.path)
         for method in sorted(route.methods - {"HEAD"}):
+            # The one API route that takes no token: logging in is how a
+            # named user gets one (tests/test_dashboard_users.py).
+            if (method, path) == ("POST", "/api/login"):
+                continue
             out.append((method, path))
     return out
 

@@ -356,6 +356,59 @@ function unlockWithToken(event) {
   loadHarveyStatus();
 }
 
+// Named users: email + password buys a session token, kept and sent exactly
+// like the dashboard token (sessionStorage, Authorization header).
+async function loginWithPassword(event) {
+  event.preventDefault();
+  const emailEl = document.getElementById('login-email');
+  const passEl = document.getElementById('login-password');
+  const btn = document.getElementById('login-btn');
+  const password = passEl.value;
+  passEl.value = '';
+  btn.disabled = true;
+  try {
+    const r = await authFetch('/api/login', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: emailEl.value, password}),
+    });
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok || !setAuthToken(body.token || '')) {
+      document.getElementById('lock-reason').textContent =
+        body.message || 'No se ha podido iniciar sesión.';
+      return;
+    }
+    hideLock();
+    loadCurrentUser();
+    loadCurrentTab();
+    loadHarveyStatus();
+  } catch {
+    document.getElementById('lock-reason').textContent = 'No se puede conectar con el panel.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadCurrentUser() {
+  const me = await api('/api/me');
+  const box = document.getElementById('foot-user');
+  if (!box) return;
+  if (me && me.email) {
+    document.getElementById('foot-user-email').textContent = me.email;
+    box.style.display = '';
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+async function logout(event) {
+  if (event) event.preventDefault();
+  try { await authFetch('/api/logout', {method: 'POST'}); } catch { /* ignore */ }
+  clearAuthToken();
+  const box = document.getElementById('foot-user');
+  if (box) box.style.display = 'none';
+  showLock('Has cerrado la sesión.');
+}
+
 // Downloads go through the same authorised fetch and are handed to the
 // browser as a local blob, so no download URL ever carries the token.
 async function downloadCsv(path, filename, btn) {
@@ -3354,6 +3407,7 @@ loadSetupStatus();
 loadRuns();
 loadTodayActivity();
 loadHarveyStatus();
+loadCurrentUser();
 
 loadLiveStatus();
 

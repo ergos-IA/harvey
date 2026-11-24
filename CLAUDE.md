@@ -1,3 +1,9 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+> Este archivo tiene dos papeles: casi todo es el **asistente de configuración** para quien *usa* Harvey; la última sección, **Desarrollo**, es para quien *cambia* el código. Las llamadas de Harvey a Claude (`claude_runtime.py`) se ejecutan aisladas y nunca leen este archivo, así que editarlo no altera los emails que genera.
+
 # Harvey — Agente de ventas autónomo con IA
 
 Harvey es un agente de ventas autónomo impulsado por Claude Code. Encuentra prospectos, escribe emails en frío, envía campañas con Instantly, gestiona las respuestas y agenda reuniones, todo por su cuenta.
@@ -338,7 +344,13 @@ harvey discover              # Find businesses; --providers / --estimate / --pro
 harvey sending pause|resume  # Kill switch for all outbound
 harvey warmup [domain]       # Sending-domain readiness: SPF/DKIM/DMARC, age, blocklists, ramp, TrulyInbox warmup
 harvey trulyinbox [connect|other]  # Warmup service: connect TrulyInbox, or record another service
+harvey microsoft auth|test   # Microsoft 365 provider (docs/microsoft365.md)
+harvey profile               # Read discovered companies' websites (free, no Claude)
+harvey retry-writes          # Retry prospects the Writer couldn't write for
+harvey accounts import|list|enrich|score|cohort   # ABM flow for Spain (docs/espana.md)
 ```
+
+En Windows el venv se activa con `.venv\Scripts\activate` (PowerShell: `.venv\Scripts\Activate.ps1`).
 
 ### Problemas comunes
 - **"command not found: harvey"**: Activa primero el venv: `source .venv/bin/activate`
@@ -349,3 +361,40 @@ harvey trulyinbox [connect|other]  # Warmup service: connect TrulyInbox, or reco
 - **Fallan las llamadas a Codex** (`brain.provider: codex`): la línea del log dice por qué: `codex login` con ChatGPT (también cuando el inicio de sesión "has expired or is due for renewal": Harvey nunca lo renueva), instala la versión de Codex compatible (`harvey status --check` muestra qué falla sin llamar a un modelo; mientras Codex no se puede usar Harvey pausa ciclos enteros a propósito), elige un `brain.model` sin modo código, o elimina la capa de configuración de Codex que esté volviendo a activar herramientas/hooks/MCP. Nunca debilites las comprobaciones de aislamiento de Harvey para sortearlo.
 - **Instantly API 401**: Clave de API incorrecta o hace falta el plan Growth para acceder a la API
 - **Límite de frecuencia de búsqueda en Google**: Harvey recurre automáticamente a DuckDuckGo y Bing. Para una búsqueda fiable, añade una clave de API de Serper (5 $/mes).
+
+---
+
+## Desarrollo (cambiar el código de Harvey)
+
+Lee antes `CONTRIBUTING.md`: ningún dato real de personas o negocios en código, tests, fixtures, commits ni PR (solo `example.com`, `.test`, `.invalid`…). Comprobación antes de hacer push:
+`git diff origin/main | grep '^+' | grep -oE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}' | sort -u`
+
+### Tests
+```bash
+pip install -e ".[dev]"
+python -m pytest -q                                   # suite completa (lo que ejecuta CI)
+python -m pytest -q tests/test_outbox_native.py       # un módulo
+python -m pytest -q tests/test_state.py::test_name    # un test
+python -m pytest -q -k outbox                         # por patrón
+```
+- CI (`.github/workflows/tests.yml`): Ubuntu/macOS/Windows × Python 3.11/3.12, sin secretos ni red. No hay linter configurado.
+- Suites opcionales por variable de entorno: `HARVEY_PACKAGE_TESTS=1` (`test_packaging.py`, wheel instalado), `HARVEY_CODEX_CLI_TESTS=1` (`test_codex_cli_surface.py`, Codex CLI 0.159.3 real contra mocks locales), `HARVEY_CLAUDE_CLI_TESTS=1`. El marcador `@pytest.mark.real_claude_cli` usa el CLI de Claude instalado.
+- `tests/conftest.py` (autouse) sustituye el CLI de Claude por uno falso, aísla el token del panel y la skill Humanizer del operador. Los tests nunca envían email: usa los proveedores falsos de `tests/` (`fake_anthropic.py`, `fake_codex.py`).
+- Codex solo funciona en macOS/Linux; en Windows sus tests se saltan y se comprueba que se rechaza.
+
+### Arquitectura que no se ve en un solo archivo
+- **Todo vive junto al checkout** (`paths.py`): `harvey.yaml`, `.env`, `prompts/`, `skills/` y `data/` (SQLite, tokens OAuth, logs). `harvey.local.yaml` (gitignored, lo escribe `train`) **gana** sobre `harvey.yaml` en `config.load_config`; cualquier cambio de ajustes debe ir al archivo que realmente se lee.
+- **Defensa en capas contra instrucciones plantadas**, no las debilites:
+  1. `claude_runtime.py`: cada llamada al CLI usa `--safe-mode`, `--tools ""`, `--setting-sources ""`, `--strict-mcp-config`, cwd temporal vacío y prompt por stdin; si `--help` no lista todos los flags, Harvey se niega a llamar (sin fallback). `codex.py` aplica el mismo aislamiento a Codex.
+  2. `untrusted.py`: todo texto externo (webs, búsquedas, respuestas) entra al prompt envuelto con `fence()`.
+  3. `gate.py`: comprobación determinista, sin LLM, de cada email justo antes de enviarse; `autopilot_review` retiene enlaces a dominios ajenos o eco de instrucciones.
+- **Outbox como máquina de estados** (`pending_review → approved → sent`): writer y handler encolan, sender vacía según `send_window.py`, límite diario y kill switch. `sending_mode.sync_sending_mode` devuelve al Outbox lo aprobado-no-enviado al volver de autopilot a aprobación.
+- **Señales = observaciones**, nunca columnas (`signals.py`, `state.py`); el vocabulario `signal_codes` está protegido por trigger y solo se recogen las `confirmed`.
+- **Proveedores intercambiables**: brain (`brain.py` → Claude o `codex.py`), email (`integrations/mail_provider.py` → gmail/microsoft/smtp/instantly), discovery (`DiscoveryProvider` en `collectors/discover.py`).
+
+### Añadidos de este fork (ergos-IA, sobre `upstream` = ethanplusai/sellbird)
+- **ABM España**: `accounts_config.py` (secciones `accounts:` y `scoring:`), `collectors/spain/` (web, ATS españoles, InfoJobs, BORME, prensa), `cli_accounts.py`, `dashboard_accounts.py`. Documentado en `docs/espana.md`.
+- **Productos** (`products.py`, `dashboard_products.py`): varias ofertas guardadas en la BD (no en YAML), cada una con su ICP, puntuación y cuentas; `config_for(config, product)` devuelve una copia de la config con `product:`/`icp:` sustituidos para que los agentes no cambien. Una secuencia por empresa a la vez.
+- **Proceso** (`process.py`, `dashboard_process.py`): vista de solo lectura, fase a fase (0 Producto … 7 Respuesta) por producto; las decisiones van por `products.set_decision`.
+- **Railway** (`Dockerfile.railway`, `deploy/railway/`, `railway.json`, `docs/railway.md`): modo hosted; el panel acepta `HARVEY_PUBLIC_HOSTS`/`RAILWAY_PUBLIC_DOMAIN` con `HARVEY_DASHBOARD_TOKEN`.
+- Convención del fork: el código nuevo va en módulos propios en lugar de tocar `config.py` o los agentes de upstream, para que traer cambios de `upstream` siga siendo fácil. La interfaz del panel está en español.

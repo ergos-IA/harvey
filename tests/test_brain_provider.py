@@ -605,7 +605,7 @@ def _render_js(func: str, data, helpers=("escHtml", "formatDate")) -> str:
         funcs.append(match.group(0))
     script = "\n".join(funcs) + f"\nprocess.stdout.write({func}({json.dumps(data)}));"
     return subprocess.run([node, "-e", script], capture_output=True, text=True,
-                          check=True, timeout=30).stdout
+                          encoding="utf-8", check=True, timeout=30).stdout
 
 
 def _render_quota_card(data) -> str:

@@ -323,9 +323,14 @@ class DashboardGuard:
     """ASGI middleware applying the checks in the module docstring to every
     request, and the security headers to every response."""
 
-    def __init__(self, app, store: TokenStore):
+    def __init__(self, app, store: TokenStore, session_lookup=None, login_path: str = ""):
         self.app = app
         self.store = store
+        # Named users (harvey/dashboard_users.py): a session token is accepted
+        # like the dashboard token, and the login route is the one API path
+        # reachable without one (still after the Host and origin checks).
+        self.session_lookup = session_lookup
+        self.login_path = login_path
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "lifespan":
@@ -384,13 +389,19 @@ class DashboardGuard:
 
         if public:
             return await self.app(scope, receive, send_secured)
+        if self.login_path and method == "POST" and path == self.login_path:
+            return await self.app(scope, receive, send_secured)
 
-        # 3. Token (fail closed when it can't be loaded).
+        # 3. Token (fail closed when it can't be loaded), or a user's session.
+        authorization = headers.get("authorization", [])
+        session_user = self.session_lookup(authorization) if self.session_lookup else None
         try:
             token = self.store.get()
         except TokenError as e:
-            return await deny(503, "token_unavailable", str(e))
-        if not bearer_ok(headers.get("authorization", []), token):
+            if not session_user:
+                return await deny(503, "token_unavailable", str(e))
+            token = None
+        if not session_user and not bearer_ok(authorization, token):
             return await deny(401, "unauthorized",
                               "Abre el enlace que imprime 'harvey dashboard' para desbloquearlo.",
                               extra=[(b"www-authenticate", b'Bearer realm="harvey"')])
