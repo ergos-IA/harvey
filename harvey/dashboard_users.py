@@ -270,7 +270,20 @@ def session_email(authorization: list[str]) -> str | None:
     scheme, _, presented = authorization[0].partition(" ")
     if scheme.lower() != "bearer":
         return None
-    return sessions.lookup(presented.strip())
+    token = presented.strip()
+    email = sessions.lookup(token)
+    # A user removed from the file (``harvey users remove``, often from
+    # another process) loses any session still open here.
+    if not email:
+        return None
+    try:
+        known = email in user_store.emails()
+    except UserError:
+        known = False  # unreadable users file: fail closed
+    if not known:
+        sessions.revoke(token)
+        return None
+    return email
 
 
 def _client_key(request: Request) -> str:

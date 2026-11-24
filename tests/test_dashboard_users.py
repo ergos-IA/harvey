@@ -115,6 +115,19 @@ def test_changing_or_removing_a_user_ends_their_sessions(anon):
     assert anon.get("/api/me", headers={"Authorization": f"Bearer {token}"}).status_code == 401
 
 
+def test_a_user_removed_by_another_process_loses_the_open_session(anon, env):
+    token = _login(anon).json()["token"]
+    h = {"Authorization": f"Bearer {token}"}
+    # 'harvey users remove' runs in its own process: it rewrites the file but
+    # can't touch this process's sessions.
+    path = env / "data" / "dashboard-users.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["users"].pop(EMAIL)
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert anon.get("/api/me", headers=h).status_code == 401
+    assert anon.get("/api/stats", headers=h).status_code == 401
+
+
 def test_sessions_expire(anon, monkeypatch):
     token = _login(anon).json()["token"]
     now = users.time.time()
