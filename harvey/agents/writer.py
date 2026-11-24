@@ -315,8 +315,9 @@ class Writer:
             ]
             inbox_rule = (
                 "\n- This goes to the company's general inbox, most likely read by the owner"
-                "\n  or the office manager. Use no first name; open with 'Hi there' or"
-                "\n  address the company's team.")
+                "\n  or the office manager. Use no first name. If the product knowledge says"
+                "\n  how to open an email to a general inbox, follow it; otherwise open with"
+                "\n  'Hi there' or address the company's team.")
         else:
             facts = [
                 f"- Name: {prospect.full_name()}",
