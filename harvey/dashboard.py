@@ -949,6 +949,12 @@ from harvey import dashboard_linkedin  # noqa: E402
 dashboard_linkedin.configure(lambda: _state())
 app.include_router(dashboard_linkedin.router)
 
+# Documentos: internal files dropped in data/docs (never in the repo).
+from harvey import dashboard_docs  # noqa: E402
+
+dashboard_docs.configure(lambda: DB_PATH.parent / "docs")
+app.include_router(dashboard_docs.router)
+
 # The Proceso tab: each product's accounts, phase by phase, and its gates.
 from harvey import dashboard_process  # noqa: E402
 

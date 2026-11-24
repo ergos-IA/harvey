@@ -470,6 +470,7 @@ function loadCurrentTab() {
     case 'campaigns': loadCampaigns(); break;
     case 'outbox': loadOutbox(); break;
     case 'linkedin': loadLinkedin(); break;
+    case 'docs': loadDocs(); break;
     case 'conversations': loadConversations(); break;
     case 'activity': loadActivity(); break;
     case 'usage': loadUsage(); break;
@@ -485,6 +486,55 @@ const LI_STATUS = {
   invited: 'Invitación enviada', connected: 'Ha aceptado', messaged: 'Mensaje enviado',
   rejected: 'Descartada', failed: 'Fallida',
 };
+
+// ── Documentos ──
+
+function docSize(n) {
+  if (n >= 1048576) return (n / 1048576).toFixed(1).replace('.', ',') + ' MB';
+  if (n >= 1024) return Math.round(n / 1024) + ' KB';
+  return n + ' B';
+}
+
+async function loadDocs() {
+  const list = document.getElementById('docs-list');
+  const data = await api('/api/docs');
+  if (!data) { list.innerHTML = offlineState(); return; }
+  const items = data.items || [];
+  if (!items.length) {
+    list.innerHTML = emptyState(icon('box'), 'Todavía no hay documentos',
+      'Se publican copiando el archivo a <code>data/docs/</code> en el servidor.');
+    return;
+  }
+  list.innerHTML = items.map((d, i) =>
+    '<div class="card" style="display:flex;align-items:center;gap:var(--sp-3);justify-content:space-between;flex-wrap:wrap">' +
+      '<div><div style="font-weight:600">' + escHtml(d.name) + '</div>' +
+      '<div class="muted" style="font-size:12px">' + docSize(d.size) + ' · ' +
+        escHtml(new Date(d.modified).toLocaleDateString('es-ES')) + '</div></div>' +
+      '<button class="btn btn-primary btn-sm" data-i="' + i + '" onclick="downloadDoc(this)">Descargar</button>' +
+    '</div>').join('');
+  list._items = items;
+}
+
+async function downloadDoc(btn) {
+  const items = document.getElementById('docs-list')._items || [];
+  const d = items[Number(btn.dataset.i)];
+  if (!d) return;
+  btn.disabled = true;
+  try {
+    const r = await authFetch('/api/docs/' + encodeURIComponent(d.name));
+    if (await lockIfRefused(r)) return;
+    if (!r.ok) { showToast('No se pudo descargar el documento.', 'error'); return; }
+    const url = URL.createObjectURL(await r.blob());
+    const a = document.createElement('a');
+    a.href = url; a.download = d.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch {
+    showToast('No se pudo descargar el documento.', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
 
 async function loadLinkedin() {
   const data = await api('/api/linkedin');
