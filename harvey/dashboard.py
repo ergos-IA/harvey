@@ -1254,9 +1254,10 @@ def _compliance_view() -> dict:
     """What the Sender adds under each cold email, so a reviewer sees the
     email as it will leave, and the warning when the address is missing."""
     try:
-        from harvey.config import compliance_footer_lines, compliance_notice, load_config
+        from harvey.config import compliance_notice, load_config
+        from harvey.signature import outgoing_footer
         config = load_config()
-        return {"footer": "\n".join(compliance_footer_lines(config)),
+        return {"footer": outgoing_footer(config),     # signature + compliance lines
                 "compliance_notice": compliance_notice(config)}
     except Exception:
         return {"footer": "", "compliance_notice": ""}

@@ -213,9 +213,10 @@ def test_an_approved_edit_is_what_gets_sent(client):
         await make_sender(state, provider)._drain_due()
         return provider.sent
     sent = asyncio.run(send())
-    # The edit as saved, with the compliance footer the Sender adds underneath.
-    assert [(m["subject"], m["body"].split("\n\n" + LINE)[0]) for m in sent] == [
-        ("your portal", "Hello Brightline Portals team,\n\nSam")]
+    # The edit as saved, with the signature and compliance footer the Sender adds underneath.
+    assert [m["subject"] for m in sent] == ["your portal"]
+    assert sent[0]["body"].startswith("Hello Brightline Portals team,\n\nSam\n\n")
+    assert sent[0]["body"].endswith(LINE)
 
 
 def test_a_closed_role_shows_as_not_hiring_to_the_reviewer(client):

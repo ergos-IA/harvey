@@ -602,9 +602,13 @@ class Sender:
         """A cold email as it leaves: the postal address and opt-out line
         underneath (CAN-SPAM). Added at send time, so a changed address
         applies to mail already queued; not added again when the body already
-        ends with it."""
-        footer = "\n".join(compliance_footer_lines(self.config))
-        if not footer or body.rstrip().endswith(footer):
+        ends with it. The persona's signature goes above it (harvey/signature.py)."""
+        from harvey.signature import outgoing_footer
+        legal = "\n".join(compliance_footer_lines(self.config))
+        if legal and body.rstrip().endswith(legal):
+            return body
+        footer = outgoing_footer(self.config, body)
+        if not footer:
             return body
         return body.rstrip() + "\n\n" + footer
 

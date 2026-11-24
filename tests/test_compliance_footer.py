@@ -44,14 +44,22 @@ def _sender(state, provider, address=ADDRESS, line=LINE):
 
 # ── The footer ──
 
+def _sign(sender) -> str:
+    from harvey.signature import signature_lines
+    lines = signature_lines(sender.config)
+    assert lines                       # the test persona has a name
+    return "\n".join(lines)
+
+
 @pytest.mark.asyncio
 async def test_cold_email_goes_out_with_the_address_and_opt_out_line(state):
     pid = await seed_prospect(state, status="contacted")
     item_id = await _approved(state, pid)
     provider = FakeProvider()
-    await _sender(state, provider)._drain_due()
+    sender = _sender(state, provider)
+    await sender._drain_due()
     assert provider.sent[0]["body"] == (
-        "A short, plain note. Question?\n\n" + ADDRESS + "\n" + LINE)
+        "A short, plain note. Question?\n\n" + _sign(sender) + "\n\n" + ADDRESS + "\n" + LINE)
     # The Outbox keeps what actually went out.
     assert (await state.get_outbox_item(item_id))["body"] == provider.sent[0]["body"]
 
@@ -70,8 +78,9 @@ async def test_without_an_address_cold_email_still_goes_with_the_opt_out_line(st
     pid = await seed_prospect(state, status="contacted")
     await _approved(state, pid)
     provider = FakeProvider()
-    await _sender(state, provider, address="")._drain_due()
-    assert provider.sent[0]["body"] == "A short, plain note. Question?\n\n" + LINE
+    sender = _sender(state, provider, address="")
+    await sender._drain_due()
+    assert provider.sent[0]["body"] == "A short, plain note. Question?\n\n" + _sign(sender) + "\n\n" + LINE
     assert "postal_address" in caplog.text
 
 
@@ -80,8 +89,20 @@ async def test_both_lines_can_be_turned_off(state):
     pid = await seed_prospect(state, status="contacted")
     await _approved(state, pid)
     provider = FakeProvider()
-    await _sender(state, provider, address="", line="")._drain_due()
-    assert provider.sent[0]["body"] == "A short, plain note. Question?"
+    sender = _sender(state, provider, address="", line="")
+    await sender._drain_due()
+    assert provider.sent[0]["body"] == "A short, plain note. Question?\n\n" + _sign(sender)
+
+
+@pytest.mark.asyncio
+async def test_a_body_the_writer_already_signed_is_not_signed_twice(state):
+    pid = await seed_prospect(state, status="contacted")
+    provider = FakeProvider()
+    sender = _sender(state, provider)
+    name = sender.config.persona.name
+    await _approved(state, pid, body="A short, plain note. Question?\n\n" + name)
+    await sender._drain_due()
+    assert provider.sent[0]["body"].count(name) == 1
 
 
 @pytest.mark.asyncio
