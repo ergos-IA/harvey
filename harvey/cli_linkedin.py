@@ -132,6 +132,10 @@ async def _work(args):
 
 
 def cmd_linkedin(args):
+    from dotenv import load_dotenv
+
+    from harvey.paths import PROJECT_ROOT
+    load_dotenv(PROJECT_ROOT / ".env")     # HARVEY_REMOTE_URL / HARVEY_REMOTE_TOKEN
     action = {"plan": _plan, "draft": _draft, "approve": _approve, "reject": _reject,
               "login": _login, "work": _work}.get(args.linkedin_action, _show)
     _default_limits(args)
