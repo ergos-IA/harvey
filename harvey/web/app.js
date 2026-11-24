@@ -469,12 +469,132 @@ function loadCurrentTab() {
     case 'prospects': loadProspects(); break;
     case 'campaigns': loadCampaigns(); break;
     case 'outbox': loadOutbox(); break;
+    case 'linkedin': loadLinkedin(); break;
     case 'conversations': loadConversations(); break;
     case 'activity': loadActivity(); break;
     case 'usage': loadUsage(); break;
     case 'settings': loadSettings(); loadSendingModeCard(); break;
     case 'controls': loadHarveyStatus(); loadLogs(); break;
   }
+}
+
+// ── LinkedIn: the queue the PC worker sends from ──
+
+const LI_STATUS = {
+  candidate: 'Sin redactar', pending_review: 'Por revisar', approved: 'Aprobada',
+  invited: 'Invitación enviada', connected: 'Ha aceptado', messaged: 'Mensaje enviado',
+  rejected: 'Descartada', failed: 'Fallida',
+};
+
+async function loadLinkedin() {
+  const data = await api('/api/linkedin');
+  const list = document.getElementById('linkedin-list');
+  const sum = document.getElementById('linkedin-summary');
+  const actions = document.getElementById('linkedin-actions');
+  if (!data) { list.innerHTML = offlineState(); sum.innerHTML = ''; actions.innerHTML = ''; return; }
+  if (data.success === false) {
+    list.innerHTML = emptyState(icon('alert'), 'No se pudo leer la cola', escHtml(data.error || ''));
+    return;
+  }
+  const q = data.queue || {};
+  const jobs = data.jobs || {};
+  navCount('nav-linkedin', q.pending_review || 0);
+  const unflagged = (data.items || []).filter(i => i.status === 'pending_review' && !i.flags).length;
+  actions.innerHTML =
+    '<button class="btn btn-secondary btn-sm" onclick="linkedinPlan()" ' +
+      'title="Busca personas en las cuentas de 70 puntos o más que aún no tienen">Buscar personas</button>' +
+    (q.candidate ? '<button class="btn btn-secondary btn-sm" onclick="linkedinDraft()">Redactar (' + q.candidate + ')</button>' : '') +
+    (unflagged ? '<button class="btn btn-primary btn-sm" onclick="linkedinApprove(null)">Aprobar todas (' + unflagged + ')</button>' : '');
+  const chips = Object.keys(LI_STATUS).filter(k => q[k])
+    .map(k => '<span class="chip">' + LI_STATUS[k] + ' <b>' + q[k] + '</b></span>');
+  const waiting = (jobs.pending || 0) + (jobs.claimed || 0);
+  if (waiting) chips.push('<span class="chip">Búsquedas pendientes <b>' + waiting + '</b></span>');
+  sum.innerHTML = chips.length
+    ? '<div class="card" style="display:flex;gap:var(--sp-3);flex-wrap:wrap">' + chips.join('') + '</div>' : '';
+  const items = (data.items || []).filter(i => i.status !== 'rejected');
+  if (!items.length) {
+    list.innerHTML = emptyState(icon('box'), 'Todavía no hay nadie en la cola',
+      'Pulsa «Buscar personas»: Harvey elige las cuentas de 70 puntos o más y el trabajador de tu PC busca a quién escribir en ellas.');
+    return;
+  }
+  const order = ['pending_review', 'failed', 'connected', 'approved', 'candidate', 'invited', 'messaged'];
+  items.sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+  list.innerHTML = items.map(linkedinCard).join('');
+}
+
+function linkedinCard(i) {
+  const editable = ['pending_review', 'approved', 'failed'].includes(i.status);
+  const id = escHtml(i.id);
+  const field = (label, name, value, max) => editable
+    ? '<label class="muted" style="display:block;margin-top:var(--sp-3)">' + label + '</label>' +
+      '<textarea id="li-' + name + '-' + id + '" rows="' + (name === 'note' ? 2 : 4) + '" maxlength="' + max +
+      '" style="width:100%">' + escHtml(value || '') + '</textarea>'
+    : (value ? '<p style="margin-top:var(--sp-2)"><span class="muted">' + label + ':</span> ' + escHtml(value) + '</p>' : '');
+  return '<div class="card">' +
+    '<div class="card-title"><a href="' + safeHref(i.profile_url) + '" target="_blank" rel="noopener noreferrer">' +
+      escHtml(i.full_name || i.profile_url) + '</a><span class="chip">' + escHtml(LI_STATUS[i.status] || i.status) + '</span></div>' +
+    '<div class="muted">' + escHtml([i.title, i.company_name].filter(Boolean).join(' · ')) + '</div>' +
+    (i.flags ? '<p style="margin-top:var(--sp-2)"><b>Revisar:</b> ' + escHtml(i.flags) + '</p>' : '') +
+    (i.error ? '<p class="muted" style="margin-top:var(--sp-2)">' + escHtml(i.error) + '</p>' : '') +
+    field('Nota de la invitación', 'note', i.note, 200) +
+    field('Mensaje cuando acepte', 'message', i.message, 600) +
+    (editable ? '<div style="margin-top:var(--sp-3);display:flex;gap:var(--sp-2);flex-wrap:wrap">' +
+      (i.status === 'pending_review'
+        ? '<button class="btn btn-primary btn-sm" data-id="' + id + '" onclick="linkedinSaveApprove(this.dataset.id)">Guardar y aprobar</button>' : '') +
+      '<button class="btn btn-secondary btn-sm" data-id="' + id + '" onclick="linkedinSave(this.dataset.id)">Guardar</button>' +
+      '<button class="btn btn-secondary btn-sm" data-id="' + id + '" onclick="linkedinReject(this.dataset.id)">Descartar</button></div>' : '') +
+    '</div>';
+}
+
+async function linkedinPost(path, body) {
+  return api(path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})});
+}
+
+async function linkedinSave(id, quiet) {
+  const note = document.getElementById('li-note-' + id);
+  const message = document.getElementById('li-message-' + id);
+  const data = await linkedinPost('/api/linkedin/' + encodeURIComponent(id) + '/edit',
+    {note: note ? note.value : undefined, message: message ? message.value : undefined});
+  if (!data || !data.success) { showToast(failMsg(data, 'No se pudo guardar.'), 'error'); return false; }
+  if (!quiet) {
+    showToast(data.flags && data.flags.length ? 'Guardado. Revisar: ' + data.flags.join('; ') : 'Guardado.', 'success');
+    loadLinkedin();
+  }
+  return true;
+}
+
+async function linkedinSaveApprove(id) {
+  if (await linkedinSave(id, true)) await linkedinApprove([id]);
+}
+
+async function linkedinApprove(ids) {
+  const data = await linkedinPost('/api/linkedin/approve', ids ? {ids} : {});
+  if (data && data.success) showToast('Aprobada(s): ' + data.approved + '. Las envía el trabajador de tu PC.', 'success');
+  else showToast(failMsg(data, 'No se pudo aprobar.'), 'error');
+  loadLinkedin();
+}
+
+async function linkedinReject(id) {
+  const data = await linkedinPost('/api/linkedin/' + encodeURIComponent(id) + '/reject');
+  if (!data || !data.success) showToast(failMsg(data, 'No se pudo descartar.'), 'error');
+  loadLinkedin();
+}
+
+async function linkedinPlan() {
+  const data = await linkedinPost('/api/linkedin/plan', {min_score: 70});
+  if (data && data.success) showToast(data.created
+    ? data.created + ' cuenta(s) nuevas. El trabajador de tu PC buscará en ellas.'
+    : 'No hay cuentas nuevas de 70 puntos o más.', 'success');
+  else showToast(failMsg(data, 'No se pudo planificar.'), 'error');
+  loadLinkedin();
+}
+
+async function linkedinDraft() {
+  showToast('Redactando con Claude…', 'info');
+  const data = await linkedinPost('/api/linkedin/draft', {limit: 10});
+  if (data && data.success) showToast(data.drafted + ' borrador(es) listos para revisar.', 'success');
+  else showToast(failMsg(data, 'No se pudo redactar.'), 'error');
+  loadLinkedin();
 }
 
 // ── Today: what needs a human ──

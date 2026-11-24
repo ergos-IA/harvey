@@ -1059,6 +1059,10 @@ def main():
     from harvey.cli_products import register as register_products
     register_products(subparsers)
 
+    # harvey linkedin plan|draft|approve|reject|login|work
+    from harvey.cli_linkedin import register as register_linkedin
+    register_linkedin(subparsers)
+
     # harvey users list|add|passwd|remove
     from harvey.cli_users import register as register_users
     register_users(subparsers)
