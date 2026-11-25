@@ -25,7 +25,8 @@ async def _import(args):
         print("\n  El archivo no tiene filas con dominio y nombre.\n")
         return
     report = await ci.import_contacts(state, rows, env=load_env(),
-                                      per_company=args.per_company, dry_run=args.dry_run)
+                                      per_company=args.per_company, dry_run=args.dry_run,
+                                      extra_patterns=args.extra_patterns)
     head = "Simulación (no se ha guardado nada)" if args.dry_run else "Importado"
     print(f"\n  {head}: {len(report.added)} persona(s) con correo entregable "
           f"de {len(rows)} fila(s).")
@@ -59,5 +60,8 @@ def register(subparsers) -> None:
     sub.add_argument("file", help="CSV or JSON: domain, name, title, linkedin_url, since, notes…")
     sub.add_argument("--per-company", type=int, default=1,
                      help="People with a deliverable address to keep per company (default 1)")
-    sub.add_argument("--dry-run", action="store_true", help="Work out the addresses, store nothing")
+    sub.add_argument("--extra-patterns", type=int, default=3,
+                     help="Other address formats to verify when the first is rejected (default 3)")
+    sub.add_argument("--dry-run", action="store_true",
+                     help="Work out the addresses, store nothing (still spends verifications)")
     sub.set_defaults(func=cmd_contacts)

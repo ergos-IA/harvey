@@ -196,11 +196,58 @@ async def _retire_inbox(state, inbox: Prospect) -> tuple[int, int]:
     return retired, rejected
 
 
+# Formats tried, in order, when the company's usual one is rejected for this
+# person: the common Spanish ones after nombre.apellido@.
+ALTERNATE_PATTERNS = ("{fi}{l}", "{f}", "{f}{l}", "{fi}.{l}")
+
+
+async def _other_patterns(first: str, last: str, domain: str, result, *, env, state,
+                          verifier, others, limit: int):
+    """When the verifier rejected the usual format, try up to ``limit`` others.
+
+    Each try spends one verification. A verifier that can't answer (no
+    credits) stops the search. A confirmed format is remembered for the
+    domain, so the next person there is guessed right the first time.
+    """
+    from harvey.integrations.email_finder import EmailResult, build_email, _clean_name_part
+
+    taken = {(_clean_name_part(f), _clean_name_part(l)) for f, l in (others or [])}
+    tried = {result.email}
+    for pattern in ALTERNATE_PATTERNS[:limit]:
+        email = build_email(pattern, first, last, domain)
+        if not email or email in tried:
+            continue
+        # jsanchez@ could just as well be a colleague with the same initial.
+        if pattern in ("{fi}{l}", "{fi}.{l}") and any(
+                f[:1] == _clean_name_part(first)[:1] and l == _clean_name_part(last)
+                for f, l in taken):
+            continue
+        tried.add(email)
+        status, _catch_all = await verifier(email, result.mx_type, env)
+        if status is None:
+            return result
+        if status in REACHABLE:
+            if status == "verified" and state is not None:
+                try:
+                    await state.save_email_pattern(domain, pattern=pattern, source="verified_alternate",
+                                                   confidence=0.95, mx_type=result.mx_type)
+                except Exception:
+                    pass
+            return EmailResult(email=email, status=status, pattern=pattern, mx_type=result.mx_type)
+    return result
+
+
 async def import_contacts(state, rows: list[Row], *, env=None, per_company: int = 1,
-                          dry_run: bool = False, finder=None) -> Report:
-    """Add up to ``per_company`` reachable people to each company in ``rows``."""
+                          dry_run: bool = False, finder=None, verifier=None,
+                          extra_patterns: int = 3) -> Report:
+    """Add up to ``per_company`` reachable people to each company in ``rows``.
+
+    ``extra_patterns`` other address formats are tried (one verification
+    each) when a person's first candidate is rejected."""
     if finder is None:
         from harvey.integrations.email_finder import find_email as finder
+    if verifier is None:
+        from harvey.integrations.email_finder import _verify_candidate as verifier
     report = Report()
     by_domain: dict[str, list[Row]] = {}
     for row in rows:
@@ -237,8 +284,13 @@ async def import_contacts(state, rows: list[Row], *, env=None, per_company: int 
                 report.skipped.append({**label, "reason": "ya estaba"})
                 continue
             mine = (email_first, email_last)
+            colleagues = [o for o in others if o != mine]
             result = await finder(email_first, email_last, domain, verify=True, env=env, state=state,
-                                  other_people=[o for o in others if o != mine] or None)
+                                  other_people=colleagues or None)
+            if result.status == "invalid" and result.email and extra_patterns > 0:
+                result = await _other_patterns(email_first, email_last, domain, result, env=env,
+                                               state=state, verifier=verifier, others=colleagues,
+                                               limit=extra_patterns)
             entry = {"company": company.name, "name": f"{first} {last}", "title": row.title,
                      "email": result.email, "status": result.status}
             if result.status not in REACHABLE or not result.email:

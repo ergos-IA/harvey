@@ -159,3 +159,46 @@ async def test_fills_an_empty_company_description_only(state):
     assert report.descriptions_filled == 1
     assert (await state.get_company(empty)).description == "Fabrica rodillos."
     assert (await state.get_company(full)).description == "Ya descrita."
+
+
+def fake_verifier(good: set, *, answer=True):
+    calls = []
+
+    async def verifier(email, mx_type, env):
+        calls.append(email)
+        if not answer:
+            return None, False
+        return ("verified" if email in good else "invalid"), False
+    verifier.calls = calls
+    return verifier
+
+
+@pytest.mark.asyncio
+async def test_a_rejected_address_tries_other_formats_and_remembers_the_right_one(state):
+    await _company(state)
+    verifier = fake_verifier({"aruiz@rodillos.test"})
+    report = await ci.import_contacts(state, [ci.Row(domain="rodillos.test", name="Ana Ruiz", title="CEO")],
+                                      finder=fake_finder({"Ana": "invalid"}), verifier=verifier)
+    assert [e["email"] for e in report.added] == ["aruiz@rodillos.test"]
+    assert verifier.calls == ["aruiz@rodillos.test"]
+    assert (await state.get_email_pattern("rodillos.test"))["pattern"] == "{fi}{l}"
+
+
+@pytest.mark.asyncio
+async def test_no_verifier_answer_stops_the_search(state):
+    await _company(state)
+    verifier = fake_verifier(set(), answer=False)
+    report = await ci.import_contacts(state, [ci.Row(domain="rodillos.test", name="Ana Ruiz", title="CEO")],
+                                      finder=fake_finder({"Ana": "invalid"}), verifier=verifier)
+    assert not report.added and len(verifier.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_an_initial_shared_with_a_colleague_is_not_tried(state):
+    await _company(state)
+    verifier = fake_verifier(set())
+    rows = [ci.Row(domain="rodillos.test", name="Ana Ruiz", title="CEO"),
+            ci.Row(domain="rodillos.test", name="Alba Ruiz", title="Gerente")]
+    await ci.import_contacts(state, rows, finder=fake_finder({"Ana": "invalid", "Alba": "invalid"}),
+                             verifier=verifier, per_company=2)
+    assert not any(e.startswith(("aruiz@", "a.ruiz@")) for e in verifier.calls)

@@ -24,6 +24,7 @@ import logging
 import os
 import random
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
@@ -99,7 +100,10 @@ def _clean_domain(domain: str) -> str:
 
 
 def _clean_name_part(value: str) -> str:
-    return re.sub(r"[^a-z]", "", (value or "").lower())
+    """Letters only, accents folded: 'Íñiguez' -> 'iniguez', not 'iguez'."""
+    folded = unicodedata.normalize("NFKD", (value or "").lower())
+    folded = "".join(ch for ch in folded if not unicodedata.combining(ch))
+    return re.sub(r"[^a-z]", "", folded)
 
 
 def build_email(pattern: str, first: str, last: str, domain: str) -> str:

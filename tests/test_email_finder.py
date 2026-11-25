@@ -46,6 +46,11 @@ def test_build_email_patterns():
     assert build_email("nonexistent", "Jane", "Doe", "acme.com") == ""
 
 
+def test_build_email_folds_accents_instead_of_dropping_letters():
+    assert build_email("{f}.{l}", "Íñigo", "Muñoz", "acme.test") == "inigo.munoz@acme.test"
+    assert build_email("{fi}{l}", "Àngel", "Garcés", "acme.test") == "agarces@acme.test"
+
+
 def test_generate_patterns_dedup_and_order():
     patterns = generate_patterns("Jane", "Doe", "acme.com")
     assert patterns[0] == "jane.doe@acme.com"   # most common first
