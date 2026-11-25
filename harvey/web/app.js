@@ -86,6 +86,7 @@ const STATUS = {
   write_failed:   ['No se pudo redactar', 'bad'],
   queued:         ['En cola', 'active'],
   opted_out:      ['Se dio de baja', 'bad'],
+  replaced:       ['Sustituido por una persona', 'idle'],
   // campaigns
   draft:          ['Borrador', 'waiting'],
   active:         ['Activa', 'good'],
@@ -228,7 +229,7 @@ function meterHtml(pct, segments) {
 const SOURCE_LABELS = {
   company_website: 'Página del equipo', known_company_backfill: 'Página del equipo',
   scraped_mailto: 'Dirección publicada', hunter_domain_search: 'Hunter', linkedin_search: 'LinkedIn',
-  job_board: 'Portal de empleo', web_search: 'Búsqueda web', company_inbox: 'Buzón de la empresa',
+  job_board: 'Portal de empleo', web_search: 'Búsqueda web', company_inbox: 'Buzón de la empresa', imported_contact: 'Importado (Clay o lista)',
   osm: 'OpenStreetMap', dataforseo_listings: 'DataForSEO', dataforseo_serp: 'DataForSEO SERP', dataforseo_maps: 'DataForSEO Maps',
   serper: 'Serper', tinyfish: 'TinyFish',
 };
@@ -1908,6 +1909,7 @@ async function loadOutbox() {
 }
 
 const CONTACT_SOURCES = {
+  imported_contact: 'lista importada (Clay u hoja de cálculo)',
   known_company_backfill: 'página del equipo en su web',
   company_website: 'página del equipo en su web',
   scraped_mailto: 'dirección publicada en su web',

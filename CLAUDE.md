@@ -349,6 +349,7 @@ harvey profile               # Read discovered companies' websites (free, no Cla
 harvey retry-writes          # Retry prospects the Writer couldn't write for
 harvey accounts import|list|enrich|score|cohort   # ABM flow for Spain (docs/espana.md); import --product <name> assigns them
 harvey products [import <file.json> [--assign] | export [file]]   # Products (offer + ICP + scoring) as JSON, matched by name
+harvey contacts import <file> [--per-company 1] [--dry-run]   # Named people (Clay, a sheet) for accounts on file; address by pattern + verifier, replaces the info@ inbox
 harvey linkedin plan|draft|approve|reject (server) · login|work (operator's PC)   # docs/linkedin.md
 ```
 
@@ -398,6 +399,7 @@ python -m pytest -q -k outbox                         # por patrón
 - **ABM España**: `accounts_config.py` (secciones `accounts:` y `scoring:`), `collectors/spain/` (web, ATS españoles, InfoJobs, BORME, prensa), `cli_accounts.py`, `dashboard_accounts.py`. Documentado en `docs/espana.md`.
 - **Productos** (`products.py`, `dashboard_products.py`): varias ofertas guardadas en la BD (no en YAML), cada una con su ICP, puntuación y cuentas; `config_for(config, product)` devuelve una copia de la config con `product:`/`icp:` sustituidos para que los agentes no cambien. Una secuencia por empresa a la vez.
 - **Proceso** (`process.py`, `dashboard_process.py`): vista de solo lectura, fase a fase (0 Producto … 7 Respuesta) por producto; las decisiones van por `products.set_decision`.
+- **Contactos importados** (`contacts_import.py`, `cli_contacts.py`): personas con nombre y cargo (búsqueda de personas de Clay u hoja de cálculo) para cuentas ya importadas; el correo se deduce del patrón de la empresa y se verifica, sus notas van a `personalization_notes` y, al haber persona alcanzable, el buzón genérico pasa a `replaced` y su correo pendiente se rechaza.
 - **Documentos** (`dashboard_docs.py`): pestaña del panel que lista y descarga los archivos de `data/docs/` (material interno que nunca va al repo).
 - **LinkedIn** (`linkedin_queue.py` + `dashboard_linkedin.py` en el servidor, `linkedin_worker.py` en el PC del operador, `docs/linkedin.md`): la cola y la redacción viven donde están los datos; el navegador (perfil persistente de Chromium, sesión iniciada a mano) corre en el PC y habla con `/api/linkedin/work|report` con el token del panel. Sus tablas se crean en el módulo (`ensure_tables`), no en las migraciones de `state.py`.
 - **Railway** (`Dockerfile.railway`, `deploy/railway/`, `railway.json`, `docs/railway.md`): modo hosted; el panel acepta `HARVEY_PUBLIC_HOSTS`/`RAILWAY_PUBLIC_DOMAIN` con `HARVEY_DASHBOARD_TOKEN`.

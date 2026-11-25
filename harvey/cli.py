@@ -1067,6 +1067,10 @@ def main():
     from harvey.cli_users import register as register_users
     register_users(subparsers)
 
+    # harvey contacts import
+    from harvey.cli_contacts import register as register_contacts
+    register_contacts(subparsers)
+
     sub = subparsers.add_parser(
         "retry-writes", help="Retry prospects the Writer couldn't write an email for")
     sub.set_defaults(func=cmd_retry_writes)
